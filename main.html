@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 加值幫手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="Slider.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+    <nav id = "nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+    <div class = "w-[1700px] mx-auto py-10 px-8">
+        <div class = "flex flex-col justify-center text-center w-full items-center">
+            <div class = "border border-slate-700 rounded-lg px-4 py-2">
+                <h1 class="text-2xl font-bold tracking-wide text-cyan-400">使用 Steam加值幫手 遊戲再打折</h1>
+            </div>
+            <p class="text-m font-bold tracking-wide text-slate-300 mt-6">折扣很不錯，但還想再打折?</p>
+            <p class="text-xl font-bold text-slate-300 mt-1">
+                買遊戲額外再取得  
+                <span class="text-xl font-bold text-slate-300 mt-1" style="background-color:#4c6b22;color:#a4d007;">-<span id="discount">--</span>%</span>
+                    的折扣
+            </p>
+            <br>
+            <a id=nav-main href='calculator.html' class="text-2xl font-bold text-cyan-400 bg-slate-800 rounded-lg px-4 py-2 mt-6">馬上開始</a>
+        </div>
+        <div class = "flex border border-slate-700">
+            <div class = "px-6 py-3">
+                111
+            </div>
+            <div class = "px-6 py-3">
+                111
+            </div>
+        </div>
+        <div class = "grid grid-cols-[1fr_1fr_1fr] gap-4" >
+            <div class="flex flex-col border items-start">
+                <h1 class="text-2xl font-bold text-cyan-400 mt-1">計算現在市場能取得的折扣</h1>
+                <h2 class="text-l font-bold text-slate-300 mt-1">現在 <span class="text-xl font-bold text-cyan-400 mt-1">1</span> 元約等於 <span id="max-roi" class="text-xl font-bold mx-1 text-emerald-400">--</span> 元 Steam 餘額</h2>
+                <h2 class="text-m font-bold text-slate-300 mt-1">用更少的錢取得更多的 Steam 餘額</h2>
+                <h2 class="text-m font-bold text-slate-300 mt-1">用更多的錢去買更多的 Steam 遊戲</h2>
+                <a href='calculator.html' class="text-m font-bold text-cyan-400 mt-1 w-auto">了解更多</a>
+            </div>
+            <div class="border">
+                <profit-slider id="profit-slider"></profit-slider>
+            </div>
+        </div>
+    </div>
+    <footer id = footer class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <script>
+    const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
+    const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1'; 
+    const CLIENT = supabase.createClient(supabaseUrl, supabaseKey);
+    const maxRoiDisplay = document.getElementById('max-roi');
+    const slider = document.getElementById('profit-slider');
+    const discount = document.getElementById('discount')
+    let ratio = 1; 
+    function loadNav(pageID) {
+        fetch("nav.html")
+            .then(response => {
+                if (!response.ok)throw new Error("網路回應不成功");
+                return response.text()
+            })
+            .then(html_text => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html_text,"text/html");
+                const high_light = doc.getElementById(`nav-${pageID}`);
+                if (high_light) {
+                    high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                    high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                }
+            document.getElementById('nav').innerHTML = doc.body.innerHTML;
+            }
+            )
+    }
+    function loadFooter() {
+        fetch("footer.html")
+            .then(response => {
+                if (!response.ok)throw new Error("網路回應不成功");
+                return response.text()
+            })
+            .then(html_text => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html_text,"text/html");
+                document.getElementById('footer').innerHTML = doc.body.innerHTML;
+            }
+            )
+    }
+    async function max_ratio() {
+        try {
+        const { data, error } = await CLIENT
+            .from('cases_data') 
+            .select('ratio')
+            .order('ratio', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            maxRoiDisplay.innerText = "無獲取資料";
+            return;
+        }
+        const firstRowRatio = data[0].ratio || 1;
+        const maxRoi = (Number(firstRowRatio) - 1) * 100;
+        maxRoiDisplay.innerText = firstRowRatio.toFixed(2);
+        ratio = firstRowRatio;
+        discount.innerHTML = ((1-1/firstRowRatio)*100).toFixed(0); 
+        }
+        catch (error) {
+            maxRoiDisplay.innerText = "無獲取資料";
+            console.error(error);
+        } finally {
+        }
+    }
+    loadNav("main")
+    loadFooter()
+    max_ratio()
+        .then(()=>slider.setAttribute('ratio',ratio))
+    </script>
+</body>
+</html>
