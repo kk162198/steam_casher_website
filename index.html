@@ -10,38 +10,131 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
     <nav id = "nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
-    <div class = "w-[1700px] mx-auto py-10 px-8">
-        <div class = "flex flex-col justify-center text-center w-full items-center">
-            <div class = "border border-slate-700 rounded-lg px-4 py-2">
-                <h1 class="text-2xl font-bold tracking-wide text-cyan-400">使用 Steam加值幫手 遊戲再打折</h1>
+    <div class = "flex flex-col w-[100%] max-w-[1337px] mx-auto py-10 px-8">
+        <!-- Hero 區 -->
+        <div class="flex flex-col md:flex-row items-center gap-10 w-full">
+            <div class = "flex flex-col justify-center text-center md:text-left w-full items-center md:items-start">
+                <div class = "bg-slate-800 rounded-lg px-4 py-2">
+                    <h1 class="text-2xl font-bold text-cyan-400">使用 Steam 加值幫手，遊戲再打折</h1>
+                </div>
+                <p class="text-m font-bold text-slate-300 mt-6">官方折扣很不錯，但你值得更低的入手價</p>
+                <p class="text-xl font-bold text-slate-300 mt-1">
+                    購買遊戲可額外再取得
+                    <span class="text-xl font-bold text-slate-300 mt-1" style="background-color:#4c6b22;color:#a4d007;">-<span id="discount">--</span>%</span>
+                        的疊加折扣
+                </p>
+                <br>
+                <a id=nav-main href='calculator.html' class="text-2xl font-bold text-slate-900 bg-cyan-400 rounded-lg px-4 py-2 mt-6">馬上開始</a>
             </div>
-            <p class="text-m font-bold tracking-wide text-slate-300 mt-6">折扣很不錯，但還想再打折?</p>
-            <p class="text-xl font-bold text-slate-300 mt-1">
-                買遊戲額外再取得  
-                <span class="text-xl font-bold text-slate-300 mt-1" style="background-color:#4c6b22;color:#a4d007;">-<span id="discount">--</span>%</span>
-                    的折扣
-            </p>
-            <br>
-            <a id=nav-main href='calculator.html' class="text-2xl font-bold text-cyan-400 bg-slate-800 rounded-lg px-4 py-2 mt-6">馬上開始</a>
+
+            <!-- 圖片預留區：Hero 主視覺 -->
+            <div class="w-full md:w-1/2 aspect-video rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/40 flex flex-col items-center justify-center gap-2 text-slate-500 p-4 flex-shrink-0">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 3h18v18H3V3z" /><circle cx="8.25" cy="8.25" r="1.5" /></svg>
+                <span class="text-sm font-semibold text-slate-400">圖片預留區・Hero 主視覺</span>
+                <span class="text-xs text-slate-500 text-center leading-relaxed">建議圖片：Steam 遊戲庫收藏牆、多螢幕遊戲慶祝折扣的氛圍圖<br>Suggested: Steam game library wall, gaming setup celebrating a discount, digital wallet coin overlay</span>
+            </div>
         </div>
-        <div class = "flex border border-slate-700">
-            <div class = "px-6 py-3">
-                111
-            </div>
-            <div class = "px-6 py-3">
-                111
+
+        <!-- 1元不只是1元 區 -->
+        <div class = "flex flex-col items-center text-center w-full max-w-[90%] mx-auto mt-16" >
+            <h2 class="text-2xl font-bold text-cyan-400">將資金效益極大化，用小錢辦大事</h2>
+            <p class="text-slate-400 text-sm max-w-2xl mt-2">打破常規儲值比例，透過精準的市場差價運作，把你的每一分錢都轉化為最大購買力。</p>
+
+            <div class="flex flex-col md:flex-row items-center gap-10 rounded-[20px] bg-slate-800 px-8 py-10 mt-6 w-full">
+                <div class="flex flex-col text-left w-full md:w-1/2">
+                    <span class="inline-block w-fit text-m font-bold text-slate-900 bg-cyan-400 rounded-full px-3 py-1 mb-4">1元不只是1元</span>
+                    <h1 class="flex flex-wrap items-center gap-3 font-bold text-slate-300">
+                        <span class="text-4xl font-bold text-cyan-400">1</span>
+                        <span class="font-bold text-cyan-400">元</span>
+                        <span class="text-3xl text-slate-500">➔</span>
+                        <span id="max-roi" class="text-4xl font-bold text-emerald-400">--</span>
+                        <span class="font-bold text-emerald-400">元 Steam 餘額</span>
+                    </h1>
+                    <ul class="mt-6 space-y-3">
+                        <li class="flex items-start gap-2 text-sm text-slate-300 leading-relaxed">
+                            <span class="text-cyan-400 font-bold">✓</span>
+                            <span><span class="font-bold text-slate-100">成本最小化：</span>花費更少的現實資金，獲取更高額的 Steam 錢包餘額。</span>
+                        </li>
+                        <li class="flex items-start gap-2 text-sm text-slate-300 leading-relaxed">
+                            <span class="text-cyan-400 font-bold">✓</span>
+                            <span><span class="font-bold text-slate-100">遊戲極大化：</span>在相同預算下，擴大你的 Steam 遊戲收藏規模。</span>
+                        </li>
+                    </ul>
+                    <a href='calculator.html' class="text-lg font-bold text-cyan-400 w-fit mt-6 hover:underline">立即了解更多 →</a>
+                </div>
+                <div class="flex flex-col items-center justify-center w-full md:w-1/2 border-t border-slate-700 md:border-t-0 md:border-l pt-8 md:pt-0 md:pl-10">
+                    <profit-slider id="profit-slider"></profit-slider>
+                </div>
             </div>
         </div>
-        <div class = "grid grid-cols-[1fr_1fr_1fr] gap-4" >
-            <div class="flex flex-col border items-start">
-                <h1 class="text-2xl font-bold text-cyan-400 mt-1">計算現在市場能取得的折扣</h1>
-                <h2 class="text-l font-bold text-slate-300 mt-1">現在 <span class="text-xl font-bold text-cyan-400 mt-1">1</span> 元約等於 <span id="max-roi" class="text-xl font-bold mx-1 text-emerald-400">--</span> 元 Steam 餘額</h2>
-                <h2 class="text-m font-bold text-slate-300 mt-1">用更少的錢取得更多的 Steam 餘額</h2>
-                <h2 class="text-m font-bold text-slate-300 mt-1">用更多的錢去買更多的 Steam 遊戲</h2>
-                <a href='calculator.html' class="text-m font-bold text-cyan-400 mt-1 w-auto">了解更多</a>
+
+        <!-- 精準、零浪費的加值體驗 區 -->
+        <div class="flex flex-col items-center text-center mt-20">
+            <h2 class="text-2xl font-bold text-cyan-400">精準、零浪費的加值體驗</h2>
+            <p class="text-slate-400 text-sm max-w-2xl mt-2">我們把繁瑣的比價與換算，變成幾秒鐘就能完成的事。</p>
+
+            <div class="flex flex-col gap-8 mt-10 w-[85%]">
+                <!-- 卡片一：數據零時差（圖左文右） -->
+                <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 bg-slate-800 rounded-lg p-6 md:p-8 w-full md:w-fit md:max-w-3xl">
+                    <div class="w-full md:w-[340px] aspect-video rounded-lg border-2 border-dashed border-slate-600 bg-slate-900/50 flex flex-col items-center justify-center gap-2 text-slate-500 p-3 flex-shrink-0">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l3-3 3 3 4.5-6L18 12l3-3M3 20.25h18" /></svg>
+                        <span class="text-xs font-semibold text-slate-400">圖片預留區</span>
+                        <span class="text-[11px] text-slate-500 text-center leading-relaxed">建議：即時走勢曲線圖、青色系數據儀表板<br>Real-time market data dashboard, glowing cyan line chart</span>
+                    </div>
+                    <div class="w-full md:w-64 text-left">
+                        <h3 class="text-lg font-bold text-cyan-400 text-center">數據零時差</h3>
+                        <p class="text-sm text-slate-300 mt-2 leading-relaxed">串接當日市場數據，確保每一筆差價與轉換率都精準無誤差，讓你的每筆交易都建立在最新、最準確的資訊之上，不再因資料過時而承擔損失。</p>
+                    </div>
+                </div>
+
+                <!-- 卡片二：極簡自動化操作（圖右文左） -->
+                <div class="flex flex-col md:flex-row-reverse ml-auto items-center gap-6 md:gap-10 bg-slate-800 rounded-lg p-6 md:p-8 w-full md:w-fit md:max-w-3xl">
+                    <div class="w-full md:w-[340px] aspect-video rounded-lg border-2 border-dashed border-slate-600 bg-slate-900/50 flex flex-col items-center justify-center gap-2 text-slate-500 p-3 flex-shrink-0">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.611L5 14.5" /></svg>
+                        <span class="text-xs font-semibold text-slate-400">圖片預留區</span>
+                        <span class="text-[11px] text-slate-500 text-center leading-relaxed">建議：一鍵操作介面截圖、滑鼠點擊按鈕示意<br>One-click automation UI mockup, cursor clicking a button</span>
+                    </div>
+                    <div class="w-full md:w-64 text-left">
+                        <h3 class="text-lg font-bold text-cyan-400 text-center">極簡自動化操作</h3>
+                        <p class="text-sm text-slate-300 mt-2 leading-relaxed">屏除繁瑣的搜尋與比價步驟，確認加值方案後，一鍵導向對應交易頁面，大幅縮短操作路徑，讓加值像點兩下滑鼠一樣簡單。</p>
+                    </div>
+                </div>
+
+                <!-- 卡片三：精確匹配，降低溢出（圖左文右） -->
+                <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 bg-slate-800 rounded-lg p-6 md:p-8 w-full md:w-fit md:max-w-3xl">
+                    <div class="w-full md:w-[340px] aspect-video rounded-lg border-2 border-dashed border-slate-600 bg-slate-900/50 flex flex-col items-center justify-center gap-2 text-slate-500 p-3 flex-shrink-0">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+                        <span class="text-xs font-semibold text-slate-400">圖片預留區</span>
+                        <span class="text-[11px] text-slate-500 text-center leading-relaxed">建議：精準計算／天秤秤重意象、數字完美對齊<br>Precision calculation, balance scale icon, numbers fitting perfectly</span>
+                    </div>
+                    <div class="w-full md:w-64 text-left">
+                        <h3 class="text-lg font-bold text-cyan-400 text-center">精確匹配，降低溢出</h3>
+                        <p class="text-sm text-slate-300 mt-2 leading-relaxed">輸入目標金額，系統自動演算出最貼合的加值組合，精準符合你的實際花費需求。（因 Steam 資產價值浮動，系統會自動預留緩衝額度，確保足額到帳。）</p>
+                    </div>
+                </div>
             </div>
-            <div class="border">
-                <profit-slider id="profit-slider"></profit-slider>
+        </div>
+
+        <!-- 使用前請注意 區 -->
+        <div class="flex flex-col mt-16 w-full max-w-3xl mx-auto bg-amber-950/30 border border-amber-700/50 rounded-lg px-6 py-5 text-left">
+            <h3 class="text-lg font-bold text-amber-400">使用前請注意</h3>
+            <ul class="mt-3 space-y-2 text-sm text-slate-300 leading-relaxed list-disc list-inside">
+                <li>此加值模式的資產有 <span class="font-bold text-amber-300">7 日冷卻期</span>，實際報酬率可能因此受影響，近期有資金急用需求者較不建議使用。</li>
+                <li>此加值模式僅限個人消費使用，請勿用於商業行為，若違反相關規範需自行承擔後果。</li>
+            </ul>
+        </div>
+
+        <!-- 進階版 預告區 -->
+        <div class="flex flex-col md:flex-row items-center gap-8 mt-16 w-full bg-slate-800 rounded-lg px-8 py-8">
+            <div class="flex flex-col text-left flex-1">
+                <span class="inline-block w-fit text-xs font-bold text-slate-900 bg-cyan-400 rounded-full px-3 py-1 mb-3">敬請期待</span>
+                <h3 class="text-2xl font-bold text-cyan-400">進階版：管理更完整的 Steam 資產</h3>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">提供資產追蹤儀表板，以及更加完備的預備資產配置策略，幫助你更從容地掌握每一筆加值與資產狀況。</p>
+            </div>
+            <div class="w-full md:w-80 aspect-video rounded-lg border-2 border-dashed border-slate-600 bg-slate-900/50 flex flex-col items-center justify-center gap-2 text-slate-500 p-4 flex-shrink-0">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3.75m8.5-3.75l1 3.75m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" /></svg>
+                <span class="text-xs font-semibold text-slate-400">圖片預留區</span>
+                <span class="text-[11px] text-slate-500 text-center leading-relaxed">建議：資產組合儀表板截圖、金庫／保險箱意象<br>Portfolio tracker dashboard mockup, vault or safe icon</span>
             </div>
         </div>
     </div>

@@ -25,13 +25,20 @@ export default class Slider extends HTMLElement {
         
         // 3. 將 ratio 綁定在 this 上，並賦予初始值
         this._ratio = Number(this.getAttribute("ratio")) || 1;
-        const case_name = this.getAttribute("case_name") || "市場最佳";
         container.innerHTML = `
             <style>
+                :host {
+                    display: block;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
                 .outside_div{
                     background-color: none;
                     display: grid;
                     place-items: center; /* 一行屬性同時處理水平與垂直置中 */
+                    padding-bottom: 10px;
+                    width: 100%;
+                    box-sizing: border-box;
                 }
                 .inside_div{
                     background-color: none;
@@ -40,31 +47,34 @@ export default class Slider extends HTMLElement {
                     border: 1px solid #334155 ;
                     border-radius: 20px;
                     padding: 10px;
-                    width: 80%;
+                    width: 100%;
+                    box-sizing: border-box;
                 }
                 h2{
+                    margin-top: 0;
                     color: #00e5ff;
                     text-align: center;
                     font-size: 20px;
-                    margin-bottom: 30px;
+                    margin-bottom: 20px;
                     font-weight: bold;
                 }
                 p{
                     color: #9ba4b5;
                     text-align: center;
                     font-size: 15px;
-                    margin-bottom: 30px;
+                    margin-bottom: 20px;
                     font-weight: bold;
+                    white-space: nowrap;
                 }
                 .slider {
                 -webkit-appearance: none;
-                width: 80%;
-                max-width: 400px;
+                width: 90%;
+                max-width: 100%;
                 height: 5px;
                 border-radius: 4px; 
                 background: linear-gradient(to right, #00e5ff 15%, #9ba4b5 15%);
                 outline: none;
-                margin-bottom: 15px;
+                margin-bottom: 20px;
                 }
 
                 .slider::-webkit-slider-thumb {
@@ -74,7 +84,7 @@ export default class Slider extends HTMLElement {
                 height: 20px;              /* 滑塊高度 */
                 border-radius: 50%;        /* 圓形 */
                 background: #00e5ff;       /* 內部背景 */
-                border: 3px solid #111827; /* 外部粗框 */
+                border: 3px solid #1C2632; /* 外部粗框 */
                 cursor: pointer;
                 }
                 .slider::-moz-range-thumb {
@@ -82,7 +92,7 @@ export default class Slider extends HTMLElement {
                     height: 20px;
                     border-radius: 50%;
                     background: #00e5ff;
-                    border: 3px solid #111827;
+                    border: 3px solid #1C2632;
                     cursor: pointer;
                 }
                 .base-input, .result-input {
@@ -121,28 +131,28 @@ export default class Slider extends HTMLElement {
 
             </style>
             <div class="outside_div">
-            <h2>今日預期${case_name}收益</h2>
-            <input 
-                type="range" 
-                id="cash-slider" 
-                min="100" 
-                max="10000" 
-                value="1000" 
-                step="1" 
-                class="slider"
-            >
-            <div class="inside_div">
-                <p>
-                    當前設定投入： 
-                    <input type="number" id="base-input" class="base-input" value="1000">
-                     元
-                </p>
-                <p>
-                    今日最佳套利收穫：
-                    <input type="number" id="result-input" class="result-input">
-                     元
-                </p>
-            </div>
+                <h2>報酬計算器</h2>
+                <input 
+                    type="range" 
+                    id="cash-slider" 
+                    min="100" 
+                    max="10000" 
+                    value="1000" 
+                    step="1" 
+                    class="slider"
+                >
+                <div class="inside_div">
+                    <p>
+                        當前設定投入： 
+                        <input type="number" id="base-input" class="base-input" value="1000">
+                        元
+                    </p>
+                    <p>
+                        今日最佳套利收穫：
+                        <input type="number" id="result-input" class="result-input">
+                        元
+                    </p>
+                </div>
             </div>
         `
         this.shadow.appendChild(container);

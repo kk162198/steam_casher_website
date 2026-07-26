@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 加值幫手 | 使用教學</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+
+    <div class="flex flex-col w-full max-w-3xl mx-auto py-10 px-8">
+
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-cyan-400">使用教學</h1>
+            <p class="text-slate-400 text-sm mt-2">完整流程只有四個步驟：查看價差、試算金額、CSFloat 買進、Steam 上架兌現。</p>
+        </div>
+
+        <div class="flex flex-col gap-6 mt-10">
+
+            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">1</div>
+                <div>
+                    <h3 class="text-lg font-bold text-cyan-400">到「市場列表」查看目前的套利機會</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+                        <a href="marketlist.html" class="text-cyan-400 hover:underline">市場列表</a> 會依「預估套利投報率（ROI）」由高到低排序所有已監控的武器箱，同時顯示 Steam 售價、CSFloat 成本與價差淨利。優先選擇 ROI 高、且 CSFloat 掛售庫存充足的品項，避免想買的時候買不到。
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">2</div>
+                <div>
+                    <h3 class="text-lg font-bold text-cyan-400">用「計算器」試算要投入多少錢</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+                        到 <a href="calculator.html" class="text-cyan-400 hover:underline">計算器</a> 頁面輸入你打算投入的新台幣金額，系統會依目前資料自動演算出建議購買的武器箱組合與數量，並估算最終能兌現的 Steam 錢包餘額，同時盡量降低沒用完的零頭。
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">3</div>
+                <div>
+                    <h3 class="text-lg font-bold text-cyan-400">前往 CSFloat 依建議組合下單</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+                        依計算結果，到 CSFloat 網站以顯示的成本價買進對應數量的武器箱。下單前務必再次確認當下的實際掛牌價與庫存，因為資料庫的價格是每隔一段時間才更新一次，與即時報價可能有些微落差。
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">4</div>
+                <div>
+                    <h3 class="text-lg font-bold text-cyan-400">於 Steam 社群市場上架，等待 7 日冷卻期後兌現</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+                        買進的武器箱會先進入你的 Steam 庫存，你可以在 Steam 社群市場以市場價掛售。成交後的款項會進入你的 Steam 錢包餘額，但依 Steam 規則會有 <span class="font-bold text-amber-300">7 日交易鎖定期</span>才能實際動用，請預留足夠的等待時間再規劃購買遊戲。
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex flex-col mt-10 w-full bg-amber-950/30 border border-amber-700/50 rounded-lg px-6 py-5 text-left">
+            <h3 class="text-lg font-bold text-amber-400">開始之前，建議先確認</h3>
+            <ul class="mt-3 space-y-2 text-sm text-slate-300 leading-relaxed list-disc list-inside">
+                <li>你已擁有可正常掛售物品的 Steam 帳號（部分新帳號或有交易鎖定紀錄的帳號可能無法上架市場）。</li>
+                <li>近期沒有動用這筆資金的急迫需求，因為冷卻期內無法提領或轉為現金。</li>
+                <li>你只把它用於個人消費，不做為商業行為使用。</li>
+            </ul>
+            <p class="text-sm text-slate-300 mt-4">更多細節可以參考 <a href="faq.html" class="text-cyan-400 hover:underline">常見問題</a>。</p>
+        </div>
+
+    </div>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+
+    <script>
+        function loadNav(pageID) {
+            fetch("nav.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    const high_light = doc.getElementById(`nav-${pageID}`);
+                    if (high_light) {
+                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                    }
+                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+                });
+        }
+        function loadFooter() {
+            fetch("footer.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                });
+        }
+        loadNav("help");
+        loadFooter();
+    </script>
+</body>
+</html>

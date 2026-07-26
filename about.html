@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 加值幫手 | 關於我們</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+
+    <div class="flex flex-col w-full max-w-3xl mx-auto py-10 px-8">
+
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-cyan-400">關於我們</h1>
+            <p class="text-slate-400 text-sm mt-2">by KK162198</p>
+        </div>
+
+        <div class="bg-slate-800 rounded-lg p-8 mt-8">
+            <h2 class="text-lg font-bold text-cyan-400">我們在做什麼</h2>
+            <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                Steam 加值幫手是一個個人開發的資料整理工具，鎖定 CS:GO／CS2 武器箱在 CSFloat 與 Steam 社群市場之間的價差，把原本需要手動比對多個網站的繁瑣過程自動化：後端排程程式每隔一段時間抓取兩邊的最新報價，寫入資料庫；前端網站再把整理好的套利機會以清楚的表格與試算工具呈現出來，讓使用者可以用更低的實際花費取得 Steam 錢包餘額。
+            </p>
+        </div>
+
+        <div class="bg-slate-800 rounded-lg p-8 mt-6">
+            <h2 class="text-lg font-bold text-cyan-400">技術架構</h2>
+            <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                資料抓取端使用 Python 撰寫，分別串接 CSFloat 的 listings API 與 Steam 社群市場的公開報價 API，統一寫入 Supabase 資料庫；其中 CSFloat 資料已透過 GitHub Actions 排程，每 3 小時自動更新一次。前端網站是純靜態頁面，使用 Tailwind CSS 做樣式，並透過 Supabase 的 JavaScript Client 以唯讀金鑰即時查詢資料庫，不需要額外的後端伺服器。
+            </p>
+        </div>
+
+        <div class="bg-slate-800 rounded-lg p-8 mt-6">
+            <h2 class="text-lg font-bold text-cyan-400">我們的立場</h2>
+            <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                本工具只做資料整理與試算，所有的價格數據皆為即時或近即時的市場估算，不保證絕對準確，也不會替使用者執行任何交易、不會經手任何金流。是否購買、購買多少，最終決定權都在使用者自己手上，請務必自行評估風險，並詳閱各頁面中的使用注意事項。
+            </p>
+        </div>
+
+    </div>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+
+    <script>
+        function loadNav(pageID) {
+            fetch("nav.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    const high_light = doc.getElementById(`nav-${pageID}`);
+                    if (high_light) {
+                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                    }
+                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+                });
+        }
+        function loadFooter() {
+            fetch("footer.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                });
+        }
+        loadNav("about");
+        loadFooter();
+    </script>
+</body>
+</html>

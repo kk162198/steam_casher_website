@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 加值幫手 | 套利計算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 滑桿與讀數樣式，比照 Slider.js 的 <profit-slider> 視覺風格 */
+        .calc-slider {
+            -webkit-appearance: none;
+            width: 80%;
+            max-width: 500px;
+            height: 5px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #22d3ee 15%, #475569 15%);
+            outline: none;
+            margin: 22px 0;
+        }
+        .calc-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #22d3ee;
+            border: 3px solid #1C2632;
+            cursor: pointer;
+        }
+        .calc-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #22d3ee;
+            border: 3px solid #1C2632;
+            cursor: pointer;
+        }
+        .calc-pill {
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 14px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .base-input, .result-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            text-align: center;
+            width: 110px;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 2px 5px;
+            font-family: inherit;
+            border-bottom: 1px solid #64748b;
+        }
+        .base-input { color: #22d3ee; }
+        .result-input { color: #34d399; }
+        .base-input::-webkit-inner-spin-button, .base-input::-webkit-outer-spin-button,
+        .result-input::-webkit-inner-spin-button, .result-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .base-input, .result-input { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+
+    <div class="flex flex-col w-full max-w-[1337px] mx-auto py-10 px-8">
+
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-cyan-400">套利計算器</h1>
+            <p class="text-slate-400 text-sm mt-2">輸入你想拿到的 Steam 錢包目標金額，系統會依目前資料庫的最新價差與各武器箱的庫存上限，自動演算出花費最少、溢出最小的購買組合。</p>
+        </div>
+
+        <div class="flex w-[100%] items-center gap-10">
+            <!-- 輸入區：滑桿樣式比照 Slider.js -->
+            <div class="flex flex-col w-[50%] items-center bg-slate-800 rounded-lg px-8 py-8 mt-8">
+                <h2 class="text-lg font-bold text-cyan-400 mb-1">目標金額試算</h2>
+                <input type="range" id="target-slider" min="100" max="10000" step="50" value="1000" class="calc-slider">
+                <div class="calc-pill">
+                    <p class="text-sm text-slate-300 font-bold whitespace-nowrap">
+                        加值金額：
+                        <input type="number" id="target-input" class="result-input outline-none focus:ring-0 p-0 m-0 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:_textfield]" value="1000" min="0">
+                        元
+                    </p>
+                    <p class="text-sm text-slate-300 font-bold whitespace-nowrap">
+                        預估需要花費：
+                        <input type="number" id="cost-output" class="base-input outline-none focus:ring-0 p-0 m-0 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:_textfield]" value="0" readonly>
+                        元
+                    </p>
+                </div>
+                <button id="reload-btn" class="mt-6 text-sm font-bold text-cyan-400 border border-cyan-400/40 hover:bg-cyan-400/10 rounded-lg px-4 py-2 transition-all active:scale-[0.99]">
+                    重新載入最新資料
+                </button>
+                <p id="rate-note" class="text-xs text-slate-500 mt-3 text-center">匯率載入中...</p>
+            </div>
+
+            <!-- 結果總覽 -->
+            <div class="w-[50%] grid grid-cols-1 grid-flow-col grid-rows-3 gap-4 mt-6">
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <div class="text-xs font-medium text-slate-400">需要花費</div>
+                    <div id="result-cost" class="text-2xl font-bold text-cyan-400 mt-1">--</div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <div class="text-xs font-medium text-slate-400">實際到手金額（已達成目標）</div>
+                    <div id="result-value" class="text-2xl font-bold text-emerald-400 mt-1">--</div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <div class="text-xs font-medium text-slate-400">加值倍率 / 溢出金額</div>
+                    <div id="result-ratio" class="text-2xl font-bold text-cyan-400 mt-1">--</div>
+                </div>
+            </div>
+        </div>
+        <p id="shortfall-note" class="hidden text-sm text-amber-400 mt-3 text-center"></p>
+
+        <!-- 組合明細 -->
+        <div class="bg-slate-800 rounded-lg border border-slate-700 shadow-lg overflow-hidden mt-6">
+            <div class="px-4 py-3 bg-slate-700 text-sm font-semibold tracking-wide flex justify-between items-center">
+                <span>建議購買組合</span>
+                <span class="text-xs text-slate-400">※ 已依各武器箱目前庫存上限自動限制購買數量</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-700 bg-slate-800/50 text-slate-400 text-xs uppercase font-mono">
+                            <th class="p-4">武器箱名稱</th>
+                            <th class="p-4">成本單價（NT$）</th>
+                            <th class="p-4">庫存</th>
+                            <th class="p-4">購買數量</th>
+                            <th class="p-4">小計花費（NT$）</th>
+                            <th class="p-4">預估到手金額（NT$）</th>
+                        </tr>
+                    </thead>
+                    <tbody id="combo-body" class="divide-y divide-slate-700/50">
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-slate-500 font-mono">資料載入中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 使用前請注意 -->
+        <div class="flex flex-col mt-10 w-full bg-amber-950/30 border border-amber-700/50 rounded-lg px-6 py-5 text-left">
+            <h3 class="text-lg font-bold text-amber-400">計算結果僅供參考</h3>
+            <ul class="mt-3 space-y-2 text-sm text-slate-300 leading-relaxed list-disc list-inside">
+                <li>單一武器箱在最低價位的庫存有限，系統會依資料庫中的「庫存上限」自動限制單一資產的購買數量，超過上限的部分會改用次高倍率的武器箱補足，藉此降低溢出、貼近你的目標金額。</li>
+                <li>此試算基於資料庫中最近一次抓取的 CSFloat／Steam 價格，實際下單時市場價格與庫存都可能已變動，請以下單當下的實際掛牌價為準。</li>
+                <li>透過 Steam 社群市場兌現的資產有 <span class="font-bold text-amber-300">7 日交易冷卻期</span>，資金到帳前無法動用，急用資金者不建議使用此方式。</li>
+                <li>此模式僅限個人消費使用，請勿用於商業行為。</li>
+            </ul>
+        </div>
+
+    </div>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+
+    <script>
+        const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
+        const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
+        const CLIENT = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const targetSlider = document.getElementById('target-slider');
+        const targetInput = document.getElementById('target-input');
+        const costOutput = document.getElementById('cost-output');
+        const reloadBtn = document.getElementById('reload-btn');
+        const rateNote = document.getElementById('rate-note');
+        const resultCost = document.getElementById('result-cost');
+        const resultValue = document.getElementById('result-value');
+        const resultRatio = document.getElementById('result-ratio');
+        const comboBody = document.getElementById('combo-body');
+        const shortfallNote = document.getElementById('shortfall-note');
+
+        let usdToTwd = 32.5;
+        let casesCache = [];
+
+        function loadNav(pageID) {
+            fetch("nav.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    const high_light = doc.getElementById(`nav-${pageID}`);
+                    if (high_light) {
+                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                    }
+                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+                });
+        }
+        function loadFooter() {
+            fetch("footer.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                });
+        }
+
+        // 滑桿背景漸層比照 Slider.js 的 updateSliderBackground
+        function updateSliderBackground(value) {
+            const min = Number(targetSlider.min);
+            const max = Number(targetSlider.max);
+            const percentage = ((Number(value) - min) / (max - min)) * 100;
+            targetSlider.style.background = `linear-gradient(to right, #22d3ee ${percentage}%, #475569 ${percentage}%)`;
+        }
+
+        async function loadExchangeRate() {
+            try {
+                const response = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await response.json();
+                usdToTwd = data.rates.TWD;
+                rateNote.innerText = `目前參考匯率：1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
+            } catch (error) {
+                usdToTwd = 32.5;
+                rateNote.innerText = `匯率抓取失敗，暫用預設值：1 USD ≈ 32.5 TWD`;
+            }
+        }
+
+        async function loadCases() {
+            const { data, error } = await CLIENT
+                .from('cases_data')
+                .select('*')
+                .order('ratio', { ascending: false });
+            if (error) {
+                console.error(error);
+                return [];
+            }
+            // 以資料庫實際欄位為準：csfloat_cost（含手續費的實際買進成本）、steam_income（扣除 Steam 手續費後的實拿金額）、csfloat_inventory（最低價位庫存上限）
+            return (data || [])
+                .filter(item => Number(item.csfloat_cost) > 0 && Number(item.steam_income) > 0 && Number(item.csfloat_inventory) > 0 && Number(item.ratio || (item.steam_income / item.csfloat_cost)) > 1)
+                .map(item => ({
+                    name: item.name,
+                    costUsd: Number(item.csfloat_cost),
+                    incomeUsd: Number(item.steam_income),
+                    inventory: Number(item.csfloat_inventory),
+                    ratio: Number(item.ratio || (item.steam_income / item.csfloat_cost))
+                }))
+                .sort((a, b) => b.ratio - a.ratio);
+        }
+
+        // 以「目標金額」為基礎的組合演算法：
+        // 1) 先由倍率最高的武器箱開始，依各自的庫存上限盡量往下取整購買
+        // 2) 若無法整除或庫存不夠，最後用「單次加購一件」的方式，優先挑選剛好能補足缺口、且溢出最小的品項來收尾
+        function buildCombo(targetUsd, cases) {
+            const state = cases.map(c => ({ ...c, used: 0, remainingInv: c.inventory }));
+            let remainingTarget = targetUsd;
+
+            for (const item of state) {
+                if (remainingTarget <= 0) break;
+                if (item.remainingInv <= 0) continue;
+                const qtyNeeded = Math.floor(remainingTarget / item.incomeUsd);
+                const qty = Math.min(qtyNeeded, item.remainingInv);
+                if (qty > 0) {
+                    item.used += qty;
+                    item.remainingInv -= qty;
+                    remainingTarget -= qty * item.incomeUsd;
+                }
+            }
+
+            let guard = 0;
+            while (remainingTarget > 1e-9 && guard < 200) {
+                guard++;
+                const candidates = state.filter(i => i.remainingInv > 0);
+                if (candidates.length === 0) break; // 所有品項庫存都已用完，無法再貼近目標
+
+                // 優先選「單件到手金額 ≥ 缺口」中金額最小的，收尾時溢出最少
+                let best = null;
+                for (const c of candidates) {
+                    if (c.incomeUsd >= remainingTarget && (!best || c.incomeUsd < best.incomeUsd)) {
+                        best = c;
+                    }
+                }
+                // 若沒有任何一件能一次補滿缺口，改選單件到手金額最高者，盡量往目標靠近
+                if (!best) {
+                    best = candidates.reduce((a, b) => (b.incomeUsd > a.incomeUsd ? b : a));
+                }
+                best.used += 1;
+                best.remainingInv -= 1;
+                remainingTarget -= best.incomeUsd;
+            }
+
+            const combo = state
+                .filter(i => i.used > 0)
+                .sort((a, b) => b.ratio - a.ratio)
+                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory }));
+
+            const totalCostUsd = combo.reduce((s, i) => s + i.costUsd * i.qty, 0);
+            const totalIncomeUsd = combo.reduce((s, i) => s + i.incomeUsd * i.qty, 0);
+            const reached = totalIncomeUsd >= targetUsd - 1e-9;
+
+            return { combo, totalCostUsd, totalIncomeUsd, reached };
+        }
+
+        function runCalculation() {
+            const targetTwd = Number(targetInput.value) || 0;
+            const targetUsd = targetTwd / usdToTwd;
+
+            shortfallNote.classList.add('hidden');
+
+            if (targetUsd <= 0 || casesCache.length === 0) {
+                comboBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500 font-mono">目前沒有可用的套利資料，或目標金額為 0</td></tr>`;
+                resultCost.innerText = '--';
+                resultValue.innerText = '--';
+                resultRatio.innerText = '--';
+                costOutput.value = 0;
+                return;
+            }
+
+            const { combo, totalCostUsd, totalIncomeUsd, reached } = buildCombo(targetUsd, casesCache);
+
+            if (combo.length === 0) {
+                comboBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-amber-400 font-mono">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
+                resultCost.innerText = `NT$ 0`;
+                resultValue.innerText = `NT$ 0`;
+                resultRatio.innerText = `--`;
+                costOutput.value = 0;
+                return;
+            }
+
+            const totalCostTwd = totalCostUsd * usdToTwd;
+            const totalValueTwd = totalIncomeUsd * usdToTwd;
+            const overshootTwd = totalValueTwd - targetTwd;
+            const effectiveRatio = totalCostTwd > 0 ? totalValueTwd / totalCostTwd : 1;
+
+            comboBody.innerHTML = '';
+            combo.forEach(row => {
+                const unitCostTwd = row.costUsd * usdToTwd;
+                const subtotalTwd = unitCostTwd * row.qty;
+                const valueTwd = row.incomeUsd * usdToTwd * row.qty;
+
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-700/40 hover:bg-slate-700/30 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-slate-200">${row.name}</td>
+                    <td class="p-4 font-mono">NT$ ${unitCostTwd.toFixed(0)}</td>
+                    <td class="p-4 font-mono text-slate-400">${row.inventory}</td>
+                    <td class="p-4 font-mono text-cyan-400 font-bold">x ${row.qty}</td>
+                    <td class="p-4 font-mono">NT$ ${subtotalTwd.toFixed(0)}</td>
+                    <td class="p-4 font-mono text-emerald-400">NT$ ${valueTwd.toFixed(0)}</td>
+                `;
+                comboBody.appendChild(tr);
+            });
+
+            resultCost.innerText = `NT$ ${totalCostTwd.toFixed(0)}`;
+            resultValue.innerText = `NT$ ${totalValueTwd.toFixed(0)}`;
+            resultRatio.innerText = reached ? `x${effectiveRatio.toFixed(2)}｜溢出 NT$ ${overshootTwd.toFixed(0)}` : `x${effectiveRatio.toFixed(2)}`;
+            costOutput.value = totalCostTwd.toFixed(0);
+
+            if (!reached) {
+                shortfallNote.textContent = `目前所有符合條件的武器箱庫存合計不足以達成此目標金額，已用完可用庫存，實際只能取得約 NT$ ${totalValueTwd.toFixed(0)}。可調降目標金額，或等待庫存與資料更新後再試算一次。`;
+                shortfallNote.classList.remove('hidden');
+            }
+        }
+
+        targetSlider.addEventListener('input', (e) => {
+            targetInput.value = e.target.value;
+            updateSliderBackground(e.target.value);
+            runCalculation();
+        });
+        targetInput.addEventListener('input', (e) => {
+            const v = Number(e.target.value) || 0;
+            if (v >= Number(targetSlider.min) && v <= Number(targetSlider.max)) targetSlider.value = v;
+            updateSliderBackground(targetSlider.value);
+            runCalculation();
+        });
+        reloadBtn.addEventListener('click', async () => {
+            reloadBtn.disabled = true;
+            reloadBtn.innerText = '載入中...';
+            await Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })]);
+            runCalculation();
+            reloadBtn.disabled = false;
+            reloadBtn.innerText = '重新載入最新資料';
+        });
+
+        loadNav("calculator");
+        loadFooter();
+        updateSliderBackground(targetSlider.value);
+        Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
+            .then(runCalculation);
+    </script>
+</body>
+</html>

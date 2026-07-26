@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 加值幫手 | 常見問題</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+
+    <div class="flex flex-col w-full max-w-3xl mx-auto py-10 px-8">
+
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-cyan-400">常見問題</h1>
+            <p class="text-slate-400 text-sm mt-2">關於原理、風險與使用限制，這裡整理了最常被問到的問題。</p>
+        </div>
+
+        <div class="flex flex-col gap-4 mt-10">
+
+            <details class="bg-slate-800 rounded-lg p-5 group" open>
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    這個工具實際上在做什麼？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    工具本身不會幫你下單，它只是把 CSFloat（可用現金買武器箱的第三方市集）與 Steam 社群市場（可把物品換成 Steam 錢包餘額）兩邊的即時價格整理在一起，計算出目前哪些武器箱「用現金在 CSFloat 買進、再拿去 Steam 市場賣出兌現」的價差最划算，讓你決定要不要自己動手操作。
+                </p>
+            </details>
+
+            <details class="bg-slate-800 rounded-lg p-5 group">
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    「1 元換 1.44 元 Steam 餘額」是怎麼算出來的？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    這是目前資料庫中「Steam 售價 ÷ CSFloat 成本」倍率最高的品項所反映的數字，也就是首頁與市場列表顯示的最高 ROI。這個倍率會隨市場價格隨時變動，實際能不能買到、買多少個，還是要以下單當下的即時報價與庫存為準，計算器頁面的結果僅供參考。
+                </p>
+            </details>
+
+            <details class="bg-slate-800 rounded-lg p-5 group">
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    為什麼會有 7 日冷卻期？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    這是 Steam 平台自身的交易保護機制，不是本工具設定的規則。透過 Steam 社群市場成交取得的餘額，需要等待一段鎖定期才能動用，用意是降低帳號被盜用後被立即洗錢的風險。使用此方式前，請先確認自己近期沒有動用這筆資金的急迫需求。
+                </p>
+            </details>
+
+            <details class="bg-slate-800 rounded-lg p-5 group">
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    這樣操作合法嗎？會不會有帳號風險？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    本工具僅使用 CSFloat 與 Steam 官方公開提供的市場買賣功能，屬於平台允許的一般交易行為，並非破解或繞過任何機制。但任何第三方市集的使用都需自行詳閱該平台的服務條款，並自行承擔交易風險；本工具僅提供資料整理與試算參考，不構成任何保證。
+                </p>
+            </details>
+
+            <details class="bg-slate-800 rounded-lg p-5 group">
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    數據多久更新一次？會不會過時？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    CSFloat 的價格資料目前設定每 3 小時自動更新一次；Steam 端的資料則需人工手動觸發更新，頻率較不固定。市場列表頁面上每一列都會顯示該筆資料各自的更新時間，建議下單前先確認時間是否夠新，避免以過時價格做判斷。
+                </p>
+            </details>
+
+            <details class="bg-slate-800 rounded-lg p-5 group">
+                <summary class="cursor-pointer text-lg font-bold text-cyan-400 list-none flex justify-between items-center">
+                    可以用這個方式賺錢營利嗎？
+                    <span class="text-slate-500 group-open:rotate-45 transition-transform">＋</span>
+                </summary>
+                <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+                    不建議。此加值模式設計上僅供個人消費使用（例如折扣入手 Steam 遊戲），並非商業套利工具；若用於商業行為，可能違反 Steam 或 CSFloat 的服務條款，後果需自行承擔。
+                </p>
+            </details>
+
+        </div>
+
+        <p class="text-sm text-slate-400 mt-10 text-center">還有其他問題？可以先參考 <a href="help.html" class="text-cyan-400 hover:underline">使用教學</a>，或到 <a href="about.html" class="text-cyan-400 hover:underline">關於我們</a> 了解專案背景。</p>
+
+    </div>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+
+    <script>
+        function loadNav(pageID) {
+            fetch("nav.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    const high_light = doc.getElementById(`nav-${pageID}`);
+                    if (high_light) {
+                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                    }
+                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+                });
+        }
+        function loadFooter() {
+            fetch("footer.html")
+                .then(response => {
+                    if (!response.ok) throw new Error("網路回應不成功");
+                    return response.text();
+                })
+                .then(html_text => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html_text, "text/html");
+                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                });
+        }
+        loadNav("faq");
+        loadFooter();
+    </script>
+</body>
+</html>
