@@ -159,10 +159,11 @@
                 }
 
                 // 🚀 2. 改用 CLIENT 去要資料
+                // 💡 修正：加上 nullsFirst: false，避免 ratio 尚未算出的 null 資料在 desc 排序時被排到最前面
                 const { data, error } = await CLIENT
-                    .from('cases_data') 
+                    .from('cases_data')
                     .select('*')
-                    .order('ratio', { ascending: false });
+                    .order('ratio', { ascending: false, nullsFirst: false });
 
                 if (error) throw error;
 
@@ -173,10 +174,10 @@
                 }
 
                 const totalItems = data.length;
-                
-                // 從第一筆資料的 ratio 換算出最高 ROI 百分比
-                const firstRowRatio = data[0].ratio || 1;
-                const maxRoi = (Number(firstRowRatio) - 1) * 100;
+
+                // 💡 修正：從「第一筆有效 ratio」的資料換算最高 ROI，避免 null 資料把最佳 ROI 誤算成 0%
+                const firstValidRow = data.find(item => item.ratio !== null && item.ratio !== undefined);
+                const maxRoi = firstValidRow ? (Number(firstValidRow.ratio) - 1) * 100 : 0;
 
                 // 更新頂部 KPI 卡片
                 maxRoiDisplay.innerText = `${maxRoi.toFixed(2)} %`;
