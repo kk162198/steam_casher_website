@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設計系統｜Steam 加值幫手</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        base: '#020617', card: '#0f172a', line: '#1e293b',
+        brand: '#22d3ee', pos: '#34d399', warn: '#fbbf24', neg: '#fb7185',
+        ink: '#f1f5f9', ink2: '#94a3b8', ink3: '#64748b'
+      }
+    }
+  }
+}
+</script>
+<style>
+:root{
+  --base:#020617; --card:#0f172a; --line:#1e293b;
+  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
+  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--base); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  font-size:16px; line-height:1.75;
+}
+
+/* ── 字級 ───────────────────────────────── */
+.t-hero{font-size:32px;line-height:1.4;font-weight:700}
+.t-page{font-size:26px;line-height:1.4;font-weight:700}
+.t-sect{font-size:20px;line-height:1.4;font-weight:700}
+.t-sub {font-size:17px;line-height:1.4;font-weight:600}
+.t-body{font-size:16px;line-height:1.75}
+.t-aux {font-size:14px;line-height:1.75}
+.t-note{font-size:12px;line-height:1.75}
+@media (min-width:768px){
+  .t-hero{font-size:48px}
+  .t-page{font-size:32px}
+  .t-sect{font-size:24px}
+  .t-sub {font-size:18px}
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ── 版面 ───────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+@media (min-width:768px){ .wrap{padding:0 32px} }
+.sec{padding-top:56px}
+@media (min-width:768px){ .sec{padding-top:96px} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+@media (min-width:768px){ .card{padding:32px} }
+.hr{height:1px;background:var(--line);border:0;margin:0}
+
+/* ── focus ─────────────────────────────── */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
+  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
+}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ── 1. 資料時間戳章 ────────────────────── */
+.ts-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(30,41,59,.35);
+  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
+.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
+.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
+.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
+.ts-chip[data-state="stale"] .ts-dot{display:none}
+.ts-chip svg{flex:none}
+.ts-chip .ts-src{color:inherit;opacity:.85}
+
+/* ── 2. 划算度徽章 ──────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
+  border:1px solid transparent;
+}
+.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
+.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
+.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
+
+/* ── 3. 風險提示條 ──────────────────────── */
+.risk-bar{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;background:rgba(251,191,36,.06);
+  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  font-size:14px;line-height:1.75;color:var(--ink);
+}
+.risk-bar svg{color:var(--warn);margin-top:5px}
+.risk-bar a{white-space:nowrap}
+
+/* ── 4. 數據卡 ─────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:14px;color:var(--ink2)}
+.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:768px){ .stat-value{font-size:40px} }
+.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
+
+/* ── 5. 響應式資料表 ────────────────────── */
+.rt{
+  width:100%;border-collapse:collapse;text-align:left;
+  --rt-thead:table-header-group; --rt-tbody:table-row-group;
+  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
+  --rt-tr-pad:0;       --rt-tr-bg:transparent;
+  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
+  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
+  --rt-key-size:16px;
+}
+.rt thead{display:var(--rt-thead)}
+.rt tbody{display:var(--rt-tbody)}
+.rt th{
+  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
+  border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.rt tbody tr{
+  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
+  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
+}
+.rt tbody td{
+  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
+  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.rt tbody td::before{
+  display:var(--rt-label);content:attr(data-label);
+  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
+}
+.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
+.rt tbody tr:hover{background:rgba(30,41,59,.28)}
+.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
+  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+}
+.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+.rt-cards td.rt-key::before{display:none}
+@media (max-width:767px){
+  .rt{
+    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+  }
+  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+  .rt td.rt-key::before{display:none}
+  .rt tbody tr:hover{background:var(--card)}
+}
+
+/* ── 6. 步驟 ───────────────────────────── */
+.step{display:flex;gap:16px}
+.step-no{
+  flex:none;width:36px;height:36px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
+  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
+}
+.step-check{
+  margin-top:12px;padding:12px 16px;border-radius:8px;
+  background:#0b1424;border:1px solid var(--line);
+}
+.step-check-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
+}
+
+/* ── 7. 狀態 ───────────────────────────── */
+.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.skel::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
+  animation:skel 1.4s infinite;
+}
+@keyframes skel{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
+
+/* ── 8. 按鈕 ───────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
+  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
+  transition:background-color .15s,border-color .15s,color .15s;
+  font-family:inherit;
+}
+.btn-primary{background:var(--brand);color:#022c33}
+.btn-primary:hover{background:#67e8f9}
+.btn-primary:active{background:#06b6d4}
+.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
+.btn-secondary:active{background:rgba(30,41,59,.8)}
+.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
+.btn-text:hover{background:rgba(34,211,238,.08)}
+.btn-text:active{background:rgba(34,211,238,.16)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled:hover{background:var(--brand)}
+.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
+.btn-text:disabled:hover{background:transparent}
+.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
+
+/* 展示頁自身用 */
+.spec{font-size:12px;color:var(--ink3);line-height:1.75}
+.demo{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+@media (min-width:768px){ .demo{padding:24px} }
+.demo-label{font-size:12px;color:var(--ink3);margin-bottom:12px}
+pre{
+  background:#020617;border:1px solid var(--line);border-radius:8px;
+  padding:14px;overflow-x:auto;font-size:12px;line-height:1.7;color:var(--ink2);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" style="padding-top:40px;padding-bottom:96px">
+
+  <!-- ══ 標頭 ══ -->
+  <header>
+    <p class="t-note" style="color:var(--ink3);letter-spacing:.08em">STEAM 加值幫手・設計系統 v1</p>
+    <h1 class="t-hero" style="margin:8px 0 0">元件與規格</h1>
+    <p class="t-body" style="color:var(--ink2);max-width:60ch;margin:16px 0 0">
+      這頁是全站的施工圖。每個元件都可以直接複製到 .html 檔使用，樣式集中在本頁最上方的
+      <span class="num">&lt;style&gt;</span> 區塊，複製過去即可。
+    </p>
+    <div class="risk-bar" style="margin-top:24px;max-width:70ch">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01" stroke-linecap="round"/></svg>
+      <span>設計原則：整頁的視覺重量落在數字上。四個語意色只在有語意的地方出現，不當裝飾。</span>
+    </div>
+  </header>
+
+  <!-- ══ 色彩 ══ -->
+  <section class="sec">
+    <h2 class="t-page">色彩</h2>
+    <p class="t-aux" style="color:var(--ink2);margin:8px 0 24px">對比度以 WCAG 2.1 計算，基準為卡片背景 #0f172a。</p>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#020617;border:1px solid var(--line);flex:none"></div>
+          <div><div class="t-sub">底層背景</div><div class="spec num">#020617</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#0f172a;border:1px solid var(--line);flex:none"></div>
+          <div><div class="t-sub">卡片／區塊背景</div><div class="spec num">#0f172a</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#1e293b;flex:none"></div>
+          <div><div class="t-sub">邊框與分隔線</div><div class="spec num">#1e293b</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#22d3ee;flex:none"></div>
+          <div><div class="t-sub" style="color:var(--brand)">品牌主色・主要 CTA・連結</div><div class="spec num">#22d3ee ・ 9.9:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#34d399;flex:none"></div>
+          <div><div class="t-sub" style="color:var(--pos)">正向數值・值得做</div><div class="spec num">#34d399 ・ 9.3:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#fbbf24;flex:none"></div>
+          <div><div class="t-sub" style="color:var(--warn)">提醒・資料稍舊・可考慮</div><div class="spec num">#fbbf24 ・ 10.7:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#fb7185;flex:none"></div>
+          <div><div class="t-sub" style="color:var(--neg)">警告・不建議・資料過舊</div><div class="spec num">#fb7185 ・ 6.6:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#f1f5f9;flex:none"></div>
+          <div><div class="t-sub">主要文字</div><div class="spec num">#f1f5f9 ・ 16.3:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#94a3b8;flex:none"></div>
+          <div><div class="t-sub" style="color:var(--ink2)">次要文字</div><div class="spec num">#94a3b8 ・ 7.0:1</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:44px;height:44px;border-radius:8px;background:#64748b;flex:none"></div>
+          <div>
+            <div class="t-sub" style="color:var(--ink3)">輔助文字</div>
+            <div class="spec num">#64748b ・ 3.8:1</div>
+          </div>
+        </div>
+        <p class="spec" style="margin:12px 0 0;color:var(--warn)">
+          未達 AA 4.5:1。只用於 12px 註記與非必要資訊，不承載任何使用者必須讀到的內容。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 字體 ══ -->
+  <section class="sec">
+    <h2 class="t-page">字體與級距</h2>
+    <p class="t-aux" style="color:var(--ink2);margin:8px 0 24px">
+      不載入外部字型，一律用系統字：<span class="num">"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif</span>。
+      中文內文行高 1.75、標題 1.4。所有金額／倍率／百分比加 <span class="num">.num</span>（tabular-nums）。
+    </p>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-hero">遊戲再打折</span><span class="spec num">.t-hero ・ 48 / 32</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-page">加值試算</span><span class="spec num">.t-page ・ 32 / 26</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-sect">為什麼這個數字可信</span><span class="spec num">.t-sect ・ 24 / 20</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-sub">稅後淨值怎麼算</span><span class="spec num">.t-sub ・ 18 / 17</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-body">你想買的那款 <span class="num">1,290</span> 元的遊戲，目前約可用 <span class="num">930</span> 元入手。</span><span class="spec num">.t-body ・ 16 / 16</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-aux" style="color:var(--ink2)">代價：約 1 小時操作，以及 7 天等待。</span><span class="spec num">.t-aux ・ 14 / 14</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline">
+          <span class="t-note" style="color:var(--ink3)">匯率以 32.5 TWD/USD 計算。</span><span class="spec num">.t-note ・ 12 / 12</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 間距 ══ -->
+  <section class="sec">
+    <h2 class="t-page">間距</h2>
+    <p class="t-aux" style="color:var(--ink2);margin:8px 0 24px">一律用 4 的倍數。</p>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div class="card" style="padding:16px">
+        <div class="t-sub">區塊之間</div>
+        <div class="spec num" style="margin-top:4px">桌機 96px ／ 手機 56px ・ .sec</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div class="t-sub">卡片內距</div>
+        <div class="spec num" style="margin-top:4px">桌機 32px ／ 手機 20px ・ .card</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div class="t-sub">元素之間</div>
+        <div class="spec num" style="margin-top:4px">4 / 8 / 12 / 16 / 24 / 32 / 48</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="hr" style="margin-top:56px">
+
+  <!-- ══ 1. 資料時間戳章 ══ -->
+  <section class="sec">
+    <h2 class="t-page">1・資料時間戳章</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      任何顯示價格或倍率的地方，旁邊都要有這個。時間由 JS 依
+      <span class="num">data-updated</span> 換算，狀態自動判定：CSFloat 超過 6 小時、Steam 超過 12 小時標為過舊。
+      過舊狀態同時換圖示，不只換顏色。
+    </p>
+
+    <div class="demo">
+      <div class="demo-label">三種狀態（時間為即時換算，每分鐘更新）</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <span class="ts-chip" data-source="csfloat" data-demo-ago="42"></span>
+        <span class="ts-chip" data-source="steam" data-demo-ago="410"></span>
+        <span class="ts-chip" data-source="csfloat" data-demo-ago="580"></span>
+      </div>
+      <div class="hr" style="margin:20px 0"></div>
+      <div class="spec" style="display:flex;flex-direction:column;gap:4px">
+        <div>正常 slate：CSFloat &lt; 3 小時、Steam &lt; 6 小時</div>
+        <div style="color:var(--warn)">稍舊 amber：CSFloat 3–6 小時、Steam 6–12 小時</div>
+        <div style="color:var(--neg)">過舊 rose ＋ 警告圖示：CSFloat &gt; 6 小時、Steam &gt; 12 小時</div>
+      </div>
+    </div>
+
+    <details style="margin-top:12px">
+      <summary class="t-aux" style="color:var(--ink2);cursor:pointer;padding:8px 0">HTML ＋ JS</summary>
+      <pre>&lt;span class="ts-chip" data-source="csfloat" data-demo-ago="38"&gt;&lt;/span&gt;
+
+&lt;!-- 資料來源 data-source: csfloat | steam | rate --&gt;
+&lt;!-- 每頁載入 renderTimestamps() 一次，之後每 60 秒自動重算 --&gt;</pre>
+    </details>
+  </section>
+
+  <!-- ══ 2. 划算度徽章 ══ -->
+  <section class="sec">
+    <h2 class="t-page">2・划算度徽章</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      先給判斷，再給細節。徽章右邊固定放一句話的理由，理由要有數字。
+    </p>
+    <div class="demo" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+        <span class="badge badge-go">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          值得做
+        </span>
+        <span class="t-aux">這筆 <span class="num">3,000</span> 元省下約 <span class="num">840</span> 元，約 1 小時操作換得的折扣高於基本工資時薪。</span>
+      </div>
+      <div class="hr"></div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+        <span class="badge badge-maybe">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 7v6M12 16.5v.01" stroke-linecap="round"/><circle cx="12" cy="12" r="9"/></svg>
+          可考慮
+        </span>
+        <span class="t-aux">這筆 <span class="num">1,200</span> 元省下約 <span class="num">330</span> 元。第一次操作約 1.5 小時，第二次之後才比較划算。</span>
+      </div>
+      <div class="hr"></div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+        <span class="badge badge-no">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+          不建議
+        </span>
+        <span class="t-aux">這筆 <span class="num">600</span> 元只省下約 <span class="num">150</span> 元。建議直接用官方儲值或信用卡回饋。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. 風險提示條 ══ -->
+  <section class="sec">
+    <h2 class="t-page">3・風險提示條</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      一行式，左側 amber 直線。試算結果區與購物清單頁固定顯示，連向 <span class="num">risks.html</span>，全站只維護那一份說明。
+    </p>
+    <div class="demo" style="display:flex;flex-direction:column;gap:12px">
+      <div class="risk-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+        <span>你看到的是目前的價格，實際賣出是 7 天後的價格，成交金額可能較低。<a href="risks.html">看完整風險說明</a></span>
+      </div>
+      <div class="risk-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+        <span>Steam 錢包餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 4. 數據卡 ══ -->
+  <section class="sec">
+    <h2 class="t-page">4・數據卡</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      全站最常出現的元件。大數字用語意色，標籤與說明用次要色，右下角固定放時間戳章。
+    </p>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="card stat">
+        <div class="stat-label">目前最佳實拿倍率</div>
+        <div class="stat-value" style="color:var(--pos)">1.28</div>
+        <div class="stat-note">已扣除 CSFloat 約 7.5% 與 Steam 15% 手續費，相當於折扣約 22%。</div>
+        <div style="margin-top:8px"><span class="ts-chip" data-source="csfloat" data-demo-ago="38"></span></div>
+      </div>
+      <div class="card stat">
+        <div class="stat-label">這筆 3,000 元可省下</div>
+        <div class="stat-value" style="color:var(--pos)">NT$ 660</div>
+        <div class="stat-note">預估值，依 7 天後實際成交價浮動。</div>
+        <div style="margin-top:8px"><span class="ts-chip" data-source="steam" data-demo-ago="215"></span></div>
+      </div>
+      <div class="card stat">
+        <div class="stat-label">今日全站剩餘可承載金額</div>
+        <div class="stat-value" style="color:var(--warn)">NT$ 12,400</div>
+        <div class="stat-note">低價掛單數量有限，用完要等補貨。超過這個金額算不出完整組合。</div>
+        <div style="margin-top:8px"><span class="ts-chip" data-source="csfloat" data-demo-ago="470"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 5. 響應式資料表 ══ -->
+  <section class="sec">
+    <h2 class="t-page">5・響應式資料表</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      桌機是表格，寬度小於 768px 自動改成卡片式堆疊，每個欄位顯示欄位名稱與值。
+      切換完全由 CSS 變數驅動，不需要 JS，也不需要橫向捲動。
+      表頭用 <span class="num">&lt;th scope="col"&gt;</span>，欄名用外行看得懂的說法。
+    </p>
+
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <button id="toggle-cards" type="button" class="btn btn-secondary btn-sm" aria-pressed="false">在桌機預覽卡片式</button>
+      <span class="spec">把瀏覽器縮到 768px 以下也會自動切換。</span>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between">
+        <div>
+          <div class="t-sub">市場列表</div>
+          <div class="spec">依實拿倍率由高至低排序。倍率已扣除兩邊手續費。</div>
+        </div>
+        <span class="ts-chip" data-source="csfloat" data-demo-ago="38"></span>
+      </div>
+      <div style="padding:8px 20px 20px">
+        <table class="rt" id="demo-table">
+          <thead>
+            <tr>
+              <th scope="col">武器箱</th>
+              <th scope="col">CSFloat 成本</th>
+              <th scope="col">Steam 售價</th>
+              <th scope="col">每筆實拿</th>
+              <th scope="col">實拿倍率</th>
+              <th scope="col">可買數量</th>
+              <th scope="col">資料時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="rt-key" data-label="武器箱">Fracture Case</td>
+              <td data-label="CSFloat 成本">NT$ 39</td>
+              <td data-label="Steam 售價">NT$ 59</td>
+              <td data-label="每筆實拿" style="color:var(--pos)">＋NT$ 11</td>
+              <td data-label="實拿倍率" style="color:var(--pos);font-weight:700">1.28</td>
+              <td data-label="可買數量">32</td>
+              <td data-label="資料時間"><span class="ts-chip" data-source="csfloat" data-demo-ago="38"></span></td>
+            </tr>
+            <tr>
+              <td class="rt-key" data-label="武器箱">Recoil Case</td>
+              <td data-label="CSFloat 成本">NT$ 27</td>
+              <td data-label="Steam 售價">NT$ 39</td>
+              <td data-label="每筆實拿" style="color:var(--pos)">＋NT$ 6</td>
+              <td data-label="實拿倍率" style="color:var(--pos);font-weight:700">1.22</td>
+              <td data-label="可買數量">18</td>
+              <td data-label="資料時間"><span class="ts-chip" data-source="steam" data-demo-ago="215"></span></td>
+            </tr>
+            <tr>
+              <td class="rt-key" data-label="武器箱">Dreams &amp; Nightmares Case</td>
+              <td data-label="CSFloat 成本">NT$ 52</td>
+              <td data-label="Steam 售價">NT$ 68</td>
+              <td data-label="每筆實拿" style="color:var(--pos)">＋NT$ 5</td>
+              <td data-label="實拿倍率" style="color:var(--pos);font-weight:700">1.10</td>
+              <td data-label="可買數量">7</td>
+              <td data-label="資料時間"><span class="ts-chip" data-source="csfloat" data-demo-ago="470"></span></td>
+            </tr>
+            <tr>
+              <td class="rt-key" data-label="武器箱">Revolution Case</td>
+              <td data-label="CSFloat 成本">NT$ 31</td>
+              <td data-label="Steam 售價">NT$ 33</td>
+              <td data-label="每筆實拿" style="color:var(--neg)">－NT$ 3</td>
+              <td data-label="實拿倍率" style="color:var(--neg);font-weight:700">0.91</td>
+              <td data-label="可買數量">4</td>
+              <td data-label="資料時間"><span class="ts-chip" data-source="steam" data-demo-ago="95"></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <details style="margin-top:12px">
+      <summary class="t-aux" style="color:var(--ink2);cursor:pointer;padding:8px 0">HTML 結構</summary>
+      <pre>&lt;table class="rt"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th scope="col"&gt;武器箱&lt;/th&gt;&lt;th scope="col"&gt;實拿倍率&lt;/th&gt;&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td class="rt-key" data-label="武器箱"&gt;Fracture Case&lt;/td&gt;
+      &lt;td data-label="實拿倍率"&gt;1.28&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;!-- 每個 td 都必須有 data-label，手機版會用它當欄位名稱 --&gt;
+&lt;!-- 第一欄加 class="rt-key"，手機版會變成卡片標題 --&gt;</pre>
+    </details>
+  </section>
+
+  <!-- ══ 6. 步驟 ══ -->
+  <section class="sec">
+    <h2 class="t-page">6・步驟元件</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      每一步固定三段：要做什麼、會卡在哪、怎麼確認做對了。第三段用不同底色的驗證區塊，這是現有教學頁最缺的一塊。
+    </p>
+    <div class="card" style="display:flex;flex-direction:column;gap:32px">
+      <div class="step">
+        <div class="step-no num">1</div>
+        <div style="flex:1">
+          <h3 class="t-sub">在 Steam 啟用手機驗證器</h3>
+          <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+            用 Steam 手機 App 開啟驗證器。啟用未滿 7 天的帳號無法在社群市場上架物品，所以這一步要最先做。
+          </p>
+          <div class="step-check">
+            <div class="step-check-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              怎麼確認做對了
+            </div>
+            <p class="t-aux" style="color:var(--ink2);margin:0">
+              打開任一市場物品頁，出現「出售」按鈕而不是「無法交易」提示，就是通過了。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="step">
+        <div class="step-no num">2</div>
+        <div style="flex:1">
+          <h3 class="t-sub">在 CSFloat 依購物清單買箱子</h3>
+          <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+            照清單上的品項與數量下單。常見狀況是掛單已被別人買走，這時清單上的數量會買不齊，回到試算頁重新產一份即可。
+          </p>
+          <div class="step-check">
+            <div class="step-check-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              怎麼確認做對了
+            </div>
+            <p class="t-aux" style="color:var(--ink2);margin:0">
+              Steam 庫存裡看到箱子，且滑鼠移上去顯示「可交易日期」為 7 天後。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 7. 三種狀態 ══ -->
+  <section class="sec">
+    <h2 class="t-page">7・載入中／空狀態／錯誤</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      不要用純文字打發。三種狀態的共同要求：不要讓版面高度跳動，錯誤狀態一定要有重試按鈕，空狀態要告訴使用者下一步能做什麼。
+    </p>
+
+    <div class="grid gap-3 lg:grid-cols-3">
+      <!-- 載入中 -->
+      <div class="card">
+        <div class="demo-label">載入中・骨架屏</div>
+        <div style="display:flex;flex-direction:column;gap:12px" aria-busy="true" aria-live="polite">
+          <span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">正在讀取市場資料</span>
+          <div class="skel" style="width:40%;height:14px"></div>
+          <div class="skel" style="width:70%;height:32px"></div>
+          <div class="skel" style="width:100%;height:12px"></div>
+          <div class="skel" style="width:85%;height:12px"></div>
+          <div class="hr" style="margin:4px 0"></div>
+          <div class="skel" style="width:100%;height:12px"></div>
+          <div class="skel" style="width:100%;height:12px"></div>
+          <div class="skel" style="width:60%;height:12px"></div>
+        </div>
+      </div>
+
+      <!-- 空狀態 -->
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div class="demo-label" style="align-self:flex-start;margin:0">空狀態</div>
+        <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true" style="margin-top:8px">
+          <rect x="8" y="10" width="56" height="38" rx="4" stroke="#1e293b" stroke-width="2"/>
+          <path d="M8 22h56" stroke="#1e293b" stroke-width="2"/>
+          <rect x="16" y="30" width="18" height="4" rx="2" fill="#1e293b"/>
+          <rect x="16" y="38" width="30" height="4" rx="2" fill="#1e293b"/>
+          <circle cx="52" cy="38" r="8" stroke="#64748b" stroke-width="2"/>
+          <path d="M58 44l6 6" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h3 class="t-sub">目前沒有符合的品項</h3>
+        <p class="t-aux" style="color:var(--ink2);margin:0">
+          低價掛單被買走時會出現這個畫面。通常 1–3 小時內會補上新的掛單。
+        </p>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px">設定價格提醒</button>
+      </div>
+
+      <!-- 錯誤 -->
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div class="demo-label" style="align-self:flex-start;margin:0">錯誤狀態</div>
+        <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true" style="margin-top:8px">
+          <path d="M36 10l22 38H14L36 10z" stroke="#fb7185" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M36 24v10M36 40v.01" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <h3 class="t-sub" style="color:var(--neg)">讀取資料失敗</h3>
+        <p class="t-aux" style="color:var(--ink2);margin:0" role="alert">
+          連不上資料庫，畫面上的數字可能不是目前的價格。請重試一次，或稍後再回來。
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+          <button type="button" class="btn btn-primary btn-sm">重試</button>
+          <button type="button" class="btn btn-text btn-sm">看資料透明頁</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 8. 按鈕 ══ -->
+  <section class="sec">
+    <h2 class="t-page">8・按鈕</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      三階：主要／次要／文字型。一頁只有一個主要按鈕。所有按鈕最小高度 44px，focus-visible 用 cyan-400 外框。
+    </p>
+    <div class="demo">
+      <div style="display:grid;gap:24px">
+        <div>
+          <div class="demo-label">主要・.btn .btn-primary（一頁只出現一次）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+            <button type="button" class="btn btn-primary">試算我的方案</button>
+            <button type="button" class="btn btn-primary" disabled>試算我的方案</button>
+            <span class="spec">disabled 時要同時說明原因，不要只變灰。</span>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div>
+          <div class="demo-label">次要・.btn .btn-secondary</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px">
+            <button type="button" class="btn btn-secondary">重新讀取資料</button>
+            <button type="button" class="btn btn-secondary" disabled>重新讀取資料</button>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div>
+          <div class="demo-label">文字型・.btn .btn-text</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px">
+            <button type="button" class="btn btn-text">看完整風險說明</button>
+            <button type="button" class="btn btn-text" disabled>看完整風險說明</button>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <p class="spec" style="margin:0">用 Tab 鍵走一遍，每個按鈕都會出現 cyan 外框。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 無障礙 ══ -->
+  <section class="sec">
+    <h2 class="t-page">無障礙檢核</h2>
+    <div class="card" style="margin-top:24px">
+      <ul class="t-body" style="color:var(--ink2);margin:0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+        <li>文字對比度符合 WCAG AA。<span class="num">#64748b</span> 為 3.8:1，只用於 12px 註記與非必要資訊。</li>
+        <li>所有可互動元素有 cyan-400 focus-visible 外框，外框不被 overflow 裁切。</li>
+        <li>觸控目標最小 44×44px，包含表格內的小按鈕。</li>
+        <li>表格用 <span class="num">&lt;th scope="col"&gt;</span>；手機卡片式仍以 <span class="num">data-label</span> 顯示欄位名稱。</li>
+        <li>狀態不只用顏色：徽章有文字、過舊時間戳章有警告圖示、錯誤狀態有 <span class="num">role="alert"</span>。</li>
+        <li>骨架屏容器加 <span class="num">aria-busy="true"</span>；動畫在 <span class="num">prefers-reduced-motion</span> 下關閉。</li>
+        <li>圖示一律 inline SVG ＋ <span class="num">aria-hidden="true"</span>，不用 emoji。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ══ 文案 ══ -->
+  <section class="sec">
+    <h2 class="t-page">文案規則</h2>
+    <p class="t-body" style="color:var(--ink2);max-width:66ch;margin:8px 0 24px">
+      禁用詞清單見策略文件 §3.3。這頁刻意不重印那些詞，避免它們透過複製貼上回到網站上。以下是允許並且應該用的說法。
+    </p>
+    <div class="grid gap-3 md:grid-cols-2">
+      <div class="card">
+        <h3 class="t-sub" style="color:var(--pos)">該用的說法</h3>
+        <ul class="t-aux" style="color:var(--ink2);margin:12px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+          <li>省下、折扣、實拿、預估、目前、依市場狀況</li>
+          <li>「約 <span class="num">28%</span>」而不是形容詞</li>
+          <li>「每 3 小時更新，上次更新：<span class="num">11:52</span>」</li>
+          <li>「幫你算好買什麼，剩下的步驟一步步帶你做」</li>
+          <li>「你想買的那款 <span class="num">1,290</span> 元的遊戲」</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="t-sub">三個原則</h3>
+        <ul class="t-aux" style="color:var(--ink2);margin:12px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+          <li>用數字不用形容詞。</li>
+          <li>每個賣點旁邊放對應的限制，不要藏在頁尾小字。</li>
+          <li>不用投資或金融語彙。第二人稱、具體情境。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ class 一覽 ══ -->
+  <section class="sec">
+    <h2 class="t-page">class 一覽</h2>
+    <div class="card" style="margin-top:24px;padding:0;overflow:hidden">
+      <div style="padding:20px">
+        <table class="rt">
+          <thead>
+            <tr><th scope="col">class</th><th scope="col">用途</th><th scope="col">備註</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rt-key" data-label="class">.t-hero ~ .t-note</td><td data-label="用途">七級字級</td><td data-label="備註">內建桌機／手機切換</td></tr>
+            <tr><td class="rt-key" data-label="class">.num</td><td data-label="用途">數字對齊</td><td data-label="備註">所有金額、倍率、百分比</td></tr>
+            <tr><td class="rt-key" data-label="class">.card</td><td data-label="用途">卡片容器</td><td data-label="備註">內距 32 / 20</td></tr>
+            <tr><td class="rt-key" data-label="class">.sec</td><td data-label="用途">區塊間距</td><td data-label="備註">96 / 56</td></tr>
+            <tr><td class="rt-key" data-label="class">.ts-chip</td><td data-label="用途">資料時間戳章</td><td data-label="備註">需 data-source、data-updated</td></tr>
+            <tr><td class="rt-key" data-label="class">.badge-go / -maybe / -no</td><td data-label="用途">划算度徽章</td><td data-label="備註">右邊接一句理由</td></tr>
+            <tr><td class="rt-key" data-label="class">.risk-bar</td><td data-label="用途">風險提示條</td><td data-label="備註">連向 risks.html</td></tr>
+            <tr><td class="rt-key" data-label="class">.stat / .stat-value</td><td data-label="用途">數據卡</td><td data-label="備註">數字用語意色</td></tr>
+            <tr><td class="rt-key" data-label="class">.rt / .rt-key</td><td data-label="用途">響應式資料表</td><td data-label="備註">每個 td 要有 data-label</td></tr>
+            <tr><td class="rt-key" data-label="class">.step / .step-check</td><td data-label="用途">步驟元件</td><td data-label="備註">第三段是驗證方式</td></tr>
+            <tr><td class="rt-key" data-label="class">.skel</td><td data-label="用途">骨架屏</td><td data-label="備註">容器加 aria-busy</td></tr>
+            <tr><td class="rt-key" data-label="class">.btn ＋ -primary / -secondary / -text</td><td data-label="用途">按鈕三階</td><td data-label="備註">最小高度 44px</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ── 資料時間戳章 ─────────────────────────
+   閾值（分鐘）：normal < aging < stale
+   csfloat 每 3 小時抓一次、steam 每 6 小時抓一次 */
+var TS_RULES = {
+  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
+  steam:   { label: 'Steam',   aging: 360, stale: 720 },
+  rate:    { label: '匯率',     aging: 720, stale: 1440 }
+};
+var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
+
+function tsAgo(min) {
+  if (min < 1) return '剛剛更新';
+  if (min < 60) return min + ' 分鐘前更新';
+  var h = Math.floor(min / 60);
+  if (h < 24) return h + ' 小時前更新';
+  return Math.floor(h / 24) + ' 天前更新';
+}
+
+function renderTimestamps(root) {
+  var scope = root || document;
+  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
+  for (var i = 0; i < chips.length; i++) {
+    var el = chips[i];
+    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
+    var t = Date.parse(el.getAttribute('data-updated'));
+    if (isNaN(t)) {
+      el.setAttribute('data-state', 'stale');
+      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
+      continue;
+    }
+    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
+    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
+    el.setAttribute('data-state', state);
+    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
+    el.innerHTML =
+      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
+      '<span class="ts-src">' + rule.label + '</span>' +
+      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
+  }
+}
+/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
+   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
+(function seedDemoTimestamps() {
+  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
+  for (var i = 0; i < demo.length; i++) {
+    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
+    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
+  }
+})();
+
+renderTimestamps();
+setInterval(function () { renderTimestamps(); }, 60000);
+
+/* ── 桌機預覽卡片式表格 ───────────────── */
+(function () {
+  var btn = document.getElementById('toggle-cards');
+  var table = document.getElementById('demo-table');
+  if (!btn || !table) return;
+  btn.addEventListener('click', function () {
+    var on = table.classList.toggle('rt-cards');
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.textContent = on ? '回到表格式' : '在桌機預覽卡片式';
+  });
+})();
+</script>
+</body>
+</html>

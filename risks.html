@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Steam 加值幫手的更新日誌：新功能、資料變更與問題修正，依時間排序。">
-    <title>更新日誌｜Steam 加值幫手</title>
+    <meta name="description" content="用 CS2 武器箱換 Steam 餘額的四項實質風險：餘額不可提領、7 天冷卻期與價格波動、成交不保證、僅供個人消費。">
+    <title>風險與限制｜Steam 加值幫手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
 :root{
@@ -200,30 +200,6 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
 .btn-text:disabled:hover{background:transparent}
 .btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-
-        .tl { position: relative; padding-left: 28px; }
-        .tl::before {
-            content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px;
-            width: 2px; background: #1e293b;
-        }
-        .tl-item { position: relative; padding-bottom: 32px; }
-        .tl-item:last-child { padding-bottom: 0; }
-        .tl-dot {
-            position: absolute; left: -28px; top: 6px;
-            width: 12px; height: 12px; border-radius: 999px;
-            background: #0f172a; border: 2px solid #334155;
-        }
-        .tl-item[data-type="feature"] .tl-dot { border-color: #22d3ee; }
-        .tl-item[data-type="data"] .tl-dot { border-color: #34d399; }
-        .tl-item[data-type="fix"] .tl-dot { border-color: #fbbf24; }
-        .tag {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 4px; font-size: 12px; font-weight: 700; line-height: 1.6;
-            border: 1px solid transparent;
-        }
-        .tag-feature { color: #22d3ee; background: rgba(34,211,238,.1); border-color: rgba(34,211,238,.35); }
-        .tag-data { color: #34d399; background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.35); }
-        .tag-fix { color: #fbbf24; background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.35); }
     </style>
 </head>
 <body>
@@ -232,111 +208,103 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
     <main class="wrap" style="padding-bottom:56px;max-width:760px">
 
         <header style="padding-top:48px">
-            <h1 class="t-page">更新日誌</h1>
+            <h1 class="t-page">風險與限制</h1>
             <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
-                這個網站改了什麼、資料源有什麼變動、修了哪些問題，都記在這裡。
+                四件事。第一件比其他三件加起來都重要，所以放在最前面。
             </p>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px">
-                <span class="tag tag-feature">新功能</span>
-                <span class="tag tag-data">資料</span>
-                <span class="tag tag-fix">修正</span>
-            </div>
         </header>
 
-        <section class="tl" style="margin-top:40px">
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">網站改版：手機可用、每個數字都標更新時間</h2>
-                <div class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    <p style="margin:0">整站重做了一輪，重點有三個：</p>
-                    <ul style="margin:8px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
-                        <li>市場列表以前在手機上會壞版，現在小螢幕會自動改成卡片式，不用左右捲。</li>
-                        <li>每個價格旁邊都加了資料抓取時間，太舊會變黃、再舊會變紅。</li>
-                        <li>新增資格快檢、風險與限制、資料透明、購物清單、單品項頁五個頁面。</li>
-                    </ul>
-                </div>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算結果會先告訴你「這次值不值得做」</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    試算頁最上面加了划算度判斷。金額低於 1,000 元會直接標「不建議」，並建議你改用官方儲值或信用卡回饋。我們寧可你這次不用，也不想你花一小時只省兩百塊。
+        <!-- ① -->
+        <section class="card" style="margin-top:32px">
+            <div style="display:flex;align-items:baseline;gap:12px">
+                <span class="t-note num" style="color:var(--ink3)">01</span>
+                <h2 class="t-sect" style="color:var(--neg)">Steam 餘額不可提領</h2>
+            </div>
+            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
+                <p style="margin:0">
+                    這筆錢只能在 Steam 花掉，永遠換不回現金。沒有例外，沒有申訴管道，沒有第三方可以幫你換。
                 </p>
-            </article>
-
-            <article class="tl-item" data-type="fix">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-fix">修正</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">移除首頁上不準確的描述</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    首頁原本對資料更新頻率與「前往購買」功能的描述都與實際不符，已經拿掉。資料實際上是每 3 至 6 小時更新一次，前往購買的按鈕還在開發中，現在標示為「即將推出」。
+                <p style="margin:0">
+                    你付出的是可以拿去做任何事的新台幣，換回來的是只能買遊戲的點數。如果你最後沒把它花完，那筆錢就等於鎖死在帳號裡。
                 </p>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-26">2026-07-26</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算、指南、常見問題、關於頁上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    補齊導覽列裡原本還沒建立的頁面。試算頁可以依你想拿到的金額，自動算出建議的購買組合與數量。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="data">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-20">2026-07-20</time>
-                    <span class="tag tag-data">資料</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">CSFloat 價格改為每 3 小時自動更新</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    抓取程式排上 GitHub Actions，不再需要手動觸發。Steam 端因為 API 有頻率限制，目前是每 6 小時。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-12">2026-07-12</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">首頁與市場列表上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    市場列表串接資料庫，依實拿倍率排序顯示所有監控中的武器箱，可以手動重新讀取。
-                </p>
-            </article>
-
-        </section>
-
-        <section class="sec">
-            <div class="card">
-                <h2 class="t-sect">接下來要做的</h2>
-                <ul class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
-                    <li>歷史走勢與倍率百分位。需要累積至少 30 天的資料，預計 9 月起提供。</li>
-                    <li>預估與實際成交的落差對照。同樣在累積資料，這是驗證工具準不準最直接的方式。</li>
-                    <li>前往購買按鈕直接帶到 CSFloat 對應的頁面。</li>
-                </ul>
-                <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
-                    沒有時程保證，這是一個人做的個人專案。
+                <p style="margin:0">
+                    這比 7 天冷卻期嚴重得多。冷卻期只是等，這個是不可逆。所以這個工具只適合本來就打算在 Steam 花這筆錢的人。如果你是想「先存起來，之後再說」，不要用。
                 </p>
             </div>
         </section>
+
+        <!-- ② -->
+        <section class="card" style="margin-top:16px">
+            <div style="display:flex;align-items:baseline;gap:12px">
+                <span class="t-note num" style="color:var(--ink3)">02</span>
+                <h2 class="t-sect">7 天冷卻期與價格波動</h2>
+            </div>
+            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
+                <p style="margin:0">
+                    你看到的是今天的價格，你賣的是 7 天後的價格。網站上所有的數字都是目前的快照，不是你最後會拿到的金額。
+                </p>
+                <p style="margin:0">
+                    這 7 天裡價格會動。CS2 改版、大型賽事、Steam 特價、其他人同時大量拋售，都可能讓箱子跌價。也可能漲，但你不能假設它會漲。
+                </p>
+                <p style="margin:0">
+                    冷卻期間你不能取消、不能提前賣、不能轉移。買下去就是 7 天。
+                </p>
+            </div>
+        </section>
+
+        <!-- ③ -->
+        <section class="card" style="margin-top:16px">
+            <div style="display:flex;align-items:baseline;gap:12px">
+                <span class="t-note num" style="color:var(--ink3)">03</span>
+                <h2 class="t-sect">成交不保證</h2>
+            </div>
+            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
+                <p style="margin:0">
+                    Steam 社群市場是掛單制。你掛上去只是排隊等買家，不是按一下就換成錢。
+                </p>
+                <p style="margin:0">
+                    熱門箱子通常幾分鐘內成交。冷門品項可能掛好幾天沒人買，這段時間你的錢會被鎖得更久。想快點賣掉就要降價，降價就會吃掉一部分折扣。
+                </p>
+                <p style="margin:0">
+                    所以清單裡會優先給你成交量大的品項，但庫存有限的時候，還是可能配到比較冷門的箱子。
+                </p>
+            </div>
+        </section>
+
+        <!-- ④ -->
+        <section class="card" style="margin-top:16px">
+            <div style="display:flex;align-items:baseline;gap:12px">
+                <span class="t-note num" style="color:var(--ink3)">04</span>
+                <h2 class="t-sect">僅供個人消費</h2>
+            </div>
+            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
+                <p style="margin:0">
+                    這個方式是給你自己買遊戲用的。不得用於商業行為，包含代儲、轉售餘額、批量操作。
+                </p>
+                <p style="margin:0">
+                    這類行為可能違反 Steam 或 CSFloat 的服務條款，後果包含帳號被限制或永久停權，而且你放在裡面的餘額和物品會一起消失。這個網站不會、也沒有能力替你處理任何帳號問題。
+                </p>
+            </div>
+        </section>
+
+        <!-- 我們的位置 -->
+        <section class="card" style="margin-top:32px">
+            <h2 class="t-sub">這個網站在這件事裡的位置</h2>
+            <ul class="t-body" style="color:var(--ink2);margin:12px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                <li>我們只做價格整理與試算，不代你下單、不碰你的帳號、不經手任何金流。</li>
+                <li>所有操作都是你自己在 CSFloat 和 Steam 上完成的，決定權和後果都在你身上。</li>
+                <li>資料有更新頻率，可能與你下單當下的真實報價有落差。每個數字旁邊都標了抓取時間，下單前請自己核對一次。</li>
+                <li>我們不收費、不抽成，也因此不對你的交易結果負責。</li>
+            </ul>
+            <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
+                想看資料怎麼來的、公式怎麼算的，都在 <a href="transparency.html">資料透明</a>。
+            </p>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:32px">
+            <a href="eligibility.html" class="btn btn-secondary" style="text-decoration:none">先做 30 秒資格快檢</a>
+            <a href="calculator.html" class="btn btn-text" style="text-decoration:none">去試算</a>
+        </div>
 
     </main>
 
@@ -415,7 +383,7 @@ setInterval(function () { renderTimestamps(); }, 60000);
                     document.getElementById('footer').innerHTML = doc.body.innerHTML;
                 });
         }
-        loadNav("news");
+        loadNav("risks");
         loadFooter();
     </script>
 </body>

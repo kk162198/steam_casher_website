@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Steam 加值幫手的更新日誌：新功能、資料變更與問題修正，依時間排序。">
-    <title>更新日誌｜Steam 加值幫手</title>
+    <meta name="description" content="把試算結果變成可勾選的購買清單，邊買邊打勾，進度自動保存在你的瀏覽器裡。">
+    <title>購物清單｜Steam 加值幫手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
 :root{
@@ -201,140 +201,95 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .btn-text:disabled:hover{background:transparent}
 .btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
 
-        .tl { position: relative; padding-left: 28px; }
-        .tl::before {
-            content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px;
-            width: 2px; background: #1e293b;
+        .buy-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 44px; padding: 8px 14px; border-radius: 8px;
+            border: 1px solid #1e293b; background: transparent; color: #64748b;
+            font-size: 14px; font-weight: 700; font-family: inherit;
+            white-space: nowrap; cursor: not-allowed;
         }
-        .tl-item { position: relative; padding-bottom: 32px; }
-        .tl-item:last-child { padding-bottom: 0; }
-        .tl-dot {
-            position: absolute; left: -28px; top: 6px;
-            width: 12px; height: 12px; border-radius: 999px;
-            background: #0f172a; border: 2px solid #334155;
-        }
-        .tl-item[data-type="feature"] .tl-dot { border-color: #22d3ee; }
-        .tl-item[data-type="data"] .tl-dot { border-color: #34d399; }
-        .tl-item[data-type="fix"] .tl-dot { border-color: #fbbf24; }
-        .tag {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 4px; font-size: 12px; font-weight: 700; line-height: 1.6;
-            border: 1px solid transparent;
-        }
-        .tag-feature { color: #22d3ee; background: rgba(34,211,238,.1); border-color: rgba(34,211,238,.35); }
-        .tag-data { color: #34d399; background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.35); }
-        .tag-fix { color: #fbbf24; background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.35); }
     </style>
 </head>
 <body>
     <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
 
-    <main class="wrap" style="padding-bottom:56px;max-width:760px">
+    <main class="wrap" style="padding-bottom:56px">
 
-        <header style="padding-top:48px">
-            <h1 class="t-page">更新日誌</h1>
-            <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
-                這個網站改了什麼、資料源有什麼變動、修了哪些問題，都記在這裡。
-            </p>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px">
-                <span class="tag tag-feature">新功能</span>
-                <span class="tag tag-data">資料</span>
-                <span class="tag tag-fix">修正</span>
+        <header style="padding-top:48px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+            <div>
+                <h1 class="t-page">購物清單</h1>
+                <p class="t-aux" style="color:var(--ink2);margin:8px 0 0;max-width:52ch">
+                    照這份清單到 CSFloat 一項一項買，買到就打勾。進度存在你的瀏覽器裡，關掉再回來還在。
+                </p>
             </div>
+            <a href="calculator.html" class="btn btn-secondary btn-sm" style="text-decoration:none">重新試算</a>
         </header>
 
-        <section class="tl" style="margin-top:40px">
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-feature">新功能</span>
+        <!-- 進度 -->
+        <section style="margin-top:24px">
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end">
+                    <div class="stat">
+                        <div class="stat-label">買到的品項</div>
+                        <div id="cl-progress" class="stat-value" style="font-size:28px">--</div>
+                        <div id="cl-progress-note" class="stat-note">還沒有清單</div>
+                    </div>
+                    <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除全部勾選</button>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">網站改版：手機可用、每個數字都標更新時間</h2>
-                <div class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    <p style="margin:0">整站重做了一輪，重點有三個：</p>
-                    <ul style="margin:8px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
-                        <li>市場列表以前在手機上會壞版，現在小螢幕會自動改成卡片式，不用左右捲。</li>
-                        <li>每個價格旁邊都加了資料抓取時間，太舊會變黃、再舊會變紅。</li>
-                        <li>新增資格快檢、風險與限制、資料透明、購物清單、單品項頁五個頁面。</li>
-                    </ul>
+                <div style="height:8px;border-radius:999px;background:var(--line);margin-top:16px;overflow:hidden">
+                    <div id="cl-bar" style="width:0%;height:8px;border-radius:999px;background:var(--pos);transition:width .2s"></div>
                 </div>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算結果會先告訴你「這次值不值得做」</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    試算頁最上面加了划算度判斷。金額低於 1,000 元會直接標「不建議」，並建議你改用官方儲值或信用卡回饋。我們寧可你這次不用，也不想你花一小時只省兩百塊。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="fix">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
-                    <span class="tag tag-fix">修正</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">移除首頁上不準確的描述</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    首頁原本對資料更新頻率與「前往購買」功能的描述都與實際不符，已經拿掉。資料實際上是每 3 至 6 小時更新一次，前往購買的按鈕還在開發中，現在標示為「即將推出」。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-26">2026-07-26</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算、指南、常見問題、關於頁上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    補齊導覽列裡原本還沒建立的頁面。試算頁可以依你想拿到的金額，自動算出建議的購買組合與數量。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="data">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-20">2026-07-20</time>
-                    <span class="tag tag-data">資料</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">CSFloat 價格改為每 3 小時自動更新</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    抓取程式排上 GitHub Actions，不再需要手動觸發。Steam 端因為 API 有頻率限制，目前是每 6 小時。
-                </p>
-            </article>
-
-            <article class="tl-item" data-type="feature">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-12">2026-07-12</time>
-                    <span class="tag tag-feature">新功能</span>
-                </div>
-                <h2 class="t-sub" style="margin:8px 0 0">首頁與市場列表上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    市場列表串接資料庫，依實拿倍率排序顯示所有監控中的武器箱，可以手動重新讀取。
-                </p>
-            </article>
-
+            </div>
         </section>
 
+        <!-- 清單 -->
+        <section style="margin-top:16px">
+            <div class="card" style="padding:0;overflow:hidden">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between">
+                    <div>
+                        <div class="t-sub">要買的品項</div>
+                        <div id="cl-source" class="spec" style="color:var(--ink3)">讀取中...</div>
+                    </div>
+                    <span id="cl-chip" class="ts-chip" data-source="csfloat"></span>
+                </div>
+                <div style="padding:8px 20px 20px">
+                    <table class="rt">
+                        <thead>
+                            <tr>
+                                <th scope="col">品項</th>
+                                <th scope="col">數量</th>
+                                <th scope="col">單價</th>
+                                <th scope="col">小計</th>
+                                <th scope="col">已買到</th>
+                                <th scope="col">前往購買</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cl-body">
+                            <tr><td colspan="6" style="padding:32px 0;text-align:center;color:var(--ink3)">讀取中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 風險提示條 -->
+        <section style="margin-top:24px">
+            <div class="risk-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span>下單前請自己核對 CSFloat 上的當下報價。買到的箱子要等 7 天才能賣，Steam 餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+            </div>
+        </section>
+
+        <!-- 下一步 -->
         <section class="sec">
             <div class="card">
-                <h2 class="t-sect">接下來要做的</h2>
-                <ul class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
-                    <li>歷史走勢與倍率百分位。需要累積至少 30 天的資料，預計 9 月起提供。</li>
-                    <li>預估與實際成交的落差對照。同樣在累積資料，這是驗證工具準不準最直接的方式。</li>
-                    <li>前往購買按鈕直接帶到 CSFloat 對應的頁面。</li>
-                </ul>
-                <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
-                    沒有時程保證，這是一個人做的個人專案。
-                </p>
+                <h2 class="t-sect">全部買完之後</h2>
+                <ol class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
+                    <li>箱子會進到你的 Steam 庫存，滑鼠移上去會顯示 7 天後的可交易日期。</li>
+                    <li>到期後在 Steam 社群市場逐一上架，價格參考當下的最低掛牌價。</li>
+                    <li>成交後扣掉 Steam 手續費，餘額直接進錢包。</li>
+                </ol>
+                <a href="help.html" class="btn btn-text btn-sm" style="text-decoration:none;margin-top:16px">看完整操作指南</a>
             </div>
         </section>
 
@@ -394,6 +349,145 @@ function renderTimestamps(root) {
 renderTimestamps();
 setInterval(function () { renderTimestamps(); }, 60000);
 
+        /* 清單來源：試算頁在每次試算後把組合寫進 localStorage（key 如下）。
+           也支援用網址參數覆寫，方便分享：?items=名稱:數量:單價,名稱:數量:單價 */
+        const COMBO_STORAGE_KEY = 'sah-combo-v1';
+        const CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+
+        let items = [];
+        let savedAt = null;
+        const checked = new Set();
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function readCombo() {
+            const params = new URLSearchParams(location.search);
+            const raw = params.get('items');
+            if (raw) {
+                items = raw.split(',').map(part => {
+                    const [name, qty, unit] = part.split(':');
+                    return { name: name || '未命名', qty: Number(qty) || 0, unitCostTwd: Number(unit) || 0 };
+                }).filter(i => i.qty > 0);
+                document.getElementById('cl-source').textContent = '這份清單來自網址參數';
+                return;
+            }
+            try {
+                const stored = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null');
+                if (stored && Array.isArray(stored.items)) {
+                    items = stored.items;
+                    savedAt = stored.savedAt || null;
+                }
+            } catch (e) { /* 忽略 */ }
+        }
+
+        function readChecked() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || '[]');
+                if (Array.isArray(raw)) raw.forEach(n => checked.add(n));
+            } catch (e) { /* 忽略 */ }
+        }
+        function writeChecked() {
+            try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify([...checked])); } catch (e) { /* 忽略 */ }
+        }
+
+        // 清單的單列樣板
+        function renderChecklistRow(item, isChecked) {
+            const subtotal = item.unitCostTwd * item.qty;
+            return `
+                <td class="rt-key" data-label="品項">${escapeHtml(item.name)}</td>
+                <td data-label="數量" style="color:var(--brand);font-weight:700">${item.qty} 個</td>
+                <td data-label="單價">NT$ ${item.unitCostTwd.toFixed(0)}</td>
+                <td data-label="小計">NT$ ${subtotal.toFixed(0)}</td>
+                <td data-label="已買到">
+                    <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
+                        <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(item.name)} 已買到"${isChecked ? ' checked' : ''}>
+                    </label>
+                </td>
+                <td data-label="前往購買">
+                    <button type="button" class="buy-btn" disabled title="這個功能還沒開發完成">即將推出</button>
+                </td>`;
+        }
+
+        function updateProgress() {
+            const bar = document.getElementById('cl-bar');
+            const prog = document.getElementById('cl-progress');
+            const note = document.getElementById('cl-progress-note');
+            if (!items.length) {
+                prog.textContent = '--';
+                note.textContent = '還沒有清單';
+                bar.style.width = '0%';
+                return;
+            }
+            const doneItems = items.filter(i => checked.has(i.name));
+            const totalQty = items.reduce((s, i) => s + i.qty, 0);
+            const doneQty = doneItems.reduce((s, i) => s + i.qty, 0);
+            const spent = doneItems.reduce((s, i) => s + i.unitCostTwd * i.qty, 0);
+            prog.textContent = `${doneItems.length} / ${items.length}`;
+            note.textContent = `共 ${doneQty} / ${totalQty} 件・已花約 NT$ ${spent.toFixed(0)}`;
+            bar.style.width = (items.length ? (doneItems.length / items.length) * 100 : 0) + '%';
+        }
+
+        function renderEmpty() {
+            document.getElementById('cl-body').innerHTML = `
+                <tr><td colspan="6" style="padding:40px 16px;text-align:center">
+                    <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
+                        <rect x="8" y="10" width="56" height="38" rx="4" stroke="#1e293b" stroke-width="2"/>
+                        <path d="M8 22h56" stroke="#1e293b" stroke-width="2"/>
+                        <rect x="16" y="30" width="18" height="4" rx="2" fill="#1e293b"/>
+                        <rect x="16" y="38" width="30" height="4" rx="2" fill="#1e293b"/>
+                    </svg>
+                    <div class="t-sub" style="margin-top:12px">還沒有清單</div>
+                    <p class="t-aux" style="color:var(--ink2);margin:8px auto 0;max-width:40ch">
+                        先到試算頁輸入你想花的金額，算出購買組合之後，這裡就會出現可以邊買邊勾的清單。
+                    </p>
+                    <div style="margin-top:16px">
+                        <a href="calculator.html" class="btn btn-primary btn-sm" style="text-decoration:none">去試算</a>
+                    </div>
+                </td></tr>`;
+            document.getElementById('cl-source').textContent = '尚未產生清單';
+            document.getElementById('cl-chip').style.display = 'none';
+        }
+
+        function render() {
+            const body = document.getElementById('cl-body');
+            if (!items.length) { renderEmpty(); updateProgress(); return; }
+
+            const chip = document.getElementById('cl-chip');
+            if (savedAt) {
+                chip.setAttribute('data-updated', savedAt);
+                chip.style.display = '';
+                document.getElementById('cl-source').textContent = '這份清單來自你上次的試算結果';
+            } else {
+                chip.style.display = 'none';
+            }
+
+            body.innerHTML = '';
+            items.forEach(item => {
+                const isChecked = checked.has(item.name);
+                const tr = document.createElement('tr');
+                tr.style.opacity = isChecked ? '0.45' : '';
+                tr.innerHTML = renderChecklistRow(item, isChecked);
+                tr.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
+                    if (e.target.checked) { checked.add(item.name); tr.style.opacity = '0.45'; }
+                    else { checked.delete(item.name); tr.style.opacity = ''; }
+                    writeChecked();
+                    updateProgress();
+                });
+                body.appendChild(tr);
+            });
+            renderTimestamps(document);
+            updateProgress();
+        }
+
+        document.getElementById('cl-reset').addEventListener('click', () => {
+            checked.clear();
+            writeChecked();
+            render();
+        });
+
         function loadNav(pageID) {
             fetch("nav.html")
                 .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
@@ -415,8 +509,12 @@ setInterval(function () { renderTimestamps(); }, 60000);
                     document.getElementById('footer').innerHTML = doc.body.innerHTML;
                 });
         }
-        loadNav("news");
+
+        loadNav("calculator");
         loadFooter();
+        readCombo();
+        readChecked();
+        render();
     </script>
 </body>
 </html>

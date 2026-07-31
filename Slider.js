@@ -52,14 +52,14 @@ export default class Slider extends HTMLElement {
                 }
                 h2{
                     margin-top: 0;
-                    color: #00e5ff;
+                    color: #22d3ee;
                     text-align: center;
                     font-size: 20px;
                     margin-bottom: 20px;
                     font-weight: bold;
                 }
                 p{
-                    color: #9ba4b5;
+                    color: #94a3b8;
                     text-align: center;
                     font-size: 15px;
                     margin-bottom: 20px;
@@ -72,7 +72,7 @@ export default class Slider extends HTMLElement {
                 max-width: 100%;
                 height: 5px;
                 border-radius: 4px; 
-                background: linear-gradient(to right, #00e5ff 15%, #9ba4b5 15%);
+                background: linear-gradient(to right, #22d3ee 15%, #94a3b8 15%);
                 outline: none;
                 margin-bottom: 20px;
                 }
@@ -83,16 +83,16 @@ export default class Slider extends HTMLElement {
                 width: 20px;               /* 滑塊寬度 */
                 height: 20px;              /* 滑塊高度 */
                 border-radius: 50%;        /* 圓形 */
-                background: #00e5ff;       /* 內部背景 */
-                border: 3px solid #1C2632; /* 外部粗框 */
+                background: #22d3ee;       /* 內部背景 */
+                border: 3px solid #0f172a; /* 外部粗框 */
                 cursor: pointer;
                 }
                 .slider::-moz-range-thumb {
                     width: 20px;
                     height: 20px;
                     border-radius: 50%;
-                    background: #00e5ff;
-                    border: 3px solid #1C2632;
+                    background: #22d3ee;
+                    border: 3px solid #0f172a;
                     cursor: pointer;
                 }
                 .base-input, .result-input {
@@ -120,18 +120,18 @@ export default class Slider extends HTMLElement {
                 }
 
                 .base-input {
-                    color: #00e5ff;
-                    border-bottom: 1px solid #9ba4b5;
+                    color: #22d3ee;
+                    border-bottom: 1px solid #94a3b8;
                 }
 
                 .result-input {
-                    color: #4ade80;      /* 亮綠色 */
-                    border-bottom: 1px solid #9ba4b5;
+                    color: #34d399;      /* 亮綠色 */
+                    border-bottom: 1px solid #94a3b8;
                 }
 
             </style>
             <div class="outside_div">
-                <h2>報酬計算器</h2>
+                <h2>餘額換算</h2>
                 <input 
                     type="range" 
                     id="cash-slider" 
@@ -143,12 +143,12 @@ export default class Slider extends HTMLElement {
                 >
                 <div class="inside_div">
                     <p>
-                        當前設定投入： 
+                        你打算投入： 
                         <input type="number" id="base-input" class="base-input" value="1000">
                         元
                     </p>
                     <p>
-                        今日最佳套利收穫：
+                        目前可換到的餘額：
                         <input type="number" id="result-input" class="result-input">
                         元
                     </p>
@@ -176,7 +176,7 @@ export default class Slider extends HTMLElement {
         const min = Number(this.slider_value.min);
         const max = Number(this.slider_value.max);
         const percentage = ((Number(value) - min) / (max - min)) * 100;
-        this.slider_value.style.background = `linear-gradient(to right, #00e5ff ${percentage}%, #9ba4b5 ${percentage}%)`;
+        this.slider_value.style.background = `linear-gradient(to right, #22d3ee ${percentage}%, #94a3b8 ${percentage}%)`;
     }
 
     updateFromBase(value) {

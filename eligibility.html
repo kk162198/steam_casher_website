@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題，包含消費門檻、手機驗證器與交易限制。">
+    <title>資格快檢｜Steam 加值幫手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+:root{
+  --base:#020617; --card:#0f172a; --line:#1e293b;
+  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
+  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--base); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  font-size:16px; line-height:1.75;
+}
+
+/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
+.card ul,main ul,.card ol,main ol{list-style:revert}
+.card ul{list-style-type:disc}
+.card ol{list-style-type:decimal}
+.card li,main li{list-style:inherit}
+
+/* ── 字級 ───────────────────────────────── */
+.t-hero{font-size:32px;line-height:1.4;font-weight:700}
+.t-page{font-size:26px;line-height:1.4;font-weight:700}
+.t-sect{font-size:20px;line-height:1.4;font-weight:700}
+.t-sub {font-size:17px;line-height:1.4;font-weight:600}
+.t-body{font-size:16px;line-height:1.75}
+.t-aux {font-size:14px;line-height:1.75}
+.t-note{font-size:12px;line-height:1.75}
+@media (min-width:768px){
+  .t-hero{font-size:48px}
+  .t-page{font-size:32px}
+  .t-sect{font-size:24px}
+  .t-sub {font-size:18px}
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ── 版面 ───────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+@media (min-width:768px){ .wrap{padding:0 32px} }
+.sec{padding-top:56px}
+@media (min-width:768px){ .sec{padding-top:96px} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+@media (min-width:768px){ .card{padding:32px} }
+.hr{height:1px;background:var(--line);border:0;margin:0}
+
+/* ── focus ─────────────────────────────── */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
+  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
+}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ── 1. 資料時間戳章 ────────────────────── */
+.ts-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(30,41,59,.35);
+  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
+.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
+.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
+.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
+.ts-chip[data-state="stale"] .ts-dot{display:none}
+.ts-chip svg{flex:none}
+.ts-chip .ts-src{color:inherit;opacity:.85}
+
+/* ── 2. 划算度徽章 ──────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
+  border:1px solid transparent;
+}
+.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
+.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
+.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
+
+/* ── 3. 風險提示條 ──────────────────────── */
+.risk-bar{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;background:rgba(251,191,36,.06);
+  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  font-size:14px;line-height:1.75;color:var(--ink);
+}
+.risk-bar svg{color:var(--warn);margin-top:5px}
+.risk-bar a{white-space:nowrap}
+
+/* ── 4. 數據卡 ─────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:14px;color:var(--ink2)}
+.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:768px){ .stat-value{font-size:40px} }
+.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
+
+/* ── 5. 響應式資料表 ────────────────────── */
+.rt{
+  width:100%;border-collapse:collapse;text-align:left;
+  --rt-thead:table-header-group; --rt-tbody:table-row-group;
+  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
+  --rt-tr-pad:0;       --rt-tr-bg:transparent;
+  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
+  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
+  --rt-key-size:16px;
+}
+.rt thead{display:var(--rt-thead)}
+.rt tbody{display:var(--rt-tbody)}
+.rt th{
+  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
+  border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.rt tbody tr{
+  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
+  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
+}
+.rt tbody td{
+  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
+  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.rt tbody td::before{
+  display:var(--rt-label);content:attr(data-label);
+  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
+}
+.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
+.rt tbody tr:hover{background:rgba(30,41,59,.28)}
+.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
+  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+}
+.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+.rt-cards td.rt-key::before{display:none}
+@media (max-width:767px){
+  .rt{
+    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+  }
+  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+  .rt td.rt-key::before{display:none}
+  .rt tbody tr:hover{background:var(--card)}
+}
+
+/* ── 6. 步驟 ───────────────────────────── */
+.step{display:flex;gap:16px}
+.step-no{
+  flex:none;width:36px;height:36px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
+  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
+}
+.step-check{
+  margin-top:12px;padding:12px 16px;border-radius:8px;
+  background:#0b1424;border:1px solid var(--line);
+}
+.step-check-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
+}
+
+/* ── 7. 狀態 ───────────────────────────── */
+.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.skel::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
+  animation:skel 1.4s infinite;
+}
+@keyframes skel{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
+
+/* ── 8. 按鈕 ───────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
+  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
+  transition:background-color .15s,border-color .15s,color .15s;
+  font-family:inherit;
+}
+.btn-primary{background:var(--brand);color:#022c33}
+.btn-primary:hover{background:#67e8f9}
+.btn-primary:active{background:#06b6d4}
+.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
+.btn-secondary:active{background:rgba(30,41,59,.8)}
+.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
+.btn-text:hover{background:rgba(34,211,238,.08)}
+.btn-text:active{background:rgba(34,211,238,.16)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled:hover{background:var(--brand)}
+.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
+.btn-text:disabled:hover{background:transparent}
+.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
+
+        .q-card { transition: border-color .15s; }
+        .q-card[data-answered="yes"] { border-color: rgba(52,211,153,.4); }
+        .q-card[data-answered="no"] { border-color: rgba(251,113,133,.4); }
+        .opt {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 44px; min-width: 96px; padding: 10px 20px;
+            border-radius: 8px; border: 1px solid #1e293b; background: transparent;
+            color: #f1f5f9; font: inherit; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: background-color .15s, border-color .15s, color .15s;
+        }
+        .opt:hover { border-color: #64748b; background: rgba(30,41,59,.5); }
+        .opt[aria-pressed="true"] { border-color: #22d3ee; background: rgba(34,211,238,.1); color: #22d3ee; }
+        .opt:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+        .prog-seg { flex: 1; height: 4px; border-radius: 999px; background: #1e293b; transition: background-color .2s; }
+        .prog-seg.is-done { background: #22d3ee; }
+    </style>
+</head>
+<body>
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+
+    <main class="wrap" style="padding-bottom:56px;max-width:760px">
+
+        <header style="padding-top:48px">
+            <h1 class="t-page">資格快檢</h1>
+            <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
+                30 秒確認你現在能不能用，不用註冊。答案只留在你自己的瀏覽器裡，我們收不到。
+            </p>
+        </header>
+
+        <!-- 進度 -->
+        <div style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px;margin-top:24px">
+            <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="elig-progressbar">
+                <div class="prog-seg" data-seg="1"></div>
+                <div class="prog-seg" data-seg="2"></div>
+                <div class="prog-seg" data-seg="3"></div>
+                <div class="prog-seg" data-seg="4"></div>
+                <div class="prog-seg" data-seg="5"></div>
+            </div>
+            <p id="elig-progress-text" class="t-note" style="color:var(--ink3);margin:8px 0 0">還沒開始，共 5 題</p>
+        </div>
+
+        <!-- ① -->
+        <section id="elig-q1" class="card q-card" style="margin-top:12px" data-answered="">
+            <div class="t-note num" style="color:var(--ink3)">問題 1 / 5</div>
+            <h2 class="t-sect" style="margin:8px 0 0">你的 Steam 帳號累積消費有超過 US$5 嗎？</h2>
+            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+                買遊戲或儲值錢包都算。沒滿這個門檻的帳號是 Limited 帳號，不能用社群市場，這一步沒有例外。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:16px">
+                <button type="button" class="opt" data-q="q1" data-val="yes" aria-pressed="false">有</button>
+                <button type="button" class="opt" data-q="q1" data-val="no" aria-pressed="false">沒有</button>
+                <button type="button" class="opt" data-q="q1" data-val="unknown" aria-pressed="false">不確定</button>
+            </div>
+        </section>
+
+        <!-- ② -->
+        <section id="elig-q2" class="card q-card" style="margin-top:12px" data-answered="">
+            <div class="t-note num" style="color:var(--ink3)">問題 2 / 5</div>
+            <h2 class="t-sect" style="margin:8px 0 0">Steam 手機驗證器啟用超過 7 天了嗎？</h2>
+            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+                沒啟用就完全不能在市場上架。今天才啟用的話，要再等 7 天。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:16px">
+                <button type="button" class="opt" data-q="q2" data-val="yes" aria-pressed="false">超過 7 天</button>
+                <button type="button" class="opt" data-q="q2" data-val="recent" aria-pressed="false">剛啟用不久</button>
+                <button type="button" class="opt" data-q="q2" data-val="no" aria-pressed="false">還沒啟用</button>
+            </div>
+        </section>
+
+        <!-- ③ -->
+        <section id="elig-q3" class="card q-card" style="margin-top:12px" data-answered="">
+            <div class="t-note num" style="color:var(--ink3)">問題 3 / 5</div>
+            <h2 class="t-sect" style="margin:8px 0 0">帳號有交易限制或 VAC 停權嗎？</h2>
+            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+                有的話不能掛售，這條路直接走不通，而且沒有繞道的方法。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:16px">
+                <button type="button" class="opt" data-q="q3" data-val="yes" aria-pressed="false">沒有</button>
+                <button type="button" class="opt" data-q="q3" data-val="no" aria-pressed="false">有</button>
+                <button type="button" class="opt" data-q="q3" data-val="unknown" aria-pressed="false">不確定</button>
+            </div>
+        </section>
+
+        <!-- ④ -->
+        <section id="elig-q4" class="card q-card" style="margin-top:12px" data-answered="">
+            <div class="t-note num" style="color:var(--ink3)">問題 4 / 5</div>
+            <h2 class="t-sect" style="margin:8px 0 0">你能接受買完之後等 7 天嗎？</h2>
+            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+                這 7 天不能縮短、不能取消。要送禮或趕特價末班車的話，時間會來不及。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:16px">
+                <button type="button" class="opt" data-q="q4" data-val="yes" aria-pressed="false">可以</button>
+                <button type="button" class="opt" data-q="q4" data-val="no" aria-pressed="false">不行，我趕時間</button>
+            </div>
+        </section>
+
+        <!-- ⑤ -->
+        <section id="elig-q5" class="card q-card" style="margin-top:12px" data-answered="">
+            <div class="t-note num" style="color:var(--ink3)">問題 5 / 5</div>
+            <h2 class="t-sect" style="margin:8px 0 0">這次打算在 Steam 花多少？</h2>
+            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+                填你想買的遊戲或物品的價格。金額會影響這件事值不值得做。
+            </p>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
+                <label for="elig-amount" class="t-sub" style="color:var(--ink3)">NT$</label>
+                <input type="number" id="elig-amount" value="3000" min="0" step="100"
+                    style="background:transparent;border:0;border-bottom:1px solid #64748b;outline:none;width:160px;
+                           font:inherit;font-size:32px;font-weight:700;color:#22d3ee;font-variant-numeric:tabular-nums;padding:2px 4px">
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+                <button type="button" class="opt" data-amount="800" style="min-width:0">800</button>
+                <button type="button" class="opt" data-amount="1500" style="min-width:0">1,500</button>
+                <button type="button" class="opt" data-amount="3000" style="min-width:0">3,000</button>
+                <button type="button" class="opt" data-amount="6000" style="min-width:0">6,000</button>
+            </div>
+        </section>
+
+        <!-- 結果 -->
+        <section id="elig-result" style="margin-top:24px" aria-live="polite">
+            <div class="card" style="text-align:center;padding:32px 20px">
+                <p class="t-body" style="color:var(--ink3);margin:0">五題都答完之後，這裡會告訴你結果。</p>
+            </div>
+        </section>
+
+        <div style="margin-top:16px;display:flex;justify-content:flex-end">
+            <button type="button" id="elig-reset" class="btn btn-text btn-sm">清除我的答案</button>
+        </div>
+
+    </main>
+
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+
+    <script>
+/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
+var TS_RULES = {
+  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
+  steam:   { label: 'Steam',   aging: 360, stale: 720 },
+  rate:    { label: '匯率',     aging: 720, stale: 1440 }
+};
+var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
+
+function tsAgo(min) {
+  if (min < 1) return '剛剛更新';
+  if (min < 60) return min + ' 分鐘前更新';
+  var h = Math.floor(min / 60);
+  if (h < 24) return h + ' 小時前更新';
+  return Math.floor(h / 24) + ' 天前更新';
+}
+
+function renderTimestamps(root) {
+  var scope = root || document;
+  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
+  for (var i = 0; i < chips.length; i++) {
+    var el = chips[i];
+    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
+    var t = Date.parse(el.getAttribute('data-updated'));
+    if (isNaN(t)) {
+      el.setAttribute('data-state', 'stale');
+      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
+      continue;
+    }
+    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
+    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
+    el.setAttribute('data-state', state);
+    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
+    el.innerHTML =
+      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
+      '<span class="ts-src">' + rule.label + '</span>' +
+      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
+  }
+}
+/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
+   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
+(function seedDemoTimestamps() {
+  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
+  for (var i = 0; i < demo.length; i++) {
+    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
+    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
+  }
+})();
+
+renderTimestamps();
+setInterval(function () { renderTimestamps(); }, 60000);
+
+        const ELIG_STORAGE_KEY = 'sah-eligibility-v1';
+        const ELIG_MIN_WORTH = 3000;   // 高於此金額：值得做
+        const ELIG_MIN_CONSIDER = 1000; // 低於此金額：不建議
+        const ELIG_EST_DISCOUNT = 0.22; // 折扣估算值，僅用於資格頁的粗估
+
+        const answers = { q1: null, q2: null, q3: null, q4: null, amount: 3000 };
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(ELIG_STORAGE_KEY);
+                if (!raw) return;
+                const saved = JSON.parse(raw);
+                ['q1', 'q2', 'q3', 'q4'].forEach(k => { if (saved[k]) answers[k] = saved[k]; });
+                if (saved.amount) answers.amount = Number(saved.amount) || 3000;
+            } catch (e) { /* 無痕模式等情況忽略 */ }
+        }
+        function saveState() {
+            try { localStorage.setItem(ELIG_STORAGE_KEY, JSON.stringify(answers)); } catch (e) { /* 忽略 */ }
+        }
+
+        function paintAnswers() {
+            document.querySelectorAll('.opt[data-q]').forEach(btn => {
+                const on = answers[btn.dataset.q] === btn.dataset.val;
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            ['q1', 'q2', 'q3', 'q4'].forEach((k, i) => {
+                const card = document.getElementById('elig-q' + (i + 1));
+                const v = answers[k];
+                card.dataset.answered = v === null ? '' : (isBlocking(k, v) ? 'no' : 'yes');
+            });
+            document.getElementById('elig-amount').value = answers.amount;
+            document.querySelectorAll('.opt[data-amount]').forEach(btn => {
+                btn.setAttribute('aria-pressed', Number(btn.dataset.amount) === answers.amount ? 'true' : 'false');
+            });
+        }
+
+        // 哪些答案會擋住使用
+        function isBlocking(key, val) {
+            if (key === 'q1') return val === 'no';
+            if (key === 'q2') return val === 'no' || val === 'recent';
+            if (key === 'q3') return val === 'no';
+            if (key === 'q4') return val === 'no';
+            return false;
+        }
+
+        function updateProgress() {
+            const done = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] !== null).length + (answers.amount > 0 ? 1 : 0);
+            document.querySelectorAll('.prog-seg').forEach((seg, i) => {
+                seg.classList.toggle('is-done', i < done);
+            });
+            document.getElementById('elig-progressbar').setAttribute('aria-valuenow', done);
+            const text = document.getElementById('elig-progress-text');
+            text.textContent = done >= 5 ? '五題都答完了，結果在下面' : `已回答 ${done} / 5 題`;
+        }
+
+        function resultCard(tone, title, body, actions) {
+            const color = tone === 'go' ? 'var(--pos)' : (tone === 'wait' ? 'var(--warn)' : 'var(--neg)');
+            const label = tone === 'go' ? '你符合條件' : (tone === 'wait' ? '暫時還不行' : '這次不建議');
+            const cls = tone === 'go' ? 'badge-go' : (tone === 'wait' ? 'badge-maybe' : 'badge-no');
+            return `
+                <div class="card">
+                    <span class="badge ${cls}">${label}</span>
+                    <h2 class="t-sect" style="margin:16px 0 0;color:${color}">${title}</h2>
+                    <div class="t-body" style="color:var(--ink2);margin:12px 0 0">${body}</div>
+                    ${actions ? `<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:24px">${actions}</div>` : ''}
+                </div>`;
+        }
+
+        function renderResult() {
+            const box = document.getElementById('elig-result');
+            const unanswered = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] === null);
+            if (unanswered.length) {
+                box.innerHTML = `<div class="card" style="text-align:center;padding:32px 20px">
+                    <p class="t-body" style="color:var(--ink3);margin:0">還有 ${unanswered.length} 題沒答。答完之後這裡會告訴你結果。</p>
+                </div>`;
+                return;
+            }
+
+            // 硬性條件不符：暫時不行
+            const blockers = [];
+            if (answers.q1 === 'no') blockers.push('帳號累積消費還沒滿 US$5。在 Steam 買一款便宜的遊戲或儲值滿 US$5，帳號會立刻解除 Limited 狀態。');
+            if (answers.q1 === 'unknown') blockers.push('不確定有沒有滿 US$5。到 Steam 的帳戶明細頁可以看到歷史消費紀錄。');
+            if (answers.q2 === 'no') blockers.push('手機驗證器還沒啟用。用 Steam 手機 App 開啟，之後還要再等 7 天才能上架。');
+            if (answers.q2 === 'recent') blockers.push('手機驗證器啟用未滿 7 天。等滿 7 天就可以，這段時間不用做任何事。');
+            if (answers.q3 === 'no') blockers.push('帳號目前有交易限制或 VAC 停權。這個狀態下不能在市場掛售，也沒有替代做法，只能等限制解除。');
+            if (answers.q3 === 'unknown') blockers.push('不確定有沒有交易限制。打開任一市場物品頁，如果看得到「出售」按鈕就是沒問題。');
+            if (answers.q4 === 'no') blockers.push('你不能等 7 天。冷卻期不能縮短，這次請直接用官方儲值。');
+
+            if (blockers.length) {
+                const eta = (answers.q2 === 'recent' || answers.q2 === 'no') ? '最快 7 天後可以再回來' : '處理完就可以回來';
+                box.innerHTML = resultCard('wait',
+                    `還差 ${blockers.length} 件事，${eta}`,
+                    `<ul style="margin:0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                        ${blockers.map(b => `<li>${b}</li>`).join('')}
+                    </ul>
+                    <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
+                        以上都是 Steam 平台的規則，不是這個網站設的。細節以
+                        <a href="https://help.steampowered.com/zh-TW/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
+                    </p>`,
+                    `<a href="help.html" class="btn btn-secondary" style="text-decoration:none">看操作指南</a>`);
+                return;
+            }
+
+            // 資格都過，看金額
+            const amt = answers.amount;
+            const saving = Math.round(amt * ELIG_EST_DISCOUNT);
+
+            if (amt < ELIG_MIN_CONSIDER) {
+                box.innerHTML = resultCard('no',
+                    `這筆 NT$ ${amt.toLocaleString()} 只省下約 NT$ ${saving.toLocaleString()}，不值得`,
+                    `<p style="margin:0">你的帳號條件都符合，但金額太小。省下的錢大概不到一小時的基本工資，而你要花約 1 小時操作、再等 7 天。</p>
+                     <p style="margin:12px 0 0">這次建議直接用官方儲值，或用有回饋的信用卡付款，兩者都不用等。等你哪次要花的金額比較大再回來。</p>`,
+                    `<a href="index.html" class="btn btn-secondary" style="text-decoration:none">回首頁看其他選擇</a>`);
+                return;
+            }
+
+            const isWorth = amt >= ELIG_MIN_WORTH;
+            box.innerHTML = resultCard('go',
+                `這筆 NT$ ${amt.toLocaleString()} 預估可以省下約 NT$ ${saving.toLocaleString()}`,
+                `<p style="margin:0">你的帳號條件都符合，可以用這個方式加值。${isWorth
+                    ? '金額也在划算的區間。'
+                    : '金額在中間地帶，第一次操作要花 60–90 分鐘，你可以先算一次再決定。'}</p>
+                 <p class="t-aux" style="margin:12px 0 0;color:var(--ink3)">
+                    這是用約 ${Math.round(ELIG_EST_DISCOUNT * 100)}% 折扣粗估的。實際數字要看目前的市場價格，試算頁會算給你看。
+                 </p>
+                 <div class="risk-bar" style="margin-top:16px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                    <span>換到的是 Steam 錢包餘額，不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+                 </div>`,
+                `<a href="calculator.html" class="btn btn-primary" style="text-decoration:none">試算我的方案</a>
+                 <a href="help.html" class="btn btn-text" style="text-decoration:none">先看操作步驟</a>`);
+        }
+
+        function refresh() { paintAnswers(); updateProgress(); renderResult(); saveState(); }
+
+        document.querySelectorAll('.opt[data-q]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                answers[btn.dataset.q] = btn.dataset.val;
+                refresh();
+            });
+        });
+        document.querySelectorAll('.opt[data-amount]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                answers.amount = Number(btn.dataset.amount);
+                refresh();
+            });
+        });
+        document.getElementById('elig-amount').addEventListener('input', (e) => {
+            answers.amount = Number(e.target.value) || 0;
+            updateProgress(); renderResult(); saveState();
+            document.querySelectorAll('.opt[data-amount]').forEach(b => {
+                b.setAttribute('aria-pressed', Number(b.dataset.amount) === answers.amount ? 'true' : 'false');
+            });
+        });
+        document.getElementById('elig-reset').addEventListener('click', () => {
+            answers.q1 = answers.q2 = answers.q3 = answers.q4 = null;
+            answers.amount = 3000;
+            try { localStorage.removeItem(ELIG_STORAGE_KEY); } catch (e) { /* 忽略 */ }
+            refresh();
+        });
+
+        function loadNav(pageID) {
+            fetch("nav.html")
+                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
+                .then(html_text => {
+                    const doc = new DOMParser().parseFromString(html_text, "text/html");
+                    const high_light = doc.getElementById(`nav-${pageID}`);
+                    if (high_light) {
+                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
+                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
+                    }
+                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+                });
+        }
+        function loadFooter() {
+            fetch("footer.html")
+                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
+                .then(html_text => {
+                    const doc = new DOMParser().parseFromString(html_text, "text/html");
+                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                });
+        }
+
+        loadNav("eligibility");
+        loadFooter();
+        loadState();
+        refresh();
+    </script>
+</body>
+</html>

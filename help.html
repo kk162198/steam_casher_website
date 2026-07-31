@@ -3,77 +3,512 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam 加值幫手 | 使用教學</title>
+    <meta name="description" content="從 CSFloat 註冊到 Steam 上架的完整分步流程。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <title>操作指南｜Steam 加值幫手</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+:root{
+  --base:#020617; --card:#0f172a; --line:#1e293b;
+  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
+  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--base); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  font-size:16px; line-height:1.75;
+}
+
+/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
+.card ul,main ul,.card ol,main ol{list-style:revert}
+.card ul{list-style-type:disc}
+.card ol{list-style-type:decimal}
+.card li,main li{list-style:inherit}
+
+/* ── 字級 ───────────────────────────────── */
+.t-hero{font-size:32px;line-height:1.4;font-weight:700}
+.t-page{font-size:26px;line-height:1.4;font-weight:700}
+.t-sect{font-size:20px;line-height:1.4;font-weight:700}
+.t-sub {font-size:17px;line-height:1.4;font-weight:600}
+.t-body{font-size:16px;line-height:1.75}
+.t-aux {font-size:14px;line-height:1.75}
+.t-note{font-size:12px;line-height:1.75}
+@media (min-width:768px){
+  .t-hero{font-size:48px}
+  .t-page{font-size:32px}
+  .t-sect{font-size:24px}
+  .t-sub {font-size:18px}
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ── 版面 ───────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+@media (min-width:768px){ .wrap{padding:0 32px} }
+.sec{padding-top:56px}
+@media (min-width:768px){ .sec{padding-top:96px} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+@media (min-width:768px){ .card{padding:32px} }
+.hr{height:1px;background:var(--line);border:0;margin:0}
+
+/* ── focus ─────────────────────────────── */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
+  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
+}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ── 1. 資料時間戳章 ────────────────────── */
+.ts-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(30,41,59,.35);
+  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
+.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
+.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
+.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
+.ts-chip[data-state="stale"] .ts-dot{display:none}
+.ts-chip svg{flex:none}
+.ts-chip .ts-src{color:inherit;opacity:.85}
+
+/* ── 2. 划算度徽章 ──────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
+  border:1px solid transparent;
+}
+.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
+.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
+.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
+
+/* ── 3. 風險提示條 ──────────────────────── */
+.risk-bar{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;background:rgba(251,191,36,.06);
+  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  font-size:14px;line-height:1.75;color:var(--ink);
+}
+.risk-bar svg{color:var(--warn);margin-top:5px}
+.risk-bar a{white-space:nowrap}
+
+/* ── 4. 數據卡 ─────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:14px;color:var(--ink2)}
+.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:768px){ .stat-value{font-size:40px} }
+.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
+
+/* ── 5. 響應式資料表 ────────────────────── */
+.rt{
+  width:100%;border-collapse:collapse;text-align:left;
+  --rt-thead:table-header-group; --rt-tbody:table-row-group;
+  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
+  --rt-tr-pad:0;       --rt-tr-bg:transparent;
+  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
+  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
+  --rt-key-size:16px;
+}
+.rt thead{display:var(--rt-thead)}
+.rt tbody{display:var(--rt-tbody)}
+.rt th{
+  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
+  border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.rt tbody tr{
+  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
+  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
+}
+.rt tbody td{
+  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
+  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.rt tbody td::before{
+  display:var(--rt-label);content:attr(data-label);
+  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
+}
+.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
+.rt tbody tr:hover{background:rgba(30,41,59,.28)}
+.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
+  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+}
+.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+.rt-cards td.rt-key::before{display:none}
+@media (max-width:767px){
+  .rt{
+    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+  }
+  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+  .rt td.rt-key::before{display:none}
+  .rt tbody tr:hover{background:var(--card)}
+}
+
+/* ── 6. 步驟 ───────────────────────────── */
+.step{display:flex;gap:16px}
+.step-no{
+  flex:none;width:36px;height:36px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
+  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
+}
+.step-check{
+  margin-top:12px;padding:12px 16px;border-radius:8px;
+  background:#0b1424;border:1px solid var(--line);
+}
+.step-check-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
+}
+
+/* ── 7. 狀態 ───────────────────────────── */
+.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.skel::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
+  animation:skel 1.4s infinite;
+}
+@keyframes skel{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
+
+/* ── 8. 按鈕 ───────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
+  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
+  transition:background-color .15s,border-color .15s,color .15s;
+  font-family:inherit;
+}
+.btn-primary{background:var(--brand);color:#022c33}
+.btn-primary:hover{background:#67e8f9}
+.btn-primary:active{background:#06b6d4}
+.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
+.btn-secondary:active{background:rgba(30,41,59,.8)}
+.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
+.btn-text:hover{background:rgba(34,211,238,.08)}
+.btn-text:active{background:rgba(34,211,238,.16)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled:hover{background:var(--brand)}
+.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
+.btn-text:disabled:hover{background:transparent}
+.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans m-0 p-0">
+<body>
     <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
 
-    <div class="flex flex-col w-full max-w-3xl mx-auto py-10 px-8">
+    <main class="wrap" style="padding-bottom:56px;max-width:820px">
 
-        <div class="text-center">
-            <h1 class="text-2xl font-bold text-cyan-400">使用教學</h1>
-            <p class="text-slate-400 text-sm mt-2">完整流程只有四個步驟：查看價差、試算金額、CSFloat 買進、Steam 上架兌現。</p>
-        </div>
-
-        <div class="flex flex-col gap-6 mt-10">
-
-            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">1</div>
-                <div>
-                    <h3 class="text-lg font-bold text-cyan-400">到「市場列表」查看目前的套利機會</h3>
-                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
-                        <a href="marketlist.html" class="text-cyan-400 hover:underline">市場列表</a> 會依「預估套利投報率（ROI）」由高到低排序所有已監控的武器箱，同時顯示 Steam 售價、CSFloat 成本與價差淨利。優先選擇 ROI 高、且 CSFloat 掛售庫存充足的品項，避免想買的時候買不到。
-                    </p>
-                </div>
+        <header style="padding-top:48px">
+            <h1 class="t-page">操作指南</h1>
+            <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
+                從註冊 CSFloat 到 Steam 上架收錢，七個步驟。第一次做全程約 60–90 分鐘，熟了之後 15–20 分鐘。
+            </p>
+            <div class="card" style="margin-top:24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px">
+                <span class="t-aux" style="color:var(--ink2)">還沒確認資格？先做 30 秒快檢，免得買完才發現上架不了。</span>
+                <a href="eligibility.html" class="btn btn-secondary btn-sm" style="text-decoration:none">30 秒資格快檢</a>
             </div>
+        </header>
 
-            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">2</div>
-                <div>
-                    <h3 class="text-lg font-bold text-cyan-400">用「計算器」試算要投入多少錢</h3>
-                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
-                        到 <a href="calculator.html" class="text-cyan-400 hover:underline">計算器</a> 頁面輸入你打算投入的新台幣金額，系統會依目前資料自動演算出建議購買的武器箱組合與數量，並估算最終能兌現的 Steam 錢包餘額，同時盡量降低沒用完的零頭。
-                    </p>
+        <!-- 步驟 -->
+        <section class="sec">
+            <div class="card" style="display:flex;flex-direction:column;gap:32px">
+
+                <div class="step">
+                    <div class="step-no num">1</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">啟用 Steam 手機驗證器，並等滿 7 天</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            用 Steam 手機 App 開啟驗證器。這一步要最先做，因為要等 7 天，早一天做就早一天能開始。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：以為裝了 App 就好。要在 App 裡實際完成驗證器的設定流程，而且啟用未滿 7 天一樣不能上架。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                打開任一 Steam 市場物品頁，看到「出售」按鈕而不是灰色的「無法交易」提示。
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">3</div>
-                <div>
-                    <h3 class="text-lg font-bold text-cyan-400">前往 CSFloat 依建議組合下單</h3>
-                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
-                        依計算結果，到 CSFloat 網站以顯示的成本價買進對應數量的武器箱。下單前務必再次確認當下的實際掛牌價與庫存，因為資料庫的價格是每隔一段時間才更新一次，與即時報價可能有些微落差。
-                    </p>
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">2</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">確認帳號累積消費滿 US$5</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            買遊戲或儲值錢包都算。沒滿的話帳號是 Limited 狀態，用不了社群市場。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：收到別人送的遊戲不算，要自己付錢的才算。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                Steam 個人資料頁沒有出現「受限帳戶（Limited Account）」的黃色提示條。
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex gap-5 bg-slate-800 rounded-lg p-6">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400 text-slate-900 font-bold flex items-center justify-center text-lg">4</div>
-                <div>
-                    <h3 class="text-lg font-bold text-cyan-400">於 Steam 社群市場上架，等待 7 日冷卻期後兌現</h3>
-                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">
-                        買進的武器箱會先進入你的 Steam 庫存，你可以在 Steam 社群市場以市場價掛售。成交後的款項會進入你的 Steam 錢包餘額，但依 Steam 規則會有 <span class="font-bold text-amber-300">7 日交易鎖定期</span>才能實際動用，請預留足夠的等待時間再規劃購買遊戲。
-                    </p>
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">3</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">用試算頁算出你要買什麼</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            到 <a href="calculator.html">試算頁</a> 填你想在 Steam 花掉的金額，會產出一份購買組合，包含品項和數量。金額低於 1,000 元的話它會告訴你不要做。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：填成「想投入的現金」。要填的是你想拿到的 Steam 餘額。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                結果區出現「值得做」或「可考慮」徽章，而且下方的購買組合表有列出品項。
+                            </p>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">4</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">註冊 CSFloat 並綁定 Steam 交易連結</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            CSFloat 用 Steam 帳號登入，不用另外設密碼。登入後要到設定頁把你的 Steam 交易連結（Trade URL）填進去，物品才送得到你手上。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：交易連結填錯或過期。Steam 那邊按過「產生新的連結」，舊的就會失效，要重新複製一次。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                CSFloat 設定頁的交易連結欄位顯示綠色勾勾或「已驗證」，沒有紅字警告。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">5</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">照清單下單買箱子</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            用 <a href="checklist.html">購物清單</a> 邊買邊勾。在 CSFloat 搜尋品項名稱，依價格由低到高排序，買清單上的數量。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：最低價的掛單被別人買走，實際價格比清單上高。差幾塊錢可以接受，差太多就回試算頁重算一份。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                Steam 庫存裡看得到箱子，滑鼠移上去顯示「可交易日期」為 7 天後。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">6</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">等 7 天</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            這 7 天什麼都不用做，也什麼都做不了。不能提前賣、不能取消、不能轉移。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：這段時間價格會動。到期時價格可能比你買的時候低，這是這個做法本來就有的風險。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                庫存裡的箱子不再顯示可交易日期，點進去可以按「出售」。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">7</div>
+                    <div style="flex:1">
+                        <h2 class="t-sub">在 Steam 社群市場上架</h2>
+                        <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                            到庫存點箱子、按出售，價格填成跟目前最低掛牌價一樣或低 1 元。Steam 會自動顯示扣完手續費後你實拿多少，那個數字才是你會拿到的錢。
+                        </p>
+                        <p class="t-aux" style="color:var(--warn);margin:8px 0 0">
+                            會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。填價格的時候看下面那行「您將收到」。另外掛單不一定馬上成交，冷門品項可能要放幾天。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux" style="color:var(--ink2);margin:0">
+                                市場頁的「我的待售物品」看得到它。成交後 Steam 錢包餘額會直接增加，不用再做任何確認。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+        </section>
 
-        </div>
+        <!-- 風險提示條 -->
+        <section style="margin-top:24px">
+            <div class="risk-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span>Steam 錢包餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+            </div>
+        </section>
 
-        <div class="flex flex-col mt-10 w-full bg-amber-950/30 border border-amber-700/50 rounded-lg px-6 py-5 text-left">
-            <h3 class="text-lg font-bold text-amber-400">開始之前，建議先確認</h3>
-            <ul class="mt-3 space-y-2 text-sm text-slate-300 leading-relaxed list-disc list-inside">
-                <li>你已擁有可正常掛售物品的 Steam 帳號（部分新帳號或有交易鎖定紀錄的帳號可能無法上架市場）。</li>
-                <li>近期沒有動用這筆資金的急迫需求，因為冷卻期內無法提領或轉為現金。</li>
-                <li>你只把它用於個人消費，不做為商業行為使用。</li>
-            </ul>
-            <p class="text-sm text-slate-300 mt-4">更多細節可以參考 <a href="faq.html" class="text-cyan-400 hover:underline">常見問題</a>。</p>
-        </div>
+        <!-- 資格檢查清單（沿用原有 localStorage 邏輯） -->
+        <section class="sec">
+            <div class="card">
+                <h2 class="t-page" style="font-size:24px">Steam 帳號資格檢查清單</h2>
+                <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:60ch">
+                    以下條件會影響你能不能在 Steam 社群市場正常掛售、兌現。勾選後會記住進度，方便分次確認。這些是 Steam 平台的通用規則，細節可能隨政策調整，以
+                    <a href="https://help.steampowered.com/zh-TW/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
+                </p>
+                <ul id="eligibility-checklist" class="t-body" style="color:var(--ink2);margin:20px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+                    <li style="display:flex;gap:12px;align-items:flex-start">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
+                            <input type="checkbox" data-id="spend5" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="帳號已消費滿 US$5">
+                        </label>
+                        <span><span style="color:var(--ink);font-weight:600">帳號已消費滿 US$5</span>（買遊戲或儲值都算）。低於此門檻的 Limited 帳號不能用社群市場與交易功能。</span>
+                    </li>
+                    <li style="display:flex;gap:12px;align-items:flex-start">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
+                            <input type="checkbox" data-id="mobileauth" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="已開啟 Steam 手機驗證器">
+                        </label>
+                        <span><span style="color:var(--ink);font-weight:600">已開啟 Steam 手機驗證器並啟用一段時間</span>。未開通時交易一律有 7 日鎖定；開通滿 7 天後鎖定可縮短，滿 15 天後大多數交易鎖定可再降到 0～48 小時——但透過市場買賣的物品本身仍固定有 7 日鎖定期。</span>
+                    </li>
+                    <li style="display:flex;gap:12px;align-items:flex-start">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
+                            <input type="checkbox" data-id="noban" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="帳號沒有交易鎖定或 VAC 停權">
+                        </label>
+                        <span><span style="color:var(--ink);font-weight:600">帳號目前沒有交易鎖定或 VAC 停權</span>。有這些紀錄的帳號無法在市場掛售或交易。</span>
+                    </li>
+                    <li style="display:flex;gap:12px;align-items:flex-start">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
+                            <input type="checkbox" data-id="marketcooldown" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="了解 7 日市場鎖定期">
+                        </label>
+                        <span><span style="color:var(--ink);font-weight:600">了解透過市場買進的物品一律有 7 日鎖定期</span>，這點與手機驗證器開通天數無關，到期前無法動用、也無法提前轉移。</span>
+                    </li>
+                    <li style="display:flex;gap:12px;align-items:flex-start">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
+                            <input type="checkbox" data-id="yearlypurchase" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="過去一年內有消費紀錄">
+                        </label>
+                        <span><span style="color:var(--ink);font-weight:600">過去一年內在 Steam 有消費紀錄</span>，避免市場存取權限因帳號長期無消費而被收回。</span>
+                    </li>
+                </ul>
+                <p id="eligibility-progress" class="t-aux" style="color:var(--ink3);margin:20px 0 0"></p>
+            </div>
+        </section>
 
-    </div>
+        <section style="margin-top:16px">
+            <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
+                <div>
+                    <h2 class="t-sect">準備好了就開始算</h2>
+                    <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">還有疑問可以看 <a href="faq.html">常見問題</a>。</p>
+                </div>
+                <a href="calculator.html" class="btn btn-primary" style="text-decoration:none">試算我的方案</a>
+            </div>
+        </section>
+
+    </main>
+
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
 
     <script>
+/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
+var TS_RULES = {
+  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
+  steam:   { label: 'Steam',   aging: 360, stale: 720 },
+  rate:    { label: '匯率',     aging: 720, stale: 1440 }
+};
+var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
+
+function tsAgo(min) {
+  if (min < 1) return '剛剛更新';
+  if (min < 60) return min + ' 分鐘前更新';
+  var h = Math.floor(min / 60);
+  if (h < 24) return h + ' 小時前更新';
+  return Math.floor(h / 24) + ' 天前更新';
+}
+
+function renderTimestamps(root) {
+  var scope = root || document;
+  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
+  for (var i = 0; i < chips.length; i++) {
+    var el = chips[i];
+    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
+    var t = Date.parse(el.getAttribute('data-updated'));
+    if (isNaN(t)) {
+      el.setAttribute('data-state', 'stale');
+      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
+      continue;
+    }
+    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
+    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
+    el.setAttribute('data-state', state);
+    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
+    el.innerHTML =
+      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
+      '<span class="ts-src">' + rule.label + '</span>' +
+      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
+  }
+}
+/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
+   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
+(function seedDemoTimestamps() {
+  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
+  for (var i = 0; i < demo.length; i++) {
+    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
+    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
+  }
+})();
+
+renderTimestamps();
+setInterval(function () { renderTimestamps(); }, 60000);
+
         function loadNav(pageID) {
             fetch("nav.html")
                 .then(response => {
@@ -103,8 +538,51 @@
                     document.getElementById('footer').innerHTML = doc.body.innerHTML;
                 });
         }
+        // Steam 帳號資格檢查清單：勾選狀態存在 localStorage，方便使用者分次確認、下次回來不用重勾
+        const ELIGIBILITY_STORAGE_KEY = 'steamHelperEligibilityChecklist';
+
+        function loadEligibilityState() {
+            try {
+                return JSON.parse(localStorage.getItem(ELIGIBILITY_STORAGE_KEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+        function saveEligibilityState(state) {
+            try {
+                localStorage.setItem(ELIGIBILITY_STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                // localStorage 不可用（例如無痕模式限制）時，靜默忽略，不影響本次瀏覽的勾選行為
+            }
+        }
+        function updateEligibilityProgress() {
+            const boxes = document.querySelectorAll('.eligibility-check');
+            const progressEl = document.getElementById('eligibility-progress');
+            if (!boxes.length || !progressEl) return;
+            const total = boxes.length;
+            const done = [...boxes].filter(b => b.checked).length;
+            progressEl.textContent = done === total
+                ? `五項都確認完成（${done}/${total}），可以開始操作流程。`
+                : `已確認 ${done}/${total} 項`;
+        }
+        function initEligibilityChecklist() {
+            const state = loadEligibilityState();
+            document.querySelectorAll('.eligibility-check').forEach(box => {
+                const id = box.dataset.id;
+                box.checked = !!state[id];
+                box.addEventListener('change', () => {
+                    const s = loadEligibilityState();
+                    s[id] = box.checked;
+                    saveEligibilityState(s);
+                    updateEligibilityProgress();
+                });
+            });
+            updateEligibilityProgress();
+        }
+
         loadNav("help");
         loadFooter();
+        initEligibilityChecklist();
     </script>
 </body>
 </html>

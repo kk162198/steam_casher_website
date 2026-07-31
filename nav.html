@@ -1,24 +1,106 @@
-<div class="mx-auto flex items-center justify-between px-6 py-3">
-    <div class="flex justify-center items-center">
-        <div>
-            <h1 class="text-2xl font-bold tracking-wide text-cyan-400">Steam 加值幫手</h1>
-            <p class="text-xs text-slate-400 mt-1">by KK162198</p>
-        </div>
-        <ul class="flex space-x-1 text-sm font-medium ml-12">
-           <li><a id=nav-main href="index.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">首頁</a></li>
-           <li><a id=nav-calculator href="calculator.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">計算器</a></li>
-           <li><a id=nav-marketlist href="marketlist.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">市場列表</a></li>
-           <li><a id=nav-help href="help.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">幫助</a></li>
-           <li><a id=nav-faq href="faq.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">常見問題</a></li>
-           <li><a id=nav-news href="news.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">最新消息</a></li>
-           <li><a id=nav-about href="about.html" class="block px-4 py-2 text-slate-300 hover:text-cyan-400 rounded">關於我們</a></li>
-       </ul>
-    </div>
-    <div class="flex">
-       <div class="px-4">
-            <button id="login" class="bg-slate-800 hover:bg-emerald-600 text-slate-300 font-bold px-4 py-2 rounded shadow transition-all active:scale-95 text-sm">
-                登入
-            </button>
-        </div>
-    </div>
+<div id="nav-root">
+<style>
+/* nav.html 自帶樣式：透過 fetch + innerHTML 插入時 <style> 會生效，<script> 不會，
+   所以互動一律用 inline onclick。容器 <nav id="nav"> 的舊底色在這裡覆蓋。
+   這個 <style> 必須包在 #nav-root 裡：DOMParser 會把檔首的 <style> 收進 doc.head，
+   而載入器只取 doc.body.innerHTML，放在最外層會整包被丟掉。 */
+nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
+#nav a,#nav button{font-family:inherit}
+#nav a:focus-visible,#nav button:focus-visible{outline:2px solid #22d3ee;outline-offset:2px;border-radius:6px}
+#nav .nav-link{display:flex;align-items:center;min-height:44px;padding:0 16px;border-radius:6px;font-size:16px;line-height:1.4}
+#nav .nav-link:hover{background:rgba(30,41,59,.6)}
+
+/* 資料狀態指示點：頁面自行設定 data-state="fresh|aging|stale" 與內文
+   例：var s=document.getElementById('data-status'); s.dataset.state='fresh';
+       s.querySelector('.ds-text').textContent='資料 12 分鐘前更新'; */
+#data-status{display:flex;align-items:center;gap:7px;min-height:44px;padding:0 12px;border-radius:999px;
+  border:1px solid #1e293b;font-size:12px;line-height:1.4;color:#94a3b8;white-space:nowrap;
+  font-variant-numeric:tabular-nums;text-decoration:none}
+#data-status:hover{background:rgba(30,41,59,.6);text-decoration:none}
+#data-status .ds-dot{width:7px;height:7px;border-radius:999px;background:#64748b;flex:none}
+#data-status .ds-icon{display:none}
+#data-status[data-state="fresh"]{color:#94a3b8}
+#data-status[data-state="fresh"] .ds-dot{background:#34d399}
+#data-status[data-state="aging"]{color:#fbbf24;border-color:rgba(251,191,36,.4)}
+#data-status[data-state="aging"] .ds-dot{background:#fbbf24}
+#data-status[data-state="stale"]{color:#fb7185;border-color:rgba(251,113,133,.45)}
+#data-status[data-state="stale"] .ds-dot{display:none}
+#data-status[data-state="stale"] .ds-icon{display:block}
+
+#nav-mobile{display:none}
+#nav-mobile.is-open{display:flex}
+#nav-mobile .m-link{display:flex;align-items:center;min-height:52px;font-size:20px;font-weight:700;
+  line-height:1.4;color:#f1f5f9;text-decoration:none}
+#nav-mobile .m-link:hover{color:#22d3ee;text-decoration:none}
+#nav-mobile .m-sub{display:flex;align-items:center;min-height:44px;font-size:16px;color:#94a3b8;text-decoration:none}
+#nav-mobile .m-sub:hover{color:#22d3ee;text-decoration:none}
+</style>
+
+<div class="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 md:px-8" style="min-height:64px">
+
+  <div class="flex items-center gap-8">
+    <a href="index.html" class="flex flex-col justify-center py-2" style="text-decoration:none">
+      <span class="text-lg md:text-xl font-bold tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
+      <span class="text-xs" style="color:#64748b">by KK162198</span>
+    </a>
+
+    <ul class="hidden md:flex items-center gap-1">
+      <li><a id="nav-main" href="index.html" class="nav-link text-slate-300 hover:text-cyan-400">首頁</a></li>
+      <li><a id="nav-calculator" href="calculator.html" class="nav-link text-slate-300 hover:text-cyan-400">試算</a></li>
+      <li><a id="nav-marketlist" href="marketlist.html" class="nav-link text-slate-300 hover:text-cyan-400">市場</a></li>
+      <li><a id="nav-help" href="help.html" class="nav-link text-slate-300 hover:text-cyan-400">指南</a></li>
+    </ul>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <a id="data-status" href="transparency.html" data-state="" title="查看資料更新紀錄與計算公式">
+      <span class="ds-dot"></span>
+      <svg class="ds-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+      <span class="ds-text">資料狀態</span>
+    </a>
+
+    <button type="button" id="nav-toggle" class="md:hidden flex items-center justify-center rounded-md"
+      style="width:44px;height:44px;color:#f1f5f9;background:transparent;border:0;cursor:pointer"
+      aria-label="開啟選單" aria-controls="nav-mobile" aria-expanded="false"
+      onclick="var m=document.getElementById('nav-mobile');var o=m.classList.toggle('is-open');this.setAttribute('aria-expanded',o?'true':'false');this.setAttribute('aria-label',o?'關閉選單':'開啟選單');document.body.style.overflow=o?'hidden':'';">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- 手機版全螢幕選單 -->
+<div id="nav-mobile" class="md:hidden fixed inset-0 z-50 flex-col" style="background:#020617">
+  <div class="flex items-center justify-between gap-4 px-5" style="min-height:64px;border-bottom:1px solid #1e293b">
+    <span class="text-lg font-bold tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
+    <button type="button" class="flex items-center justify-center rounded-md"
+      style="width:44px;height:44px;color:#f1f5f9;background:transparent;border:0;cursor:pointer"
+      aria-label="關閉選單"
+      onclick="document.getElementById('nav-mobile').classList.remove('is-open');var t=document.getElementById('nav-toggle');t.setAttribute('aria-expanded','false');t.setAttribute('aria-label','開啟選單');document.body.style.overflow='';">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto px-5 py-6" aria-label="主選單">
+    <ul class="flex flex-col gap-2">
+      <li><a class="m-link" data-page="main" href="index.html">首頁</a></li>
+      <li><a class="m-link" data-page="calculator" href="calculator.html">試算</a></li>
+      <li><a class="m-link" data-page="marketlist" href="marketlist.html">市場</a></li>
+      <li><a class="m-link" data-page="help" href="help.html">指南</a></li>
+    </ul>
+
+    <div style="height:1px;background:#1e293b;margin:20px 0"></div>
+
+    <ul class="flex flex-col gap-1">
+      <li><a class="m-sub" data-page="risks" href="risks.html">風險說明</a></li>
+      <li><a class="m-sub" data-page="transparency" href="transparency.html">資料透明</a></li>
+      <li><a class="m-sub" data-page="faq" href="faq.html">常見問題</a></li>
+      <li><a class="m-sub" data-page="news" href="news.html">最新消息</a></li>
+      <li><a class="m-sub" data-page="about" href="about.html">關於</a></li>
+    </ul>
+
+    <p class="text-xs mt-6" style="color:#64748b;line-height:1.75">
+      Steam 錢包餘額不可提領，僅能於 Steam 平台內消費。
+    </p>
+  </nav>
+</div>
 </div>
