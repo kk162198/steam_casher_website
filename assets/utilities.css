@@ -1,0 +1,164 @@
+/* ══════════════════════════════════════════════════════════════
+   utilities.css — 取代 cdn.tailwindcss.com
+   ──────────────────────────────────────────────────────────────
+   原本全站載入 Tailwind 的 CDN 開發版（約 100KB script，會在瀏覽器
+   端跑一次 JIT 編譯，是首屏閃版的原因之一，且 console 會印警告）。
+   改版後排版大多改用 inline style 與自訂 class，實際還在用的 utility
+   只剩下面這些，直接寫成靜態 CSS。
+
+   新增頁面時如果要用新的 utility class，請加在這個檔案裡，
+   不要再把 Tailwind CDN 加回去。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════
+   ① Preflight（等同 Tailwind 的基礎重置）
+   全站的版面是在有 Tailwind preflight 的前提下做出來的：標題與段落
+   沒有預設外距、清單沒有項目符號、svg 是 block。拿掉 CDN 之後這幾條
+   一定要自己補回來，否則所有頁面的間距會整個跑掉。
+   ══════════════════════════════════════════════════════════════ */
+*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#334155}
+h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit;margin:0}
+p,blockquote,figure,pre,dl,dd,hr{margin:0}
+ol,ul,menu{list-style:none;margin:0;padding:0}
+img,svg,video,canvas,iframe{display:block;vertical-align:middle}
+img,video{max-width:100%;height:auto}
+table{border-collapse:collapse;text-indent:0;border-color:inherit}
+button,input,select,textarea{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}
+button,[type="button"],[type="submit"]{background-color:transparent;background-image:none;-webkit-appearance:button}
+button,[role="button"]{cursor:pointer}
+:disabled{cursor:default}
+summary{display:list-item}
+[hidden]{display:none}
+
+/* ══════════════════════════════════════════════════════════════
+   ② Utility classes
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 版面模式 ── */
+.block{display:block}
+.hidden{display:none}
+.flex{display:flex}
+.inline-flex{display:inline-flex}
+.grid{display:grid}
+.flex-col{flex-direction:column}
+.flex-wrap{flex-wrap:wrap}
+.flex-1{flex:1 1 0%}
+.items-center{align-items:center}
+.items-end{align-items:flex-end}
+.justify-center{justify-content:center}
+.justify-between{justify-content:space-between}
+.text-center{text-align:center}
+.mx-auto{margin-left:auto;margin-right:auto}
+
+/* ── grid 欄數 ── */
+.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
+.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* ── gap ── */
+.gap-1{gap:.25rem}
+.gap-2{gap:.5rem}
+.gap-3{gap:.75rem}
+.gap-4{gap:1rem}
+.gap-8{gap:2rem}
+.gap-10{gap:2.5rem}
+
+/* ── margin / padding ── */
+.mt-1{margin-top:.25rem}
+.mt-2{margin-top:.5rem}
+.mt-3{margin-top:.75rem}
+.mt-4{margin-top:1rem}
+.mt-6{margin-top:1.5rem}
+.mt-8{margin-top:2rem}
+.mt-10{margin-top:2.5rem}
+.mt-12{margin-top:3rem}
+.p-4{padding:1rem}
+.p-5{padding:1.25rem}
+.px-2{padding-left:.5rem;padding-right:.5rem}
+.px-4{padding-left:1rem;padding-right:1rem}
+.px-5{padding-left:1.25rem;padding-right:1.25rem}
+.px-6{padding-left:1.5rem;padding-right:1.5rem}
+.py-1{padding-top:.25rem;padding-bottom:.25rem}
+.py-2{padding-top:.5rem;padding-bottom:.5rem}
+.py-6{padding-top:1.5rem;padding-bottom:1.5rem}
+.py-8{padding-top:2rem;padding-bottom:2rem}
+.py-14{padding-top:3.5rem;padding-bottom:3.5rem}
+.pt-5{padding-top:1.25rem}
+
+/* ── 尺寸 ── */
+.w-full{width:100%}
+.max-w-\[1120px\]{max-width:1120px}
+.min-h-screen{min-height:100vh}
+
+/* ── 定位 ── */
+.relative{position:relative}
+.absolute{position:absolute}
+.fixed{position:fixed}
+.sticky{position:sticky}
+.top-0{top:0}
+.inset-0{top:0;right:0;bottom:0;left:0}
+.z-50{z-index:50}
+.overflow-x-auto{overflow-x:auto}
+.overflow-y-auto{overflow-y:auto}
+
+/* ── 字體 ── */
+.text-xs{font-size:.75rem;line-height:1rem}
+.text-sm{font-size:.875rem;line-height:1.25rem}
+.text-base{font-size:1rem;line-height:1.5rem}
+.text-lg{font-size:1.125rem;line-height:1.75rem}
+.text-\[20px\]{font-size:20px}
+.text-\[26px\]{font-size:26px}
+.leading-\[1\.4\]{line-height:1.4}
+.font-semibold{font-weight:600}
+.font-bold{font-weight:700}
+.tracking-wide{letter-spacing:.025em}
+
+/* ── 顏色（Tailwind slate / cyan 對應值）── */
+.text-slate-300{color:#cbd5e1}
+.text-slate-400{color:#94a3b8}
+.text-slate-500{color:#64748b}
+.text-cyan-400{color:#22d3ee}
+.bg-slate-800{background-color:#1e293b}
+.bg-slate-950{background-color:#020617}
+.bg-slate-900\/50{background-color:rgba(15,23,42,.5)}
+.hover\:text-cyan-400:hover{color:#22d3ee}
+
+/* ── 邊框與圓角 ── */
+.border-t{border-top-width:1px;border-top-style:solid}
+.border-b{border-bottom-width:1px;border-bottom-style:solid}
+.border-slate-700{border-color:#334155}
+.border-slate-800{border-color:#1e293b}
+.rounded{border-radius:.25rem}
+.rounded-md{border-radius:.375rem}
+.rounded-lg{border-radius:.5rem}
+.rounded-xl{border-radius:.75rem}
+
+/* ── 無障礙 ── */
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;
+}
+
+/* ── 響應式（sm:640 / md:768 / lg:1024）── */
+@media (min-width:640px){
+  .sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:768px){
+  .md\:flex{display:flex}
+  .md\:hidden{display:none}
+  .md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .md\:gap-8{gap:2rem}
+  .md\:p-8{padding:2rem}
+  .md\:px-8{padding-left:2rem;padding-right:2rem}
+  .md\:text-xl{font-size:1.25rem;line-height:1.75rem}
+  .md\:text-\[24px\]{font-size:24px}
+  .md\:text-\[32px\]{font-size:32px}
+}
+@media (min-width:1024px){
+  .lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .lg\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

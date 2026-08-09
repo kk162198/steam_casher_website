@@ -10,8 +10,9 @@ export default class Slider extends HTMLElement {
             // 更新實體上的 ratio 值
             this._ratio = Number(newValue) || 1;
             
-            // 如果 DOM 已經建立完成（因為首次渲染時 DOM 可能還沒好），則觸發重新計算
-            if (this.slider_value) {
+            // DOM 可能還沒建立（attributeChangedCallback 會早於 connectedCallback），
+            // 這時只更新 _ratio，等 connectedCallback 渲染時自然會用到新值。
+            if (this._rendered && this.slider_value) {
                 this.updateFromBase(this.slider_value.value);
             }
         }
@@ -19,11 +20,22 @@ export default class Slider extends HTMLElement {
 
     constructor() {
         super();
-        this.shadow = this.attachShadow({mode:"open"});
+        // Web Components 規範：constructor 裡不要碰屬性、也不要動 DOM
+        //（用 document.createElement('profit-slider') 建立時屬性還不存在）。
+        // 這裡只準備 shadow root，實際渲染放到 connectedCallback()。
+        this.shadow = this.attachShadow({ mode: "open" });
+        this._ratio = 1;
+        this._rendered = false;
+    }
+
+    connectedCallback() {
+        if (this._rendered) return;   // 移出再移入 DOM 時不要重建一次
+        this._rendered = true;
+
         const container = document.createElement("div");
         container.classList.add("this_div-style");
-        
-        // 3. 將 ratio 綁定在 this 上，並賦予初始值
+
+        // ratio 在這個時間點才保證讀得到
         this._ratio = Number(this.getAttribute("ratio")) || 1;
         container.innerHTML = `
             <style>

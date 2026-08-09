@@ -1,0 +1,290 @@
+/* ══════════════════════════════════════════════════════════════
+   style.css — 全站設計系統
+   ──────────────────────────────────────────────────────────────
+   改版前這 190 多行 CSS 內嵌在 12 個頁面的 <head> 裡各一份，
+   調一個字級要改 12 個檔案。現在統一收在這裡。
+   各頁專屬的樣式仍留在各自的 <style> 裡。
+   引用方式（放在 utilities.css 之後）：
+     <link rel="stylesheet" href="assets/utilities.css">
+     <link rel="stylesheet" href="assets/style.css">
+   ══════════════════════════════════════════════════════════════ */
+
+:root{
+  --base:#020617; --card:#0f172a; --line:#1e293b;
+  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
+  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
+  /* 元件專用尺寸，刻意不列入七級字級。
+     13px 只給「密集元件內的標籤」用：交易按鈕、等寬算式區塊。
+     內文一律走 .t-body / .t-aux / .t-note，不要拿這個當第八級字級。 */
+  --fs-ui:13px;
+}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--base); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  font-size:16px; line-height:1.75;
+}
+
+/* ── 清單標記（preflight 會把 list-style 清成 none，內文區塊這裡補回來）── */
+.card ul,main ul,.card ol,main ol{list-style:revert}
+.card ul{list-style-type:disc}
+.card ol{list-style-type:decimal}
+.card li,main li{list-style:inherit}
+
+/* ── 字級 ───────────────────────────────── */
+.t-hero{font-size:32px;line-height:1.4;font-weight:700}
+.t-page{font-size:26px;line-height:1.4;font-weight:700}
+.t-sect{font-size:20px;line-height:1.4;font-weight:700}
+.t-sub {font-size:17px;line-height:1.4;font-weight:600}
+.t-body{font-size:16px;line-height:1.75}
+.t-aux {font-size:14px;line-height:1.75}
+.t-note{font-size:12px;line-height:1.75}
+@media (min-width:768px){
+  .t-hero{font-size:48px}
+  .t-page{font-size:32px}
+  .t-sect{font-size:24px}
+  .t-sub {font-size:18px}
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* 卡片序號：刻意放大的視覺標記，不是可讀內文 */
+.card-idx{font-size:28px;line-height:1;font-weight:700;color:#334155;letter-spacing:-.02em;display:block}
+@media (min-width:768px){ .card-idx{font-size:32px} }
+
+/* ── 文字色與垂直節奏 utility ────────────────
+   這兩組取代原本散在各頁的 inline style。
+   flow-* 一律把左右下 margin 歸零、只留上方間距，
+   因為 <p> / <h*> 有瀏覽器預設的上下 margin，只寫 margin-top 會殘留下方間距。
+   命名刻意避開 utilities.css 既有的 .mt-1（Tailwind 語意，0.25rem）。 */
+.c-ink {color:var(--ink)}
+.c-ink2{color:var(--ink2)}
+.c-ink3{color:var(--ink3)}
+.c-pos {color:var(--pos)}
+.c-warn{color:var(--warn)}
+.c-neg {color:var(--neg)}
+.c-brand{color:var(--brand)}
+
+.flow-0 {margin:0}
+.flow-xs{margin:8px 0 0}
+.flow-sm{margin:12px 0 0}
+.flow-md{margin:16px 0 0}
+.flow-lg{margin:24px 0 0}
+.flow-xl{margin:32px 0 0}
+
+/* ── 版面 ───────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+/* grid 子項預設 min-width:auto，會被最長的那段不可斷內容撐開、
+   在 320px 這種窄螢幕把整個版面推出畫面。歸零讓它可以正常收縮。 */
+.grid > *{min-width:0}
+@media (min-width:768px){ .wrap{padding:0 32px} }
+.sec{padding-top:56px}
+@media (min-width:768px){ .sec{padding-top:96px} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+@media (min-width:768px){ .card{padding:32px} }
+/* 卡片內距變體。必須寫在 .card 之後：同權重時後定義者勝。
+   .card-compact：資訊密度高的小卡（統計卡、示範卡）
+   .card-flush  ：內容自帶內距的卡（表格、清單），卡片本身不留白
+   .card-roomy  ：置中的空狀態／單一訴求卡，上下多留白 */
+.card-compact{padding:16px}
+@media (min-width:768px){ .card-compact{padding:20px} }
+.card-flush{padding:0;overflow:hidden}
+.card-roomy{padding:32px 20px}
+@media (min-width:768px){ .card-roomy{padding:40px 32px} }
+.hr{height:1px;background:var(--line);border:0;margin:0}
+
+/* ── focus ─────────────────────────────── */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
+  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
+}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ── 1. 資料時間戳章 ────────────────────── */
+.ts-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(30,41,59,.35);
+  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
+.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
+.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
+.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
+.ts-chip[data-state="stale"] .ts-dot{display:none}
+.ts-chip svg{flex:none}
+.ts-chip .ts-src{color:inherit;opacity:.85}
+
+/* ── 2. 划算度徽章 ──────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
+  border:1px solid transparent;
+}
+.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
+.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
+.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
+
+/* ── 3. 風險提示條 ──────────────────────── */
+.risk-bar{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;background:rgba(251,191,36,.06);
+  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  font-size:14px;line-height:1.75;color:var(--ink);
+}
+.risk-bar svg{color:var(--warn);margin-top:5px}
+.risk-bar a{white-space:nowrap}
+
+/* ── 4. 數據卡 ─────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:14px;color:var(--ink2)}
+.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
+@media (min-width:768px){ .stat-value{font-size:40px} }
+/* 數據卡尺寸變體。預設 32/40 只給版面上最大的那個數字；
+   多欄並排或值是文字（「檢查中」「每 3 小時」）時要降級，否則會撐爆格子。
+   同權重後定義者勝，所以這幾條必須排在 .stat-value 之後。 */
+.stat-value-md{font-size:26px}
+@media (min-width:768px){ .stat-value-md{font-size:32px} }
+.stat-value-sm{font-size:20px}
+@media (min-width:768px){ .stat-value-sm{font-size:24px} }
+.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
+/* 窄螢幕改單欄：2 欄時每格只剩約 135px，說明文字會斷成 4 行、時間會攔腰折斷 */
+@media (max-width:479px){ .stat-grid{grid-template-columns:1fr} }
+
+/* ── 5. 響應式資料表 ────────────────────── */
+.rt{
+  width:100%;border-collapse:collapse;text-align:left;
+  --rt-thead:table-header-group; --rt-tbody:table-row-group;
+  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
+  --rt-tr-pad:0;       --rt-tr-bg:transparent;
+  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
+  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
+  --rt-key-size:16px;
+}
+.rt thead{display:var(--rt-thead)}
+.rt tbody{display:var(--rt-tbody)}
+.rt th{
+  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
+  border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.rt tbody tr{
+  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
+  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
+}
+.rt tbody td{
+  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
+  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.rt tbody td::before{
+  display:var(--rt-label);content:attr(data-label);
+  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
+}
+.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
+.rt tbody tr:hover{background:rgba(30,41,59,.28)}
+.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
+  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+}
+.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+.rt-cards td.rt-key::before{display:none}
+/* 卡片模式每列自成一行，值本來就該可以換行。
+   維持 nowrap 會讓最長的那一格把整張表撐爆，被外層 overflow:hidden 裁掉。 */
+.rt-cards tbody td{white-space:normal}
+@media (max-width:767px){
+  .rt{
+    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+  }
+  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+  .rt td.rt-key::before{display:none}
+  .rt tbody td{white-space:normal}
+  .rt tbody tr:hover{background:var(--card)}
+}
+
+/* ── 6. 步驟 ───────────────────────────── */
+.step{display:flex;gap:16px}
+.step-no{
+  flex:none;width:36px;height:36px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
+  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
+}
+.step-check{
+  margin-top:12px;padding:12px 16px;border-radius:8px;
+  background:#0b1424;border:1px solid var(--line);
+}
+.step-check-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
+}
+
+/* ── 7. 狀態 ───────────────────────────── */
+.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.skel::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
+  animation:skel 1.4s infinite;
+}
+@keyframes skel{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
+
+/* ── 8. 按鈕 ───────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
+  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
+  transition:background-color .15s,border-color .15s,color .15s;
+  font-family:inherit;
+}
+.btn-primary{background:var(--brand);color:#022c33}
+.btn-primary:hover{background:#67e8f9}
+.btn-primary:active{background:#06b6d4}
+.btn-secondary{background:transparent;border-color:#334155;color:var(--ink)}
+.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
+.btn-secondary:active{background:rgba(30,41,59,.8)}
+.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
+.btn-text:hover{background:rgba(34,211,238,.08)}
+.btn-text:active{background:rgba(34,211,238,.16)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled:hover{background:var(--brand)}
+.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
+.btn-text:disabled:hover{background:transparent}
+.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
+
+/* ── 8. 規格小字 ────────────────────────── */
+/* 元件下方的說明／載入中提示。原本只定義在 design-system.html，
+   checklist.html 用到時沒有樣式會退回 16px。 */
+.spec{font-size:12px;color:var(--ink3);line-height:1.75}
+
+/* ── 9. 交易連結（CSFloat 買 / Steam 賣）────────────── */
+/* 由 site.js 的 tradeLinksHtml() 產生，用在市場列表、試算頁、購物清單頁。
+   兩個連結一組：買在前、賣在後，觸控區維持 44px 高。
+   .trade-off 是缺 CSFloat_ID 時的停用狀態，不是 <a>，不可點也不聚焦。 */
+.trade-links{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.trade-link{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--line);background:transparent;
+  font-size:var(--fs-ui);font-weight:700;line-height:1.4;white-space:nowrap;
+  text-decoration:none;transition:background-color .15s,border-color .15s;
+}
+.trade-buy{color:var(--brand);border-color:rgba(34,211,238,.35)}
+.trade-buy:hover{background:rgba(34,211,238,.1);border-color:var(--brand)}
+.trade-sell{color:var(--ink2)}
+.trade-sell:hover{background:rgba(30,41,59,.5);border-color:var(--ink3)}
+.trade-off{color:var(--ink3);opacity:.5;cursor:not-allowed}
+
+/* 兩個資料時間標籤疊在同一格。市場列表把 Steam／CSFloat 兩欄合併成一欄「資料時間」，
+   桌機省下約 150px 的表格寬度，讓「前往交易」欄放得進 1120px 的容器。
+   手機的卡片模式下 td 是 flex 靠右對齊，所以這裡也靠右，兩頁視覺一致。 */
+.ts-stack{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px}
+
+/* 一格塞兩個數字（主值 + 註解值）。市場列表把「Steam 售價」與「你實拿」合併成一欄後，
+   售價在上、實拿在下。桌機靠左、手機卡片模式靠右，跟同列其他數字對齊方式一致。 */
+.cell-stack{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.45}
+@media (max-width:767px){ .cell-stack{align-items:flex-end} }

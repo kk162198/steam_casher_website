@@ -3,214 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
     <title>加值試算｜Steam 加值幫手</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/calculator.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/calculator.html">
+    <meta property="og:title" content="加值試算｜Steam 加值幫手">
+    <meta property="og:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="加值試算｜Steam 加值幫手">
+    <meta name="twitter:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
-
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-
+/* 本頁專屬樣式（共用設計系統在 assets/style.css）*/
         /* 滑桿與讀數樣式，比照 Slider.js 的 <profit-slider> 視覺風格 */
+        /* 軌道視覺維持 5px，但用透明邊框把可觸控範圍撐到 43px
+           （手機上拖 5px 高的東西幾乎拖不到）。
+           背景用 background-image 設定，避免 background 簡寫重置 background-clip。 */
         .calc-slider {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
+            box-sizing: content-box;
             height: 5px;
+            border-top: 19px solid transparent;
+            border-bottom: 19px solid transparent;
+            border-left: 0;
+            border-right: 0;
             border-radius: 4px;
-            background: linear-gradient(to right, #22d3ee 15%, #475569 15%);
+            background-color: transparent;
+            background-image: linear-gradient(to right, #22d3ee 15%, #475569 15%);
+            background-clip: padding-box;
             outline: none;
-            margin: 24px 0 8px;
+            margin: 5px 0 -11px;
         }
         .calc-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -252,101 +87,140 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             margin: 0;
         }
         .base-input, .result-input { -moz-appearance: textfield; }
-        .buy-btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-height: 44px; padding: 8px 14px; border-radius: 8px;
-            border: 1px solid #1e293b; background: transparent; color: #64748b;
-            font-size: 14px; font-weight: 700; font-family: inherit;
-            white-space: nowrap; cursor: not-allowed;
+        /* 輸入卡片：窄螢幕單欄堆疊，寬螢幕左輸入右結果，兩欄等高 */
+        .calc-grid { display: grid; gap: 20px; margin-top: 24px; align-items: stretch; }
+        @media (min-width: 900px) {
+            .calc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 32px; }
         }
+        .calc-inputs { display: flex; flex-direction: column; gap: 24px; }
+        .calc-field { display: flex; flex-direction: column; gap: 8px; }
+        .calc-foot { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+        /* 結果面板：比卡片再深一階，做出「輸入 → 結果」的層次 */
+        .calc-result {
+            background: var(--base); border: 1px solid var(--line); border-radius: 12px;
+            padding: 20px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .calc-stats { margin-top: auto; }
+        .calc-stat {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 16px; padding: 10px 0; border-top: 1px solid var(--line);
+        }
+        .calc-stat > span:first-child { font-size: 14px; color: var(--ink2); flex: 1 1 auto; min-width: 0; }
+        /* 數值不斷行：390px 時「x1.45｜溢出 NT$ 2」會被折成兩行。
+           整列改成可換行，窄螢幕時數值整段掉到下一行靠右，標籤才不會從詞中間斷開。 */
+        .calc-stat { flex-wrap: wrap; }
+        .calc-stat > span:last-child { white-space: nowrap; flex: none; margin-left: auto; }
     </style>
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="calculator">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px">
 
         <header style="padding-top:48px">
             <h1 class="t-page">加值試算</h1>
-            <p class="t-body" style="color:var(--ink2);max-width:56ch;margin:12px 0 0">
+            <p class="t-body c-ink2 flow-sm" style="max-width:56ch">
                 輸入你這次想花的金額，會依目前資料庫裡的價格與庫存上限，算出花費最少、溢出最小的購買組合，並告訴你這次值不值得做。
             </p>
         </header>
 
         <!-- ① 輸入區 -->
-        <section style="margin-top:32px">
+        <section class="flow-xl">
             <div class="card">
-                <h2 class="t-sect">你想買的東西大概多少錢？</h2>
-                <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
-                    填你打算在 Steam 花掉的金額，不是你想投入的現金。
-                </p>
+                <div>
+                    <h2 class="t-sect">你想買的東西大概多少錢？</h2>
+                    <p class="t-aux c-ink2 flow-xs">
+                        兩個欄位任填一個，另一個會自動算出來。上面填你打算在 Steam 花掉的金額，下面填你手上要投入的現金。
+                    </p>
 
-                <div style="display:flex;flex-direction:column;gap:4px;margin-top:16px;max-width:560px">
-                    <label for="target-input" class="t-aux" style="color:var(--ink2)">目標 Steam 餘額</label>
-                    <div style="display:flex;align-items:baseline;gap:8px">
-                        <span class="t-sub" style="color:var(--ink3)">NT$</span>
-                        <input type="number" id="target-input" class="result-input" value="3000" min="0" step="50">
-                    </div>
-                    <input type="range" id="target-slider" min="100" max="10000" step="50" value="3000" class="calc-slider" aria-label="目標 Steam 餘額滑桿">
-                    <div style="display:flex;justify-content:space-between" class="t-note num">
-                        <span style="color:var(--ink3)">100</span>
-                        <span style="color:var(--ink3)">10,000</span>
-                    </div>
-                </div>
+                    <div class="calc-grid">
+                        <!-- 左欄：輸入 -->
+                        <div class="calc-inputs">
+                            <div class="calc-field" style="gap:4px">
+                                <label for="target-input" class="t-aux c-ink2">目標 Steam 餘額</label>
+                                <div style="display:flex;align-items:baseline;gap:8px">
+                                    <span class="t-sub c-ink3">NT$</span>
+                                    <input type="number" id="target-input" class="result-input" value="3000" min="0" step="50">
+                                </div>
+                                <input type="range" id="target-slider" min="100" max="10000" step="50" value="3000" class="calc-slider" aria-label="目標 Steam 餘額滑桿">
+                                <div style="display:flex;justify-content:space-between" class="t-note num">
+                                    <span class="c-ink3">100</span>
+                                    <span class="c-ink3">10,000</span>
+                                </div>
+                            </div>
 
-                <div class="hr" style="margin:24px 0"></div>
+                            <div class="calc-field" style="gap:4px">
+                                <label for="budget-input" class="t-aux c-ink2">投入現金</label>
+                                <div style="display:flex;align-items:baseline;gap:8px">
+                                    <span class="t-sub c-ink3">NT$</span>
+                                    <input type="number" id="budget-input" class="result-input" value="0" min="0" step="50">
+                                </div>
+                                <input type="range" id="budget-slider" min="100" max="10000" step="50" value="2000" class="calc-slider" aria-label="投入現金滑桿">
+                                <div style="display:flex;justify-content:space-between" class="t-note num">
+                                    <span class="c-ink3">100</span>
+                                    <span class="c-ink3">10,000</span>
+                                </div>
+                                <p id="budget-note" class="t-note c-ink3 flow-0"></p>
+                            </div>
 
-                <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
-                    <div>
-                        <label for="cost-output" class="t-aux" style="color:var(--ink2);display:block">預估要花的現金</label>
-                        <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
-                            <span class="t-sub" style="color:var(--ink3)">NT$</span>
-                            <input type="number" id="cost-output" class="base-input" value="0" readonly tabindex="-1">
+                            <div class="calc-field">
+                                <span class="t-aux c-ink2">單一武器箱佔比上限</span>
+                                <div id="cap-group" role="group" aria-label="單一武器箱佔比上限" style="display:flex;flex-wrap:wrap;gap:8px">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.1">10%</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.2">20%</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.3333">33%</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="1">不限</button>
+                                </div>
+                                <p class="t-note c-ink3 flow-0">單一品項的到手金額不會超過目標金額的這個比例，避免整筆錢壓在同一個箱子上。上限愈低越分散，實際倍率可能略降。</p>
+                            </div>
+
+                            <div class="calc-foot">
+                                <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">重新載入最新資料</button>
+                                <p id="rate-note" class="t-note c-ink3 flow-0">匯率載入中...</p>
+                            </div>
+                        </div>
+
+                        <!-- 右欄：值不值得做 + 試算結果 -->
+                        <div class="calc-result">
+                            <p class="t-sect flow-0" style="line-height:1.6;text-wrap:pretty">
+                                花 <span id="result-cost" class="num c-brand">--</span>
+                                <br>
+                                換到 <span id="result-value" class="num c-pos">--</span> 的 Steam 餘額
+                                <br>
+                                <span id="result-savings" class="num c-pos">省下 --</span>
+                            </p>
+
+                            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                                <span id="worth-badge" class="badge badge-maybe">試算中</span>
+                                <span id="worth-reason" class="t-aux c-ink2" style="flex:1;min-width:200px">正在讀取目前的市場價格。</span>
+                            </div>
+
+                            <div class="calc-stats">
+                                <div class="calc-stat">
+                                    <span>預估要花的現金</span>
+                                    <span id="cost-output" class="t-sub num c-brand">--</span>
+                                </div>
+                                <div class="calc-stat">
+                                    <span>實際倍率／溢出金額</span>
+                                    <span id="result-ratio" class="t-sub num">--</span>
+                                </div>
+                                <div class="calc-stat">
+                                    <span>你要買的箱子總數</span>
+                                    <span id="result-qty" class="t-sub num">--</span>
+                                </div>
+                            </div>
+                            <p id="shortfall-note" class="t-aux c-warn flow-0" style="display:none"></p>
                         </div>
                     </div>
-                    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px">
-                        <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">重新載入最新資料</button>
-                        <p id="rate-note" class="t-note" style="color:var(--ink3);margin:0">匯率載入中...</p>
-                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- ② 划算度徽章 -->
-        <section style="margin-top:16px">
-            <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px">
-                <span id="worth-badge" class="badge badge-maybe">試算中</span>
-                <span id="worth-reason" class="t-aux" style="color:var(--ink2);flex:1;min-width:240px">正在讀取目前的市場價格。</span>
-            </div>
-        </section>
-
-        <!-- ③ 結果摘要 -->
-        <section style="margin-top:16px">
-            <div class="card">
-                <p class="t-sect" style="line-height:1.6;text-wrap:pretty">
-                    花 <span id="result-cost" class="num" style="color:var(--brand)">--</span>，
-                    換到 <span id="result-value" class="num" style="color:var(--pos)">--</span> 的 Steam 餘額，
-                    <span id="result-savings" class="num" style="color:var(--pos)">省下 --</span>。
-                </p>
-                <div class="grid gap-3 sm:grid-cols-2" style="margin-top:24px">
-                    <div>
-                        <div class="stat-label">實際倍率／溢出金額</div>
-                        <div id="result-ratio" class="t-sub num" style="margin-top:4px">--</div>
-                    </div>
-                    <div>
-                        <div class="stat-label">你要買的箱子總數</div>
-                        <div id="result-qty" class="t-sub num" style="margin-top:4px">--</div>
-                    </div>
-                </div>
-                <p id="shortfall-note" class="t-aux" style="display:none;color:var(--warn);margin:16px 0 0"></p>
-            </div>
-        </section>
-
-        <!-- ④ 預期區間 -->
-        <section style="margin-top:16px">
+        <!-- ② 預期區間 -->
+        <section class="flow-md">
             <div class="card">
                 <h2 class="t-sub">上面的數字會變</h2>
-                <p id="range-note" class="t-body" style="color:var(--ink2);margin:8px 0 0;max-width:60ch">
+                <p id="range-note" class="t-body c-ink2 flow-xs">
                     這是目前的價格快照。你實際賣出的是 7 天後的價格，可能高於也可能低於現在。我們還沒有累積足夠的歷史資料，所以這裡先不給區間數字；等資料夠了會直接顯示過去 7 天同類品項的實際波動範圍。
                 </p>
             </div>
@@ -355,13 +229,14 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <!-- ⑤ 購買組合表 -->
         <section class="sec">
             <h2 class="t-page">你要買什麼</h2>
-            <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">
+            <p id="combo-note" class="t-aux c-ink2 flow-xs">
                 已依各武器箱目前的庫存上限限制數量，超過上限的部分會改用次高倍率的品項補足。
             </p>
+            <p id="cap-note" class="t-aux c-warn flow-xs" style="display:none"></p>
 
-            <div class="card" style="margin-top:24px;padding:0;overflow:hidden">
+            <div class="card card-flush flow-lg">
                 <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-                    <span id="shopping-progress" class="t-aux" style="color:var(--ink2)">購物清單：勾選已買到的品項，方便邊買邊對照</span>
+                    <span id="shopping-progress" class="t-aux c-ink2">購物清單：勾選已買到的品項，方便邊買邊對照</span>
                     <button id="shopping-reset-btn" type="button" class="btn btn-text btn-sm">清除全部勾選</button>
                 </div>
                 <div style="padding:8px 20px 20px">
@@ -374,12 +249,12 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                                 <th scope="col">庫存</th>
                                 <th scope="col">資料時間</th>
                                 <th scope="col">已買到</th>
-                                <th scope="col">前往購買</th>
+                                <th scope="col">前往交易</th>
                             </tr>
                         </thead>
                         <tbody id="combo-body">
                             <tr>
-                                <td colspan="7" style="padding:32px 0;text-align:center;color:var(--ink3)">資料載入中...</td>
+                                <td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">資料載入中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -388,7 +263,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         </section>
 
         <!-- ⑥ 風險提示條 -->
-        <section style="margin-top:24px">
+        <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                 <span>買到的箱子要等 7 天才能賣，Steam 餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
@@ -400,68 +275,19 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">把這份組合變成購物清單</h2>
-                    <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">一頁列出要買什麼、買幾個，可以邊買邊勾。</p>
+                    <p class="t-aux c-ink2 flow-xs">一頁列出要買什麼、買幾個，可以邊買邊勾。</p>
                 </div>
-                <a href="checklist.html" class="btn btn-primary" style="text-decoration:none">產生購物清單</a>
+                <a href="checklist.html" class="btn btn-primary">產生購物清單</a>
             </div>
         </section>
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
     <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
-
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
         /* ════════════════════════════════════════════════════════════
            本次改版新增的畫面層程式碼。以下三段之外的邏輯、Supabase 查詢
            與計算公式，與改版前完全相同，沒有改動。
@@ -476,33 +302,47 @@ setInterval(function () { renderTimestamps(); }, 60000);
         const VERDICT_CONSIDER = 1000;   // 高於此金額 → 可考慮；低於 → 不建議
 
         // ② 購買組合表的單列樣板。
-        //    row：{ name, costUsd, incomeUsd, ratio, qty, inventory, updatedAt }
-        //    vals：{ unitCostTwd, subtotalTwd, valueTwd, isChecked }
+        //    row：{ name, costUsd, incomeUsd, ratio, qty, inventory, updatedAt, defIndex }
+        //    vals：{ unitCostTwd, subtotalTwd, valueTwd, sharePct, isChecked }
         function renderComboRow(row, vals) {
             const chip = row.updatedAt
                 ? '<span class="ts-chip" data-source="csfloat" data-updated="' + escapeHtml(row.updatedAt) + '"></span>'
                 : '<span class="ts-chip" data-source="csfloat"></span>';
             return `
                 <td class="rt-key" data-label="品項">${escapeHtml(row.name)}</td>
-                <td data-label="數量" style="color:var(--brand);font-weight:700">${row.qty} 個</td>
-                <td data-label="單價">NT$ ${vals.unitCostTwd.toFixed(0)}
-                    <span class="t-note" style="color:var(--ink3);display:block">小計 NT$ ${vals.subtotalTwd.toFixed(0)}・到手 NT$ ${vals.valueTwd.toFixed(0)}</span>
+                <td class="c-brand" data-label="數量" style="font-weight:700">${row.qty} 個
+                    <span class="t-note c-ink3" style="font-weight:400;display:block">佔 ${Number(vals.sharePct || 0).toFixed(0)}%</span>
                 </td>
-                <td data-label="庫存" style="color:var(--ink2)">${row.inventory}</td>
+                <td data-label="單價">NT$ ${vals.unitCostTwd.toFixed(0)}
+                    <span class="t-note c-ink3" style="display:block">小計 NT$ ${vals.subtotalTwd.toFixed(0)}・到手 NT$ ${vals.valueTwd.toFixed(0)}</span>
+                </td>
+                <td class="c-ink2" data-label="庫存">${row.inventory}</td>
                 <td data-label="資料時間">${chip}</td>
                 <td data-label="已買到">
                     <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
                         <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(row.name)} 已買到"${vals.isChecked ? ' checked' : ''}>
                     </label>
                 </td>
-                <td data-label="前往購買">
-                    <button type="button" class="buy-btn" disabled title="這個功能還沒開發完成">即將推出</button>
-                </td>
+                <td data-label="前往交易">${tradeLinksHtml(row.defIndex, row.name)}</td>
             `;
         }
 
         // ③ 把本次組合存起來，供購物清單頁（checklist.html）讀取。只讀不算。
+        //    勾選狀態與購物清單頁共用同一個 key，兩頁互跳時不會掉。
         const COMBO_STORAGE_KEY = 'sah-combo-v1';
+        const CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+
+        function loadCheckedNames() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || '[]');
+                return new Set(Array.isArray(raw) ? raw : []);
+            } catch (e) { return new Set(); }
+        }
+        function saveCheckedNames(set) {
+            try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify([...set])); }
+            catch (e) { /* 無痕模式等情況忽略 */ }
+        }
+
         function saveComboForChecklist(combo, rate) {
             try {
                 localStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify({
@@ -510,7 +350,8 @@ setInterval(function () { renderTimestamps(); }, 60000);
                     items: combo.map(i => ({
                         name: i.name,
                         qty: i.qty,
-                        unitCostTwd: Math.round(i.costUsd * rate)
+                        unitCostTwd: Math.round(i.costUsd * rate),
+                        defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
                     }))
                 }));
             } catch (e) { /* 無痕模式等情況忽略 */ }
@@ -560,6 +401,9 @@ setInterval(function () { renderTimestamps(); }, 60000);
 
         const targetSlider = document.getElementById('target-slider');
         const targetInput = document.getElementById('target-input');
+        const budgetSlider = document.getElementById('budget-slider');
+        const budgetInput = document.getElementById('budget-input');
+        const budgetNote = document.getElementById('budget-note');
         const costOutput = document.getElementById('cost-output');
         const reloadBtn = document.getElementById('reload-btn');
         const rateNote = document.getElementById('rate-note');
@@ -568,50 +412,102 @@ setInterval(function () { renderTimestamps(); }, 60000);
         const resultRatio = document.getElementById('result-ratio');
         const comboBody = document.getElementById('combo-body');
         const shortfallNote = document.getElementById('shortfall-note');
+        const capGroup = document.getElementById('cap-group');
+        const capNote = document.getElementById('cap-note');
+        const comboNote = document.getElementById('combo-note');
         const shoppingProgress = document.getElementById('shopping-progress');
         const shoppingResetBtn = document.getElementById('shopping-reset-btn');
 
         let usdToTwd = 32.5;
         let casesCache = [];
         let currentCombo = [];
-        const checkedNames = new Set(); // 購物清單勾選狀態（依武器箱名稱記錄，重新試算時盡量保留）
+        // 購物清單勾選狀態（依武器箱名稱記錄）。從 localStorage 讀回，與購物清單頁共用。
+        const checkedNames = loadCheckedNames();
 
-        function loadNav(pageID) {
-            fetch("nav.html")
-                .then(response => {
-                    if (!response.ok) throw new Error("網路回應不成功");
-                    return response.text();
-                })
-                .then(html_text => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html_text, "text/html");
-                    const high_light = doc.getElementById(`nav-${pageID}`);
-                    if (high_light) {
-                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                    }
-                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
-                });
-        }
-        function loadFooter() {
-            fetch("footer.html")
-                .then(response => {
-                    if (!response.ok) throw new Error("網路回應不成功");
-                    return response.text();
-                })
-                .then(html_text => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html_text, "text/html");
-                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
-                });
+        // 單箱佔比上限。1 代表不限；選擇會記在 localStorage，下次進來沿用。
+        const CAP_STORAGE_KEY = 'sah-cap-pct-v1';
+        const CAP_DEFAULT = 0.2;
+        let capPct = CAP_DEFAULT;
+        try {
+            const saved = Number(localStorage.getItem(CAP_STORAGE_KEY));
+            if (saved > 0 && saved <= 1) capPct = saved;
+        } catch (e) { /* 無痕模式等情況忽略 */ }
+
+        function capLabel(p) { return p >= 1 ? '不限' : `${Math.round(p * 100)}%`; }
+
+        function syncCapButtons() {
+            capGroup.querySelectorAll('button[data-cap]').forEach(btn => {
+                const active = Math.abs(Number(btn.dataset.cap) - capPct) < 1e-6;
+                btn.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`;
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            comboNote.textContent = capPct >= 1
+                ? '已依各武器箱目前的庫存上限限制數量，超過上限的部分會改用次高倍率的品項補足。'
+                : `已依各武器箱目前的庫存上限限制數量，並讓單一品項的到手金額不超過目標金額的 ${capLabel(capPct)}，其餘用次高倍率的品項補足。`;
         }
 
         // 滑桿背景漸層比照 Slider.js 的 updateSliderBackground
-        function updateSliderBackground(value) {
-            const min = Number(targetSlider.min);
-            const max = Number(targetSlider.max);
-            const percentage = ((Number(value) - min) / (max - min)) * 100;
-            targetSlider.style.background = `linear-gradient(to right, #22d3ee ${percentage}%, #475569 ${percentage}%)`;
+        function paintSlider(slider, value) {
+            const min = Number(slider.min);
+            const max = Number(slider.max);
+            const percentage = Math.min(100, Math.max(0, ((Number(value) - min) / (max - min)) * 100));
+            // 用 backgroundImage 而非 background 簡寫，否則會把 CSS 的 background-clip 重置掉
+            slider.style.backgroundImage = `linear-gradient(to right, #22d3ee ${percentage}%, #475569 ${percentage}%)`;
+        }
+        function updateSliderBackground(value) { paintSlider(targetSlider, value); }
+
+        /* ── 投入現金 ⇄ 目標餘額 雙向連動 ──────────────────
+           正向：目標餘額 → buildCombo → 實際花費，直接算得出來。
+           反向：投入現金 → 目標餘額，沒有解析解，但「花費」對「目標」是單調遞增，
+                 所以用二分逼近，找出花費不超過預算的最大目標金額。 */
+        const TARGET_STEP = 50;
+
+        function costTwdForTarget(targetTwd) {
+            if (!(targetTwd > 0) || casesCache.length === 0) return 0;
+            const { totalCostUsd } = buildCombo(targetTwd / usdToTwd, casesCache, capPct);
+            return totalCostUsd * usdToTwd;
+        }
+
+        function targetForBudget(budgetTwd) {
+            if (!(budgetTwd > 0) || casesCache.length === 0) return 0;
+            let lo = 0;
+            let hi = Math.max(budgetTwd * 2, 500);
+            // 先把上界推到「花費確實超過預算」為止；若庫存見底導致花費停止成長，最多推 10 次就放棄
+            let expand = 0;
+            while (costTwdForTarget(hi) <= budgetTwd && expand++ < 10) hi *= 2;
+            // 24 次二分，解析度已遠小於 step 50
+            for (let i = 0; i < 24; i++) {
+                const mid = (lo + hi) / 2;
+                if (costTwdForTarget(mid) <= budgetTwd) lo = mid; else hi = mid;
+            }
+            return Math.max(0, Math.floor(lo / TARGET_STEP) * TARGET_STEP);
+        }
+
+        // 反向套用：由投入現金推回目標餘額，再走一次正向計算
+        function applyBudget(budgetTwd) {
+            const t = targetForBudget(budgetTwd);
+            targetInput.value = t;
+            if (t >= Number(targetSlider.min) && t <= Number(targetSlider.max)) targetSlider.value = t;
+            updateSliderBackground(targetSlider.value);
+            runCalculation('budget');
+        }
+
+        // 正向計算完成後，把實際花費寫回投入現金欄位
+        function syncBudgetFromCost(totalCostTwd, source) {
+            const rounded = Math.round(totalCostTwd);
+            if (source !== 'budget') {
+                budgetInput.value = rounded;
+                if (rounded >= Number(budgetSlider.min) && rounded <= Number(budgetSlider.max)) budgetSlider.value = rounded;
+                paintSlider(budgetSlider, budgetSlider.value);
+                budgetNote.textContent = '';
+                return;
+            }
+            // 由預算反推時，實際花費通常會略低於預算（武器箱是整數件，湊不到剛好）
+            const typed = Number(budgetInput.value) || 0;
+            const diff = typed - rounded;
+            budgetNote.textContent = diff > 0
+                ? `實際會花 NT$ ${rounded}，比你填的少 NT$ ${diff}（武器箱只能整件買，湊不到剛好）。`
+                : '';
         }
 
         async function loadExchangeRate() {
@@ -633,9 +529,18 @@ setInterval(function () { renderTimestamps(); }, 60000);
                 .order('ratio', { ascending: false });
             if (error) {
                 console.error(error);
+                setNavStatus('stale', '資料讀取失敗');
                 return [];
             }
             // 以資料庫實際欄位為準：csfloat_cost（含手續費的實際買進成本）、steam_income（扣除 Steam 手續費後的實拿金額）、csfloat_inventory（最低價位庫存上限）
+            // 導覽列狀態點：用資料裡最新的抓取時間判斷
+            const newestAt = (data || []).reduce((acc, it) => {
+                const t = it.csfloat_updated_at ? Date.parse(it.csfloat_updated_at) : NaN;
+                return (!isNaN(t) && t > acc) ? t : acc;
+            }, 0);
+            if (newestAt > 0) setNavStatusFromTime(new Date(newestAt).toISOString(), 'csfloat');
+            else setNavStatus('stale', '沒有更新時間');
+
             return (data || [])
                 .filter(item => Number(item.csfloat_cost) > 0 && Number(item.steam_income) > 0 && Number(item.csfloat_inventory) > 0 && Number(item.ratio || (item.steam_income / item.csfloat_cost)) > 1)
                 .map(item => ({
@@ -644,23 +549,31 @@ setInterval(function () { renderTimestamps(); }, 60000);
                     incomeUsd: Number(item.steam_income),
                     inventory: Number(item.csfloat_inventory),
                     ratio: Number(item.ratio || (item.steam_income / item.csfloat_cost)),
-                    updatedAt: item.csfloat_updated_at || null // 新增：只給資料時間戳章顯示用，不參與計算
+                    updatedAt: item.csfloat_updated_at || null, // 新增：只給資料時間戳章顯示用，不參與計算
+                    defIndex: item.CSFloat_ID ?? null           // 新增：只給「前往購買」連結用，不參與計算
                 }))
                 .sort((a, b) => b.ratio - a.ratio);
         }
 
-        // 以「目標金額」為基礎的組合演算法：
-        // 1) 先由倍率最高的武器箱開始，依各自的庫存上限盡量往下取整購買
-        // 2) 若無法整除或庫存不夠，最後用「單次加購一件」的方式，優先挑選剛好能補足缺口、且溢出最小的品項來收尾
-        function buildCombo(targetUsd, cases) {
+        // 以「目標金額」為基礎的組合演算法（含單箱佔比上限）：
+        // 0) 單箱上限：任一品項的到手金額小計 ≤ 目標金額 × capPct（capPct >= 1 代表不限）
+        // 1) 由倍率最高的武器箱開始，同時受「庫存上限」與「單箱佔比上限」限制往下取整購買
+        // 2) 若還有缺口，用「單次加購一件」收尾，優先挑選剛好能補足缺口、且溢出最小、且仍在上限內的品項
+        // 3) 若所有品項都碰到上限、缺口仍補不完（可買的品項種類太少），
+        //    改為「平均分配剩餘」：每次挑目前到手金額最低的品項加購一件，盡量把佔比拉平
+        function buildCombo(targetUsd, cases, capPct) {
             const state = cases.map(c => ({ ...c, used: 0, remainingInv: c.inventory }));
+            const capUsd = (capPct > 0 && capPct < 1) ? targetUsd * capPct : Infinity;
             let remainingTarget = targetUsd;
+            let capRelaxed = false; // 是否曾為了湊到目標而突破單箱上限
 
+            // 階段 1：倍率優先，受庫存與單箱上限雙重限制
             for (const item of state) {
-                if (remainingTarget <= 0) break;
+                if (remainingTarget <= 1e-9) break;
                 if (item.remainingInv <= 0) continue;
-                const qtyNeeded = Math.floor(remainingTarget / item.incomeUsd);
-                const qty = Math.min(qtyNeeded, item.remainingInv);
+                const byTarget = Math.floor(remainingTarget / item.incomeUsd);
+                const byCap = Math.floor(capUsd / item.incomeUsd);
+                const qty = Math.min(byTarget, item.remainingInv, byCap);
                 if (qty > 0) {
                     item.used += qty;
                     item.remainingInv -= qty;
@@ -668,11 +581,13 @@ setInterval(function () { renderTimestamps(); }, 60000);
                 }
             }
 
+            // 階段 2：收尾補缺口，仍受單箱上限限制
             let guard = 0;
-            while (remainingTarget > 1e-9 && guard < 200) {
+            while (remainingTarget > 1e-9 && guard < 500) {
                 guard++;
-                const candidates = state.filter(i => i.remainingInv > 0);
-                if (candidates.length === 0) break; // 所有品項庫存都已用完，無法再貼近目標
+                // 加購一件後仍不超過單箱上限，且還有庫存
+                const candidates = state.filter(i => i.remainingInv > 0 && (i.used + 1) * i.incomeUsd <= capUsd + 1e-9);
+                if (candidates.length === 0) break; // 全部碰到上限或庫存用完 → 進入階段 3
 
                 // 優先選「單件到手金額 ≥ 缺口」中金額最小的，收尾時溢出最少
                 let best = null;
@@ -690,47 +605,76 @@ setInterval(function () { renderTimestamps(); }, 60000);
                 remainingTarget -= best.incomeUsd;
             }
 
+            // 階段 3：品項種類不夠，只能突破上限 → 平均分配剩餘，盡量把佔比拉平
+            guard = 0;
+            while (remainingTarget > 1e-9 && guard < 2000) {
+                guard++;
+                const candidates = state.filter(i => i.remainingInv > 0);
+                if (candidates.length === 0) break; // 庫存真的不夠，交給 reached = false 提示
+
+                // 挑目前到手金額最低者；同分時取倍率高的
+                let best = candidates[0];
+                for (const c of candidates) {
+                    const cv = c.used * c.incomeUsd;
+                    const bv = best.used * best.incomeUsd;
+                    if (cv < bv - 1e-9 || (Math.abs(cv - bv) <= 1e-9 && c.ratio > best.ratio)) best = c;
+                }
+                if ((best.used + 1) * best.incomeUsd > capUsd + 1e-9) capRelaxed = true;
+                best.used += 1;
+                best.remainingInv -= 1;
+                remainingTarget -= best.incomeUsd;
+            }
+
             const combo = state
                 .filter(i => i.used > 0)
                 .sort((a, b) => b.ratio - a.ratio)
-                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, updatedAt: i.updatedAt }));
+                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, updatedAt: i.updatedAt, defIndex: i.defIndex }));
 
             const totalCostUsd = combo.reduce((s, i) => s + i.costUsd * i.qty, 0);
             const totalIncomeUsd = combo.reduce((s, i) => s + i.incomeUsd * i.qty, 0);
             const reached = totalIncomeUsd >= targetUsd - 1e-9;
+            // 最高單箱佔比（以本次組合的到手總額為分母）
+            const maxShare = totalIncomeUsd > 0
+                ? Math.max(...combo.map(i => (i.incomeUsd * i.qty) / totalIncomeUsd), 0)
+                : 0;
 
-            return { combo, totalCostUsd, totalIncomeUsd, reached };
+            return { combo, totalCostUsd, totalIncomeUsd, reached, capRelaxed, maxShare };
         }
 
-        function runCalculation() {
+        // source === 'budget' 代表這次是由投入現金欄位觸發的，
+        // 這時不要回頭覆寫投入現金欄位，否則使用者打字打到一半會被改掉
+        function runCalculation(source) {
             const targetTwd = Number(targetInput.value) || 0;
             const targetUsd = targetTwd / usdToTwd;
 
             shortfallNote.style.display = 'none';
+            capNote.style.display = 'none';
 
             if (targetUsd <= 0 || casesCache.length === 0) {
-                comboBody.innerHTML = `<tr><td colspan="7" style="padding:32px 0;text-align:center;color:var(--ink3)">目前沒有可用的價格資料，或目標金額為 0</td></tr>`;
+                comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">目前沒有可用的價格資料，或目標金額為 0</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';
                 resultRatio.innerText = '--';
-                costOutput.value = 0;
+                costOutput.textContent = '--';
                 currentCombo = [];
                 updateShoppingProgress();
                 updateVerdict(targetTwd, 0, 0, 0); // 畫面層
+                syncBudgetFromCost(0, source);
                 return;
             }
 
-            const { combo, totalCostUsd, totalIncomeUsd, reached } = buildCombo(targetUsd, casesCache);
+            const { combo, totalCostUsd, totalIncomeUsd, reached, capRelaxed, maxShare } = buildCombo(targetUsd, casesCache, capPct);
 
             if (combo.length === 0) {
-                comboBody.innerHTML = `<tr><td colspan="7" style="padding:32px 0;text-align:center;color:var(--warn)">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
+                comboBody.innerHTML = `<tr><td class="c-warn" colspan="7" style="padding:32px 0;text-align:center">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
                 resultCost.innerText = `NT$ 0`;
                 resultValue.innerText = `NT$ 0`;
                 resultRatio.innerText = `--`;
-                costOutput.value = 0;
+                costOutput.textContent = '--';
                 currentCombo = [];
                 updateShoppingProgress();
                 updateVerdict(targetTwd, 0, 0, 0); // 畫面層
+                syncBudgetFromCost(0, source);
                 return;
             }
 
@@ -745,17 +689,19 @@ setInterval(function () { renderTimestamps(); }, 60000);
             for (const name of [...checkedNames]) {
                 if (!comboNames.has(name)) checkedNames.delete(name);
             }
+            saveCheckedNames(checkedNames);
 
             comboBody.innerHTML = '';
             combo.forEach(row => {
                 const unitCostTwd = row.costUsd * usdToTwd;
                 const subtotalTwd = unitCostTwd * row.qty;
                 const valueTwd = row.incomeUsd * usdToTwd * row.qty;
+                const sharePct = totalIncomeUsd > 0 ? (row.incomeUsd * row.qty / totalIncomeUsd) * 100 : 0;
                 const isChecked = checkedNames.has(row.name);
 
                 const tr = document.createElement('tr');
                 tr.style.opacity = isChecked ? '0.45' : '';
-                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, isChecked });
+                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, sharePct, isChecked });
 
                 const checkbox = tr.querySelector('input[type="checkbox"]');
                 // 用 property 而非 innerHTML 屬性字串塞名稱，避免武器箱名稱裡有特殊字元造成問題
@@ -768,6 +714,7 @@ setInterval(function () { renderTimestamps(); }, 60000);
                         checkedNames.delete(row.name);
                         tr.style.opacity = '';
                     }
+                    saveCheckedNames(checkedNames);
                     updateShoppingProgress();
                 });
                 comboBody.appendChild(tr);
@@ -778,9 +725,15 @@ setInterval(function () { renderTimestamps(); }, 60000);
             resultCost.innerText = `NT$ ${totalCostTwd.toFixed(0)}`;
             resultValue.innerText = `NT$ ${totalValueTwd.toFixed(0)}`;
             resultRatio.innerText = reached ? `x${effectiveRatio.toFixed(2)}｜溢出 NT$ ${overshootTwd.toFixed(0)}` : `x${effectiveRatio.toFixed(2)}`;
-            costOutput.value = totalCostTwd.toFixed(0);
+            costOutput.textContent = `NT$ ${totalCostTwd.toFixed(0)}`;
             updateShoppingProgress();
             updateVerdict(targetTwd, totalCostTwd, totalValueTwd, combo.reduce((s, i) => s + i.qty, 0)); // 畫面層
+            syncBudgetFromCost(totalCostTwd, source);
+
+            if (capRelaxed) {
+                capNote.textContent = `在單箱 ${capLabel(capPct)} 的上限下湊不滿目標金額（可買的品項種類或庫存不夠），剩下的缺口已改為在各品項間平均分配，最高單箱佔 ${(maxShare * 100).toFixed(0)}%。可調高上限或調降目標金額。`;
+                capNote.style.display = 'block';
+            }
 
             if (!reached) {
                 shortfallNote.textContent = `目前所有符合條件的武器箱庫存合計不足以達成此目標金額，已用完可用庫存，實際只能取得約 NT$ ${totalValueTwd.toFixed(0)}。可調降目標金額，或等待庫存與資料更新後再試算一次。`;
@@ -813,34 +766,66 @@ setInterval(function () { renderTimestamps(); }, 60000);
 
         shoppingResetBtn.addEventListener('click', () => {
             checkedNames.clear();
-            runCalculation();
+            saveCheckedNames(checkedNames);
+            runCalculation('target');
         });
 
         targetSlider.addEventListener('input', (e) => {
             targetInput.value = e.target.value;
             updateSliderBackground(e.target.value);
-            runCalculation();
+            runCalculation('target');
         });
         targetInput.addEventListener('input', (e) => {
             const v = Number(e.target.value) || 0;
             if (v >= Number(targetSlider.min) && v <= Number(targetSlider.max)) targetSlider.value = v;
             updateSliderBackground(targetSlider.value);
-            runCalculation();
+            runCalculation('target');
+        });
+
+        budgetSlider.addEventListener('input', (e) => {
+            budgetInput.value = e.target.value;
+            paintSlider(budgetSlider, e.target.value);
+            applyBudget(Number(e.target.value) || 0);
+        });
+        budgetInput.addEventListener('input', (e) => {
+            const v = Number(e.target.value) || 0;
+            if (v >= Number(budgetSlider.min) && v <= Number(budgetSlider.max)) budgetSlider.value = v;
+            paintSlider(budgetSlider, budgetSlider.value);
+            applyBudget(v);
+        });
+        // 離開欄位時把數字校正成實際花費，避免留著一個永遠湊不到的金額
+        budgetInput.addEventListener('change', () => {
+            const actual = costTwdForTarget(Number(targetInput.value) || 0);
+            if (actual > 0) {
+                budgetInput.value = Math.round(actual);
+                paintSlider(budgetSlider, budgetInput.value);
+                budgetNote.textContent = '';
+            }
         });
         reloadBtn.addEventListener('click', async () => {
             reloadBtn.disabled = true;
             reloadBtn.innerText = '載入中...';
             await Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })]);
-            runCalculation();
+            runCalculation('target');
             reloadBtn.disabled = false;
             reloadBtn.innerText = '重新載入最新資料';
         });
 
-        loadNav("calculator");
-        loadFooter();
+        capGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-cap]');
+            if (!btn) return;
+            capPct = Number(btn.dataset.cap);
+            try { localStorage.setItem(CAP_STORAGE_KEY, String(capPct)); } catch (err) { /* 無痕模式等情況忽略 */ }
+            syncCapButtons();
+            runCalculation('target');
+        });
+
         updateSliderBackground(targetSlider.value);
+        paintSlider(budgetSlider, budgetSlider.value);
+        syncCapButtons();
         Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
-            .then(runCalculation);
+            .then(() => runCalculation('target'));
+    
     </script>
 </body>
 </html>

@@ -3,208 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="用 CS2 武器箱把現金換成 Steam 餘額，扣完 CSFloat 與 Steam 兩邊手續費後仍便宜約 13–30%。所有數字都是稅後實拿值，並標示資料抓取時間。">
     <title>Steam 加值幫手｜用比較便宜的價格買到 Steam 餘額</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/">
+    <meta property="og:title" content="Steam 加值幫手｜用比較便宜的價格買到 Steam 餘額">
+    <meta property="og:description" content="用 CS2 武器箱把現金換成 Steam 餘額，扣完 CSFloat 與 Steam 兩邊手續費後仍便宜約 13–30%。所有數字都是稅後實拿值，並標示資料抓取時間。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Steam 加值幫手｜用比較便宜的價格買到 Steam 餘額">
+    <meta name="twitter:description" content="用 CS2 武器箱把現金換成 Steam 餘額，扣完 CSFloat 與 Steam 兩邊手續費後仍便宜約 13–30%。所有數字都是稅後實拿值，並標示資料抓取時間。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="Slider.js"></script>
-    <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
-
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-    </style>
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="main">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px">
 
@@ -212,28 +35,28 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <section style="padding-top:48px">
             <h1 class="t-hero" style="max-width:24ch">
                 你想買的遊戲，還可以再便宜約
-                <span class="num" style="color:var(--brand)"><span id="discount">--</span>%</span>
+                <span class="num c-brand"><span id="discount">--</span>%</span>
             </h1>
-            <p class="t-body" style="color:var(--ink2);max-width:52ch;margin:20px 0 0">
-                這個折扣疊加在官方特價之上，兩層是相乘、不是取代。官方打 7 折的遊戲，你還能在那個價格上再省一次。
+            <p class="t-body c-ink2" style="max-width:52ch;margin:20px 0 0">
+                這個折扣疊加在官方特價之上，兩層是相乘、不是取代。<br>官方打 7 折的遊戲，你還能在那個價格上再省一次。
             </p>
-            <p class="t-aux" style="color:var(--ink3);margin:12px 0 0">
+            <p class="t-aux c-ink3 flow-sm">
                 代價：約 1 小時操作，加上 7 天等待。
             </p>
-            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:32px">
-                <a href="calculator.html" class="btn btn-primary" style="text-decoration:none">試算我的方案</a>
-                <a href="eligibility.html" class="btn btn-text" style="text-decoration:none">先確認我能不能用</a>
+            <div class="flow-xl" style="display:flex;flex-wrap:wrap;gap:12px">
+                <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
+                <a href="eligibility.html" class="btn btn-text">先確認我能不能用</a>
             </div>
         </section>
 
         <!-- ② 誠實比較表 -->
         <section class="sec">
             <h2 class="t-page">你有五個選擇，我們是其中一個</h2>
-            <p class="t-body" style="color:var(--ink2);max-width:58ch;margin:12px 0 0">
+            <p class="t-body c-ink2 flow-sm" style="max-width:58ch">
                 我們主動列出你其實可以不用我們的選項。前兩個選項不用花任何時間，而且可以和這個工具同時用。
             </p>
 
-            <div class="card" style="margin-top:24px;padding:0;overflow:hidden">
+            <div class="card card-flush flow-lg">
                 <div style="padding:20px">
                     <table class="rt">
                         <thead>
@@ -274,12 +97,12 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                             <tr>
                                 <td class="rt-key" data-label="方案" style="box-shadow:inset 2px 0 0 var(--brand)">
                                     本工具
-                                    <span class="t-note" style="display:block;color:var(--ink3);font-weight:400">你正在看的這個</span>
+                                    <span class="t-note c-ink3" style="display:block;font-weight:400">你正在看的這個</span>
                                 </td>
-                                <td data-label="折扣幅度" style="color:var(--pos);font-weight:700">13–30%（稅後）</td>
+                                <td class="c-pos" data-label="折扣幅度" style="font-weight:700">13–30%（稅後）</td>
                                 <td data-label="操作時間" style="white-space:normal">首次 60–90 分鐘，之後 15–20 分鐘</td>
-                                <td data-label="等待" style="color:var(--warn)">7 天</td>
-                                <td data-label="風險" style="white-space:normal;color:var(--warn)">價格波動、賣不掉、餘額鎖死</td>
+                                <td class="c-warn" data-label="等待">7 天</td>
+                                <td class="c-warn" data-label="風險" style="white-space:normal">價格波動、賣不掉、餘額鎖死</td>
                                 <td data-label="適合誰" style="white-space:normal">有計畫、金額夠大的人</td>
                             </tr>
                         </tbody>
@@ -291,12 +114,12 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <!-- ③ 運作原理三步 -->
         <section class="sec">
             <h2 class="t-page">它怎麼運作</h2>
-            <div class="card" style="margin-top:24px;display:flex;flex-direction:column;gap:24px">
+            <div class="card flow-lg" style="display:flex;flex-direction:column;gap:24px">
                 <div class="step">
                     <div class="step-no num">1</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 CSFloat 用現金買 CS2 武器箱</h3>
-                        <p class="t-body" style="color:var(--ink2);margin:6px 0 0">
+                        <p class="t-body c-ink2" style="margin:6px 0 0">
                             CSFloat 是第三方交易平台，價格通常比 Steam 市場低。你要照清單一件一件下單，箱子數量多的時候會點很多次。
                         </p>
                     </div>
@@ -306,7 +129,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                     <div class="step-no num">2</div>
                     <div style="flex:1">
                         <h3 class="t-sub">等 7 天冷卻期</h3>
-                        <p class="t-body" style="color:var(--ink2);margin:6px 0 0">
+                        <p class="t-body c-ink2" style="margin:6px 0 0">
                             Steam 規定跨平台交易來的物品要放 7 天才能上架。這段時間你不能動它，也不能取消。
                         </p>
                     </div>
@@ -316,7 +139,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                     <div class="step-no num">3</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 Steam 社群市場賣掉，錢進錢包</h3>
-                        <p class="t-body" style="color:var(--ink2);margin:6px 0 0">
+                        <p class="t-body c-ink2" style="margin:6px 0 0">
                             賣出後扣掉 Steam 手續費，剩下的直接變成 Steam 錢包餘額。掛單不一定馬上成交，冷門品項可能要放幾天。
                         </p>
                     </div>
@@ -327,20 +150,20 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <!-- ④ 為什麼這個數字可信 -->
         <section class="sec">
             <h2 class="t-page">為什麼這個數字可信</h2>
-            <p class="t-body" style="color:var(--ink2);max-width:58ch;margin:12px 0 0">
+            <p class="t-body c-ink2 flow-sm" style="max-width:58ch">
                 很多比價工具給你的是帳面價差。我們給的是扣完兩邊手續費之後的數字：CSFloat 約 7.5% 買方手續費、Steam 市場 15% 手續費，都已經算進去了。你看到 28%，實際到手就是 28%。
             </p>
 
-            <div class="grid gap-3 lg:grid-cols-2" style="margin-top:24px">
+            <div class="grid gap-3 lg:grid-cols-2 flow-lg">
                 <div class="card">
-                    <div class="t-note" style="color:var(--ink3)">範例：一箱 NT$ 100 的武器箱</div>
-                    <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+                    <div class="t-note c-ink3">範例：一箱 NT$ 100 的武器箱</div>
+                    <div class="flow-md" style="display:flex;flex-direction:column;gap:16px">
                         <div>
                             <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
                                 <span class="t-aux">你在 CSFloat 付出（含買方手續費）</span>
                                 <span class="t-sub num">NT$ 100</span>
                             </div>
-                            <div style="height:8px;border-radius:999px;background:var(--line);margin-top:8px">
+                            <div class="flow-xs" style="height:8px;border-radius:999px;background:var(--line)">
                                 <div style="width:66%;height:8px;border-radius:999px;background:#334155"></div>
                             </div>
                         </div>
@@ -349,27 +172,27 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                                 <span class="t-aux">Steam 市場上的帳面售價</span>
                                 <span class="t-sub num">NT$ 152</span>
                             </div>
-                            <div style="height:8px;border-radius:999px;background:var(--line);margin-top:8px">
+                            <div class="flow-xs" style="height:8px;border-radius:999px;background:var(--line)">
                                 <div style="width:100%;height:8px;border-radius:999px;background:#475569"></div>
                             </div>
-                            <p class="t-note" style="color:var(--ink3);margin:6px 0 0">很多工具會把這裡的 52% 當成你的折扣。它不是。</p>
+                            <p class="t-note c-ink3" style="margin:6px 0 0">很多工具會把這裡的 52% 當成你的折扣。它不是。</p>
                         </div>
                         <div>
                             <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
-                                <span class="t-aux" style="color:var(--neg)">扣掉 Steam 市場 15% 手續費</span>
-                                <span class="t-sub num" style="color:var(--neg)">－NT$ 20</span>
+                                <span class="t-aux c-neg">扣掉 Steam 市場 15% 手續費</span>
+                                <span class="t-sub num c-neg">－NT$ 20</span>
                             </div>
                         </div>
                         <div class="hr"></div>
                         <div>
                             <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
                                 <span class="t-sub">你的 Steam 錢包實際收到</span>
-                                <span class="stat-value num" style="color:var(--pos);font-size:28px">NT$ 132</span>
+                                <span class="stat-value stat-value-md num c-pos">NT$ 132</span>
                             </div>
-                            <div style="height:8px;border-radius:999px;background:var(--line);margin-top:8px">
+                            <div class="flow-xs" style="height:8px;border-radius:999px;background:var(--line)">
                                 <div style="width:87%;height:8px;border-radius:999px;background:var(--pos)"></div>
                             </div>
-                            <p class="t-note" style="color:var(--ink3);margin:8px 0 0">
+                            <p class="t-note c-ink3 flow-xs">
                                 付 100 拿到 132，倍率 1.32，相當於買同一款遊戲便宜約 24%。這是範例數字，實際依當下市場狀況。
                             </p>
                         </div>
@@ -380,16 +203,16 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                     <div class="stat">
                         <div class="stat-label">目前資料裡最好的實拿倍率</div>
                         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-                            <span class="t-sub num" style="color:var(--ink2)">1 元</span>
-                            <span class="t-sub" style="color:var(--ink3)">→</span>
-                            <span class="stat-value num" id="max-roi" style="color:var(--pos)">--</span>
-                            <span class="t-sub" style="color:var(--pos)">元 Steam 餘額</span>
+                            <span class="t-sub num c-ink2">1 元</span>
+                            <span class="t-sub c-ink3">→</span>
+                            <span class="stat-value num c-pos" id="max-roi">--</span>
+                            <span class="t-sub c-pos">元 Steam 餘額</span>
                         </div>
                         <div class="stat-note">已扣除 CSFloat 約 7.5% 與 Steam 15% 手續費。</div>
                     </div>
                     <div class="hr"></div>
                     <div>
-                        <p class="t-aux" style="color:var(--ink2);margin:0 0 8px">
+                        <p class="t-aux c-ink2" style="margin:0 0 8px">
                             拉一下滑桿，看你打算投入的金額大概換到多少餘額。
                         </p>
                         <profit-slider id="profit-slider"></profit-slider>
@@ -405,25 +228,25 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <!-- ⑤ 三個必須知道的限制 -->
         <section class="sec">
             <h2 class="t-page">三個必須知道的限制</h2>
-            <div class="grid gap-3 md:grid-cols-3" style="margin-top:24px">
+            <div class="grid gap-3 md:grid-cols-3 flow-lg">
                 <div class="card">
-                    <div class="t-note num" style="color:var(--ink3)">01</div>
-                    <h3 class="t-sub" style="margin:8px 0 0">Steam 餘額換不回現金</h3>
-                    <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                    <div class="card-idx num">01</div>
+                    <h3 class="t-sub flow-sm">Steam 餘額換不回現金</h3>
+                    <p class="t-body c-ink2 flow-xs">
                         餘額不可提領，只能在 Steam 平台內花掉。買進去就是買進去了，沒有反悔的路。所以只有本來就打算在 Steam 花這筆錢的人才該用。
                     </p>
                 </div>
                 <div class="card">
-                    <div class="t-note num" style="color:var(--ink3)">02</div>
-                    <h3 class="t-sub" style="margin:8px 0 0">7 天冷卻期</h3>
-                    <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                    <div class="card-idx num">02</div>
+                    <h3 class="t-sub flow-sm">7 天冷卻期</h3>
+                    <p class="t-body c-ink2 flow-xs">
                         你看到的是今天的價格，你賣的是 7 天後的價格。中間 CS2 改版、市場大量拋售，價格都可能往下。也可能往上，我們不知道。
                     </p>
                 </div>
                 <div class="card">
-                    <div class="t-note num" style="color:var(--ink3)">03</div>
-                    <h3 class="t-sub" style="margin:8px 0 0">金額太小不值得</h3>
-                    <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                    <div class="card-idx num">03</div>
+                    <h3 class="t-sub flow-sm">金額太小不值得</h3>
+                    <p class="t-body c-ink2 flow-xs">
                         1,000 元以下省下的錢通常不到 200 元，換算下來比你花的時間便宜。這種情況試算頁會直接告訴你不要做。
                     </p>
                 </div>
@@ -433,10 +256,10 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <!-- ⑥ 誰適合、誰不適合 -->
         <section class="sec">
             <h2 class="t-page">誰適合、誰不適合</h2>
-            <div class="grid gap-3 md:grid-cols-2" style="margin-top:24px">
+            <div class="grid gap-3 md:grid-cols-2 flow-lg">
                 <div class="card">
-                    <h3 class="t-sect" style="color:var(--pos)">適合你，如果</h3>
-                    <ul class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                    <h3 class="t-sect c-pos">適合你，如果</h3>
+                    <ul class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
                         <li>你已經有想買的遊戲，而且不急著這週買。</li>
                         <li>這次要花的金額在 <span class="num">3,000</span> 元以上。</li>
                         <li>你的 Steam 帳號已啟用手機驗證器超過 7 天，且沒有交易限制。</li>
@@ -444,8 +267,8 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                     </ul>
                 </div>
                 <div class="card">
-                    <h3 class="t-sect" style="color:var(--neg)">不適合你，如果</h3>
-                    <ul class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                    <h3 class="t-sect c-neg">不適合你，如果</h3>
+                    <ul class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
                         <li>你想把 Steam 餘額換回現金。做不到，這條路不存在。</li>
                         <li>你只是想先存錢起來，還不確定要買什麼。餘額會鎖死在 Steam。</li>
                         <li>你這次要花的金額低於 <span class="num">1,000</span> 元。省下的錢不值這個時間。</li>
@@ -461,68 +284,19 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">算一次要 30 秒，不用登入</h2>
-                    <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">輸入你想花的金額，會告訴你值不值得做。</p>
+                    <p class="t-aux c-ink2 flow-xs">輸入你想花的金額，會告訴你值不值得做。</p>
                 </div>
-                <a href="calculator.html" class="btn btn-primary" style="text-decoration:none">試算我的方案</a>
+                <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
             </div>
         </section>
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
     <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
-
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
     const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
     const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1'; 
     const CLIENT = supabase.createClient(supabaseUrl, supabaseKey);
@@ -530,66 +304,50 @@ setInterval(function () { renderTimestamps(); }, 60000);
     const slider = document.getElementById('profit-slider');
     const discount = document.getElementById('discount')
     let ratio = 1; 
-    function loadNav(pageID) {
-        fetch("nav.html")
-            .then(response => {
-                if (!response.ok)throw new Error("網路回應不成功");
-                return response.text()
-            })
-            .then(html_text => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html_text,"text/html");
-                const high_light = doc.getElementById(`nav-${pageID}`);
-                if (high_light) {
-                    high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                    high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                }
-            document.getElementById('nav').innerHTML = doc.body.innerHTML;
-            }
-            )
-    }
-    function loadFooter() {
-        fetch("footer.html")
-            .then(response => {
-                if (!response.ok)throw new Error("網路回應不成功");
-                return response.text()
-            })
-            .then(html_text => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html_text,"text/html");
-                document.getElementById('footer').innerHTML = doc.body.innerHTML;
-            }
-            )
-    }
     async function max_ratio() {
         try {
         const { data, error } = await CLIENT
-            .from('cases_data') 
-            .select('ratio')
-            .order('ratio', { ascending: false });
+            .from('cases_data')
+            .select('ratio, csfloat_updated_at')
+            // 💡 PostgreSQL 的 ORDER BY DESC 預設是 NULLS FIRST，
+            //    少了 nullsFirst:false 會讓還沒算出 ratio 的資料排到第一筆。
+            .order('ratio', { ascending: false, nullsFirst: false });
 
         if (error) throw error;
 
         if (!data || data.length === 0) {
             maxRoiDisplay.innerText = "無獲取資料";
+            setNavStatus('stale', '沒有可用資料');
             return;
         }
-        const firstRowRatio = data[0].ratio || 1;
-        const maxRoi = (Number(firstRowRatio) - 1) * 100;
+
+        // 導覽列狀態點：用資料裡最新的抓取時間判斷
+        const newestAt = data.reduce((acc, it) => {
+            const t = it.csfloat_updated_at ? Date.parse(it.csfloat_updated_at) : NaN;
+            return (!isNaN(t) && t > acc) ? t : acc;
+        }, 0);
+        if (newestAt > 0) setNavStatusFromTime(new Date(newestAt).toISOString(), 'csfloat');
+        // 不要用 || 1 假裝正常：拿不到有效倍率就明講資料還在算
+        const firstRowRatio = Number(data[0]?.ratio);
+        if (!Number.isFinite(firstRowRatio) || firstRowRatio <= 0) {
+            maxRoiDisplay.innerText = "資料計算中";
+            discount.innerHTML = "--";
+            return;
+        }
         maxRoiDisplay.innerText = firstRowRatio.toFixed(2);
         ratio = firstRowRatio;
-        discount.innerHTML = ((1-1/firstRowRatio)*100).toFixed(0); 
+        discount.innerHTML = ((1-1/firstRowRatio)*100).toFixed(0);
         }
         catch (error) {
             maxRoiDisplay.innerText = "無獲取資料";
+            setNavStatus('stale', '資料讀取失敗');
             console.error(error);
         } finally {
         }
     }
-    loadNav("main")
-    loadFooter()
     max_ratio()
         .then(()=>slider.setAttribute('ratio',ratio))
+    
     </script>
 </body>
 </html>

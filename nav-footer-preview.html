@@ -4,16 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>nav / footer 預覽</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body{margin:0;background:#020617;color:#f1f5f9;
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px;line-height:1.75}
-</style>
+<link rel="stylesheet" href="assets/utilities.css">
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body class="min-h-screen flex flex-col">
 
-<nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
 <main class="flex-1 mx-auto w-full max-w-[1120px] px-5 md:px-8 py-14">
   <p class="text-xs" style="color:#64748b;letter-spacing:.08em">預覽頁・不是網站的一部分</p>
@@ -36,12 +32,11 @@ body{margin:0;background:#020617;color:#f1f5f9;
       <li>片段內的 &lt;script&gt; 用 innerHTML 插入不會執行，所以漢堡選單一律用 inline onclick，不依賴頁面 JS。</li>
       <li>導覽列的資料狀態點預設是中性灰。有資料的頁面抓完資料後呼叫下面這段即可。</li>
     </ul>
-    <pre class="mt-4 overflow-x-auto rounded-lg p-4 text-xs" style="background:#020617;border:1px solid #1e293b;color:#94a3b8;line-height:1.7;font-family:ui-monospace,Menlo,monospace">function setStatus(state, text) {
-  var s = document.getElementById('data-status');
-  if (!s) return;                      // nav 還沒載完
-  s.dataset.state = state;             // fresh | aging | stale
-  s.querySelector('.ds-text').textContent = text;
-}</pre>
+    <pre class="mt-4 overflow-x-auto rounded-lg p-4 text-xs" style="background:#020617;border:1px solid #1e293b;color:#94a3b8;line-height:1.7;font-family:ui-monospace,Menlo,monospace">// assets/site.js 已經提供，各頁直接呼叫即可
+setNavStatus('fresh', '資料 12 分鐘前更新');   // fresh | aging | stale
+
+// 或直接丟資料的更新時間，讓它自己判斷三態
+setNavStatusFromTime(item.csfloat_updated_at, 'csfloat');</pre>
   </div>
 
   <p class="mt-10 text-sm" style="color:#64748b">頁面高度用這段文字撐開，方便看 sticky 導覽列與頁尾。</p>
@@ -49,34 +44,11 @@ body{margin:0;background:#020617;color:#f1f5f9;
 
 <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+<!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+<script src="assets/site.js"></script>
 <script>
-function setStatus(state, text) {
-  var s = document.getElementById('data-status');
-  if (!s) return;
-  s.dataset.state = state;
-  s.querySelector('.ds-text').textContent = text;
-}
-function loadNav(pageID) {
-  return fetch("nav.html")
-    .then(function (r) { if (!r.ok) throw new Error("網路回應不成功"); return r.text(); })
-    .then(function (t) {
-      var doc = new DOMParser().parseFromString(t, "text/html");
-      var hl = doc.getElementById('nav-' + pageID);
-      if (hl) {
-        hl.classList.remove('text-slate-300', 'hover:text-cyan-400');
-        hl.classList.add('text-cyan-400', 'bg-slate-900/50');
-      }
-      document.getElementById('nav').innerHTML = doc.body.innerHTML;
-    });
-}
-function loadFooter() {
-  return fetch("footer.html")
-    .then(function (r) { if (!r.ok) throw new Error("網路回應不成功"); return r.text(); })
-    .then(function (t) {
-      var doc = new DOMParser().parseFromString(t, "text/html");
-      document.getElementById('footer').innerHTML = doc.body.innerHTML;
-    });
-}
+// 預覽頁的三顆按鈕直接呼叫 site.js 的 setNavStatus()
+function setStatus(state, text) { setNavStatus(state, text); }
 loadNav("marketlist").then(function () { setStatus('fresh', '資料 12 分鐘前更新'); });
 loadFooter();
 </script>

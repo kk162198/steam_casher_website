@@ -1,0 +1,9 @@
+# 統一換行符為 LF。
+# 沒有這個設定時，在 Windows 上編輯過的檔案會整份從 LF 變成 CRLF，
+# git diff 會顯示「整檔改動」但實際上一個字都沒改（.md 與 Slider.js 都發生過）。
+* text=auto eol=lf
+
+# 二進位檔不要做換行轉換
+*.png binary
+*.jpg binary
+*.ico binary

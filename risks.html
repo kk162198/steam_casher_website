@@ -5,386 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="用 CS2 武器箱換 Steam 餘額的四項實質風險：餘額不可提領、7 天冷卻期與價格波動、成交不保證、僅供個人消費。">
     <title>風險與限制｜Steam 加值幫手</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
 
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-    </style>
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/risks.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/risks.html">
+    <meta property="og:title" content="風險與限制｜Steam 加值幫手">
+    <meta property="og:description" content="用 CS2 武器箱換 Steam 餘額的四項實質風險：餘額不可提領、7 天冷卻期與價格波動、成交不保證、僅供個人消費。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="風險與限制｜Steam 加值幫手">
+    <meta name="twitter:description" content="用 CS2 武器箱換 Steam 餘額的四項實質風險：餘額不可提領、7 天冷卻期與價格波動、成交不保證、僅供個人消費。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="risks">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px;max-width:760px">
 
         <header style="padding-top:48px">
             <h1 class="t-page">風險與限制</h1>
-            <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:52ch">
                 四件事。第一件比其他三件加起來都重要，所以放在最前面。
             </p>
         </header>
 
         <!-- ① -->
-        <section class="card" style="margin-top:32px">
+        <section class="card flow-xl">
             <div style="display:flex;align-items:baseline;gap:12px">
-                <span class="t-note num" style="color:var(--ink3)">01</span>
-                <h2 class="t-sect" style="color:var(--neg)">Steam 餘額不可提領</h2>
+                <span class="card-idx num">01</span>
+                <h2 class="t-sect c-neg">Steam 餘額不可提領</h2>
             </div>
-            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
-                <p style="margin:0">
+            <div class="t-body c-ink2 flow-md" style="display:flex;flex-direction:column;gap:12px">
+                <p class="flow-0">
                     這筆錢只能在 Steam 花掉，永遠換不回現金。沒有例外，沒有申訴管道，沒有第三方可以幫你換。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     你付出的是可以拿去做任何事的新台幣，換回來的是只能買遊戲的點數。如果你最後沒把它花完，那筆錢就等於鎖死在帳號裡。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     這比 7 天冷卻期嚴重得多。冷卻期只是等，這個是不可逆。所以這個工具只適合本來就打算在 Steam 花這筆錢的人。如果你是想「先存起來，之後再說」，不要用。
                 </p>
             </div>
         </section>
 
         <!-- ② -->
-        <section class="card" style="margin-top:16px">
+        <section class="card flow-md">
             <div style="display:flex;align-items:baseline;gap:12px">
-                <span class="t-note num" style="color:var(--ink3)">02</span>
+                <span class="card-idx num">02</span>
                 <h2 class="t-sect">7 天冷卻期與價格波動</h2>
             </div>
-            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
-                <p style="margin:0">
+            <div class="t-body c-ink2 flow-md" style="display:flex;flex-direction:column;gap:12px">
+                <p class="flow-0">
                     你看到的是今天的價格，你賣的是 7 天後的價格。網站上所有的數字都是目前的快照，不是你最後會拿到的金額。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     這 7 天裡價格會動。CS2 改版、大型賽事、Steam 特價、其他人同時大量拋售，都可能讓箱子跌價。也可能漲，但你不能假設它會漲。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     冷卻期間你不能取消、不能提前賣、不能轉移。買下去就是 7 天。
                 </p>
             </div>
         </section>
 
         <!-- ③ -->
-        <section class="card" style="margin-top:16px">
+        <section class="card flow-md">
             <div style="display:flex;align-items:baseline;gap:12px">
-                <span class="t-note num" style="color:var(--ink3)">03</span>
+                <span class="card-idx num">03</span>
                 <h2 class="t-sect">成交不保證</h2>
             </div>
-            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
-                <p style="margin:0">
+            <div class="t-body c-ink2 flow-md" style="display:flex;flex-direction:column;gap:12px">
+                <p class="flow-0">
                     Steam 社群市場是掛單制。你掛上去只是排隊等買家，不是按一下就換成錢。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     熱門箱子通常幾分鐘內成交。冷門品項可能掛好幾天沒人買，這段時間你的錢會被鎖得更久。想快點賣掉就要降價，降價就會吃掉一部分折扣。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     所以清單裡會優先給你成交量大的品項，但庫存有限的時候，還是可能配到比較冷門的箱子。
                 </p>
             </div>
         </section>
 
         <!-- ④ -->
-        <section class="card" style="margin-top:16px">
+        <section class="card flow-md">
             <div style="display:flex;align-items:baseline;gap:12px">
-                <span class="t-note num" style="color:var(--ink3)">04</span>
+                <span class="card-idx num">04</span>
                 <h2 class="t-sect">僅供個人消費</h2>
             </div>
-            <div class="t-body" style="color:var(--ink2);margin:16px 0 0;display:flex;flex-direction:column;gap:12px">
-                <p style="margin:0">
+            <div class="t-body c-ink2 flow-md" style="display:flex;flex-direction:column;gap:12px">
+                <p class="flow-0">
                     這個方式是給你自己買遊戲用的。不得用於商業行為，包含代儲、轉售餘額、批量操作。
                 </p>
-                <p style="margin:0">
+                <p class="flow-0">
                     這類行為可能違反 Steam 或 CSFloat 的服務條款，後果包含帳號被限制或永久停權，而且你放在裡面的餘額和物品會一起消失。這個網站不會、也沒有能力替你處理任何帳號問題。
                 </p>
             </div>
         </section>
 
         <!-- 我們的位置 -->
-        <section class="card" style="margin-top:32px">
+        <section class="card flow-xl">
             <h2 class="t-sub">這個網站在這件事裡的位置</h2>
-            <ul class="t-body" style="color:var(--ink2);margin:12px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+            <ul class="t-body c-ink2 flow-sm" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
                 <li>我們只做價格整理與試算，不代你下單、不碰你的帳號、不經手任何金流。</li>
                 <li>所有操作都是你自己在 CSFloat 和 Steam 上完成的，決定權和後果都在你身上。</li>
                 <li>資料有更新頻率，可能與你下單當下的真實報價有落差。每個數字旁邊都標了抓取時間，下單前請自己核對一次。</li>
                 <li>我們不收費、不抽成，也因此不對你的交易結果負責。</li>
             </ul>
-            <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
+            <p class="t-aux c-ink3 flow-md">
                 想看資料怎麼來的、公式怎麼算的，都在 <a href="transparency.html">資料透明</a>。
             </p>
         </section>
 
-        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:32px">
-            <a href="eligibility.html" class="btn btn-secondary" style="text-decoration:none">先做 30 秒資格快檢</a>
-            <a href="calculator.html" class="btn btn-text" style="text-decoration:none">去試算</a>
+        <div class="flow-xl" style="display:flex;flex-wrap:wrap;gap:12px">
+            <a href="eligibility.html" class="btn btn-secondary">先做 30 秒資格快檢</a>
+            <a href="calculator.html" class="btn btn-text">去試算</a>
         </div>
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
-    <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
-
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
-        function loadNav(pageID) {
-            fetch("nav.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    const high_light = doc.getElementById(`nav-${pageID}`);
-                    if (high_light) {
-                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                    }
-                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
-                });
-        }
-        function loadFooter() {
-            fetch("footer.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
-                });
-        }
-        loadNav("risks");
-        loadFooter();
-    </script>
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
 </body>
 </html>

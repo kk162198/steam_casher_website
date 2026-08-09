@@ -5,250 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="把試算結果變成可勾選的購買清單，邊買邊打勾，進度自動保存在你的瀏覽器裡。">
     <title>購物清單｜Steam 加值幫手</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/checklist.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/checklist.html">
+    <meta property="og:title" content="購物清單｜Steam 加值幫手">
+    <meta property="og:description" content="把試算結果變成可勾選的購買清單，邊買邊打勾，進度自動保存在你的瀏覽器裡。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="購物清單｜Steam 加值幫手">
+    <meta name="twitter:description" content="把試算結果變成可勾選的購買清單，邊買邊打勾，進度自動保存在你的瀏覽器裡。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
     <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
-
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-
-        .buy-btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-height: 44px; padding: 8px 14px; border-radius: 8px;
-            border: 1px solid #1e293b; background: transparent; color: #64748b;
-            font-size: 14px; font-weight: 700; font-family: inherit;
-            white-space: nowrap; cursor: not-allowed;
-        }
+/* 本頁專屬樣式（共用設計系統在 assets/style.css）*/
     </style>
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="calculator">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px">
 
         <header style="padding-top:48px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
             <div>
                 <h1 class="t-page">購物清單</h1>
-                <p class="t-aux" style="color:var(--ink2);margin:8px 0 0;max-width:52ch">
+                <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
                     照這份清單到 CSFloat 一項一項買，買到就打勾。進度存在你的瀏覽器裡，關掉再回來還在。
                 </p>
             </div>
-            <a href="calculator.html" class="btn btn-secondary btn-sm" style="text-decoration:none">重新試算</a>
+            <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
         </header>
 
         <!-- 進度 -->
-        <section style="margin-top:24px">
+        <section class="flow-lg">
             <div class="card">
                 <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end">
                     <div class="stat">
                         <div class="stat-label">買到的品項</div>
-                        <div id="cl-progress" class="stat-value" style="font-size:28px">--</div>
+                        <div id="cl-progress" class="stat-value stat-value-md">--</div>
                         <div id="cl-progress-note" class="stat-note">還沒有清單</div>
                     </div>
                     <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除全部勾選</button>
                 </div>
-                <div style="height:8px;border-radius:999px;background:var(--line);margin-top:16px;overflow:hidden">
+                <div class="flow-md" style="height:8px;border-radius:999px;background:var(--line);overflow:hidden">
                     <div id="cl-bar" style="width:0%;height:8px;border-radius:999px;background:var(--pos);transition:width .2s"></div>
                 </div>
             </div>
         </section>
 
         <!-- 清單 -->
-        <section style="margin-top:16px">
-            <div class="card" style="padding:0;overflow:hidden">
+        <section class="flow-md">
+            <div class="card card-flush">
                 <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between">
                     <div>
                         <div class="t-sub">要買的品項</div>
-                        <div id="cl-source" class="spec" style="color:var(--ink3)">讀取中...</div>
+                        <div id="cl-source" class="spec c-ink3">讀取中...</div>
                     </div>
                     <span id="cl-chip" class="ts-chip" data-source="csfloat"></span>
                 </div>
@@ -261,11 +78,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                                 <th scope="col">單價</th>
                                 <th scope="col">小計</th>
                                 <th scope="col">已買到</th>
-                                <th scope="col">前往購買</th>
+                                <th scope="col">前往交易</th>
                             </tr>
                         </thead>
                         <tbody id="cl-body">
-                            <tr><td colspan="6" style="padding:32px 0;text-align:center;color:var(--ink3)">讀取中...</td></tr>
+                            <tr><td class="c-ink3" colspan="6" style="padding:32px 0;text-align:center">讀取中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -273,7 +90,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         </section>
 
         <!-- 風險提示條 -->
-        <section style="margin-top:24px">
+        <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                 <span>下單前請自己核對 CSFloat 上的當下報價。買到的箱子要等 7 天才能賣，Steam 餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
@@ -284,73 +101,25 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <section class="sec">
             <div class="card">
                 <h2 class="t-sect">全部買完之後</h2>
-                <ol class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
+                <ol class="t-body c-ink2 flow-md" style="padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
                     <li>箱子會進到你的 Steam 庫存，滑鼠移上去會顯示 7 天後的可交易日期。</li>
                     <li>到期後在 Steam 社群市場逐一上架，價格參考當下的最低掛牌價。</li>
                     <li>成交後扣掉 Steam 手續費，餘額直接進錢包。</li>
                 </ol>
-                <a href="help.html" class="btn btn-text btn-sm" style="text-decoration:none;margin-top:16px">看完整操作指南</a>
+                <a href="help.html" class="btn btn-text btn-sm flow-md">看完整操作指南</a>
             </div>
         </section>
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
     <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
-
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
         /* 清單來源：試算頁在每次試算後把組合寫進 localStorage（key 如下）。
-           也支援用網址參數覆寫，方便分享：?items=名稱:數量:單價,名稱:數量:單價 */
+           也支援用網址參數覆寫，方便分享：?items=名稱:數量:單價:CSFloat_ID,...
+           第四段的 CSFloat_ID 可省略（舊網址相容），省略時該列只會有 Steam 連結。 */
         const COMBO_STORAGE_KEY = 'sah-combo-v1';
         const CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
 
@@ -368,8 +137,13 @@ setInterval(function () { renderTimestamps(); }, 60000);
             const raw = params.get('items');
             if (raw) {
                 items = raw.split(',').map(part => {
-                    const [name, qty, unit] = part.split(':');
-                    return { name: name || '未命名', qty: Number(qty) || 0, unitCostTwd: Number(unit) || 0 };
+                    const [name, qty, unit, defIndex] = part.split(':');
+                    return {
+                        name: name || '未命名',
+                        qty: Number(qty) || 0,
+                        unitCostTwd: Number(unit) || 0,
+                        defIndex: (defIndex !== undefined && defIndex !== '') ? defIndex : null
+                    };
                 }).filter(i => i.qty > 0);
                 document.getElementById('cl-source').textContent = '這份清單來自網址參數';
                 return;
@@ -398,7 +172,7 @@ setInterval(function () { renderTimestamps(); }, 60000);
             const subtotal = item.unitCostTwd * item.qty;
             return `
                 <td class="rt-key" data-label="品項">${escapeHtml(item.name)}</td>
-                <td data-label="數量" style="color:var(--brand);font-weight:700">${item.qty} 個</td>
+                <td class="c-brand" data-label="數量" style="font-weight:700">${item.qty} 個</td>
                 <td data-label="單價">NT$ ${item.unitCostTwd.toFixed(0)}</td>
                 <td data-label="小計">NT$ ${subtotal.toFixed(0)}</td>
                 <td data-label="已買到">
@@ -406,9 +180,7 @@ setInterval(function () { renderTimestamps(); }, 60000);
                         <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(item.name)} 已買到"${isChecked ? ' checked' : ''}>
                     </label>
                 </td>
-                <td data-label="前往購買">
-                    <button type="button" class="buy-btn" disabled title="這個功能還沒開發完成">即將推出</button>
-                </td>`;
+                <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
         }
 
         function updateProgress() {
@@ -439,12 +211,12 @@ setInterval(function () { renderTimestamps(); }, 60000);
                         <rect x="16" y="30" width="18" height="4" rx="2" fill="#1e293b"/>
                         <rect x="16" y="38" width="30" height="4" rx="2" fill="#1e293b"/>
                     </svg>
-                    <div class="t-sub" style="margin-top:12px">還沒有清單</div>
-                    <p class="t-aux" style="color:var(--ink2);margin:8px auto 0;max-width:40ch">
+                    <div class="t-sub flow-sm">還沒有清單</div>
+                    <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:40ch">
                         先到試算頁輸入你想花的金額，算出購買組合之後，這裡就會出現可以邊買邊勾的清單。
                     </p>
-                    <div style="margin-top:16px">
-                        <a href="calculator.html" class="btn btn-primary btn-sm" style="text-decoration:none">去試算</a>
+                    <div class="flow-md">
+                        <a href="calculator.html" class="btn btn-primary btn-sm">去試算</a>
                     </div>
                 </td></tr>`;
             document.getElementById('cl-source').textContent = '尚未產生清單';
@@ -488,33 +260,10 @@ setInterval(function () { renderTimestamps(); }, 60000);
             render();
         });
 
-        function loadNav(pageID) {
-            fetch("nav.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    const high_light = doc.getElementById(`nav-${pageID}`);
-                    if (high_light) {
-                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                    }
-                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
-                });
-        }
-        function loadFooter() {
-            fetch("footer.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
-                });
-        }
-
-        loadNav("calculator");
-        loadFooter();
         readCombo();
         readChecked();
         render();
+    
     </script>
 </body>
 </html>

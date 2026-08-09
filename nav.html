@@ -27,6 +27,21 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
 #data-status[data-state="stale"] .ds-dot{display:none}
 #data-status[data-state="stale"] .ds-icon{display:block}
 
+/* 品牌名走設計系統的 .t-sub（18 / 17px），只補回 logo 該有的字重。
+   不可斷行：390px 寬時會被擠成「Steam 加值幫／手」。 */
+#nav .brand{flex:none}
+#nav .brand-name{white-space:nowrap;font-weight:700}
+#nav-mobile .m-brand{font-weight:700}
+@media (max-width:400px){
+  #data-status{padding:0 10px;gap:5px}
+}
+/* 320px（iPhone SE 一代、摺疊機外螢幕）排不下品牌名＋狀態膠囊＋漢堡鈕。
+   膠囊只留指示點：顏色仍代表資料新舊，點下去一樣進 transparency.html。 */
+@media (max-width:379px){
+  #data-status{padding:0;width:44px;justify-content:center;border-color:transparent}
+  #data-status .ds-text{display:none}
+}
+
 #nav-mobile{display:none}
 #nav-mobile.is-open{display:flex}
 #nav-mobile .m-link{display:flex;align-items:center;min-height:52px;font-size:20px;font-weight:700;
@@ -39,8 +54,8 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
 <div class="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 md:px-8" style="min-height:64px">
 
   <div class="flex items-center gap-8">
-    <a href="index.html" class="flex flex-col justify-center py-2" style="text-decoration:none">
-      <span class="text-lg md:text-xl font-bold tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
+    <a href="index.html" class="brand flex flex-col justify-center py-2">
+      <span class="brand-name t-sub tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
       <span class="text-xs" style="color:#64748b">by KK162198</span>
     </a>
 
@@ -71,7 +86,7 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
 <!-- 手機版全螢幕選單 -->
 <div id="nav-mobile" class="md:hidden fixed inset-0 z-50 flex-col" style="background:#020617">
   <div class="flex items-center justify-between gap-4 px-5" style="min-height:64px;border-bottom:1px solid #1e293b">
-    <span class="text-lg font-bold tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
+    <span class="m-brand t-sub tracking-wide" style="color:#22d3ee">Steam 加值幫手</span>
     <button type="button" class="flex items-center justify-center rounded-md"
       style="width:44px;height:44px;color:#f1f5f9;background:transparent;border:0;cursor:pointer"
       aria-label="關閉選單"

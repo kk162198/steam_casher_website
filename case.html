@@ -5,214 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" id="meta-description" content="查看這款 CS2 武器箱目前的 CSFloat 買價、Steam 售價與扣除兩邊手續費後的實拿倍率，每個數字都標示資料抓取時間。">
     <title>武器箱詳情｜Steam 加值幫手</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/case.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/case.html">
+    <meta property="og:title" content="武器箱詳情｜Steam 加值幫手">
+    <meta property="og:description" content="查看這款 CS2 武器箱目前的 CSFloat 買價、Steam 售價與扣除兩邊手續費後的實拿倍率，每個數字都標示資料抓取時間。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="武器箱詳情｜Steam 加值幫手">
+    <meta name="twitter:description" content="查看這款 CS2 武器箱目前的 CSFloat 買價、Steam 售價與扣除兩邊手續費後的實拿倍率，每個數字都標示資料抓取時間。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="application/ld+json" id="ld-json">
     {"@context":"https://schema.org","@type":"Product","name":"CS2 武器箱","category":"CS2 武器箱"}
     </script>
-    <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
-
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-    </style>
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="marketlist">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px">
 
         <nav aria-label="麵包屑" style="padding-top:32px">
-            <ol class="t-aux" style="display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0;color:var(--ink3)">
+            <ol class="t-aux flow-0 c-ink3" style="display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0">
                 <li><a href="index.html">首頁</a></li>
                 <li aria-hidden="true">／</li>
                 <li><a href="marketlist.html">市場列表</a></li>
@@ -221,85 +43,103 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             </ol>
         </nav>
 
-        <header style="margin-top:24px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+        <header class="flow-lg" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
             <div style="flex:none;width:120px;height:90px;border-radius:8px;border:1px solid var(--line);background:#0b1424;
                         display:flex;align-items:center;justify-content:center;text-align:center;padding:8px">
-                <span class="t-note" style="color:var(--ink3);font-family:ui-monospace,Menlo,monospace">武器箱圖片<br>待接入</span>
+                <span class="t-note c-ink3" style="font-family:ui-monospace,Menlo,monospace">武器箱圖片<br>待接入</span>
             </div>
             <div style="flex:1;min-width:260px">
                 <h1 id="case-name" class="t-page">載入中</h1>
-                <p id="case-verdict" class="t-aux" style="color:var(--ink2);margin:8px 0 0">正在讀取這個品項目前的價格。</p>
+                <p id="case-verdict" class="t-aux c-ink2 flow-xs">正在讀取這個品項目前的價格。</p>
             </div>
         </header>
 
         <!-- 四個數字 -->
-        <section style="margin-top:24px">
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <div class="card stat" style="padding:16px">
+        <section class="flow-lg">
+            <div class="stat-grid grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div class="card card-compact stat">
                     <div class="stat-label">實拿倍率</div>
-                    <div id="case-ratio" class="stat-value" style="font-size:26px">--</div>
+                    <div id="case-ratio" class="stat-value stat-value-md">--</div>
                     <div class="stat-note">花 1 元換到多少 Steam 餘額。</div>
-                    <div style="margin-top:8px"><span id="chip-ratio" class="ts-chip" data-source="csfloat"></span></div>
+                    <div class="flow-xs"><span id="chip-ratio" class="ts-chip" data-source="csfloat"></span></div>
                 </div>
-                <div class="card stat" style="padding:16px">
+                <div class="card card-compact stat">
                     <div class="stat-label">稅後淨利</div>
-                    <div id="case-profit" class="stat-value" style="font-size:26px">--</div>
-                    <div class="stat-note">賣掉一個實際多拿多少，已扣 Steam 15%。</div>
-                    <div style="margin-top:8px"><span id="chip-profit" class="ts-chip" data-source="steam"></span></div>
+                    <div id="case-profit" class="stat-value stat-value-md">--</div>
+                    <div class="stat-note">你實拿 − CSFloat 買價，已扣兩邊手續費。</div>
+                    <div class="flow-xs"><span id="chip-profit" class="ts-chip" data-source="steam"></span></div>
                 </div>
-                <div class="card stat" style="padding:16px">
+                <div class="card card-compact stat">
                     <div class="stat-label">CSFloat 買價</div>
-                    <div id="case-cost" class="stat-value" style="font-size:26px">--</div>
+                    <div id="case-cost" class="stat-value stat-value-md">--</div>
                     <div class="stat-note">你買一個要付多少，含買方手續費。</div>
-                    <div style="margin-top:8px"><span id="chip-cost" class="ts-chip" data-source="csfloat"></span></div>
+                    <div class="flow-xs"><span id="chip-cost" class="ts-chip" data-source="csfloat"></span></div>
                 </div>
-                <div class="card stat" style="padding:16px">
-                    <div class="stat-label">Steam 賣價</div>
-                    <div id="case-steam" class="stat-value" style="font-size:26px">--</div>
-                    <div class="stat-note">目前市場最低掛牌價，買家付的錢。</div>
-                    <div style="margin-top:8px"><span id="chip-steam" class="ts-chip" data-source="steam"></span></div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">Steam 賣價（買家付）</div>
+                    <div id="case-steam" class="stat-value stat-value-md">--</div>
+                    <div class="stat-note">目前市場最低掛牌價。你實拿 <span id="case-income" class="num c-ink">--</span>（＝賣價 ÷ 1.15）。</div>
+                    <div class="flow-xs"><span id="chip-steam" class="ts-chip" data-source="steam"></span></div>
                 </div>
             </div>
         </section>
 
         <!-- 庫存深度 -->
-        <section style="margin-top:16px">
+        <section class="flow-md">
             <div class="card">
                 <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
                     <div>
                         <h2 class="t-sub">庫存深度</h2>
-                        <p class="t-aux" style="color:var(--ink2);margin:8px 0 0;max-width:52ch">
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
                             CSFloat 上目前掛在最低價位的數量。買超過這個數量，後面幾件的成本會往上跳，倍率就沒有上面顯示的那麼好。
                         </p>
                     </div>
                     <div style="text-align:right">
-                        <div id="case-inventory" class="stat-value num" style="font-size:32px">--</div>
-                        <div class="t-note" style="color:var(--ink3)">件可買</div>
+                        <div id="case-inventory" class="stat-value num">--</div>
+                        <div class="t-note c-ink3">件可買</div>
                     </div>
                 </div>
-                <div id="case-inventory-bar-wrap" style="height:8px;border-radius:999px;background:var(--line);margin-top:16px;overflow:hidden">
+                <div class="flow-md" id="case-inventory-bar-wrap" style="height:8px;border-radius:999px;background:var(--line);overflow:hidden">
                     <div id="case-inventory-bar" style="width:0%;height:8px;border-radius:999px;background:var(--brand);transition:width .3s"></div>
                 </div>
-                <p id="case-inventory-note" class="t-note" style="color:var(--ink3);margin:8px 0 0"></p>
+                <p id="case-inventory-note" class="t-note c-ink3 flow-xs"></p>
+            </div>
+        </section>
+
+        <!-- 前往交易（買在 CSFloat、賣在 Steam）-->
+        <section class="flow-md">
+            <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+                <div>
+                    <h2 class="t-sub">前往交易</h2>
+                    <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
+                        CSFloat 連結已依最低買價排序，第一筆就是上面報價的那一筆。Steam 連結是這款箱子的市場頁，7 天冷卻期過後在那裡賣出。
+                    </p>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px">
+                    <a id="buy-link" class="btn btn-primary" style="opacity:.4;pointer-events:none" aria-disabled="true"
+                       target="_blank" rel="noopener noreferrer">到 CSFloat 買</a>
+                    <a id="sell-link" class="btn btn-secondary" style="opacity:.4;pointer-events:none" aria-disabled="true"
+                       target="_blank" rel="noopener noreferrer">到 Steam 市場</a>
+                </div>
             </div>
         </section>
 
         <!-- 兩個空狀態 -->
-        <section style="margin-top:16px">
+        <section class="flow-md">
             <div class="grid gap-3 md:grid-cols-2">
                 <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
-                    <h2 class="t-sub" style="align-self:flex-start;margin:0">歷史走勢</h2>
+                    <h2 class="t-sub flow-0" style="align-self:flex-start">歷史走勢</h2>
                     <svg width="88" height="56" viewBox="0 0 88 56" fill="none" aria-hidden="true" style="margin-top:8px">
                         <path d="M4 52h80" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
                         <path d="M4 52V4" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
                         <path d="M12 40l16-8 16 10 16-18 16 6" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
                     </svg>
-                    <p class="t-aux" style="color:var(--ink2);margin:0">
+                    <p class="t-aux c-ink2 flow-0">
                         資料累積中，預計 9 月起提供。屆時這裡會顯示過去 30 天的價格與倍率變化。
                     </p>
                 </div>
                 <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
-                    <h2 class="t-sub" style="align-self:flex-start;margin:0">倍率百分位</h2>
+                    <h2 class="t-sub flow-0" style="align-self:flex-start">倍率百分位</h2>
                     <svg width="88" height="56" viewBox="0 0 88 56" fill="none" aria-hidden="true" style="margin-top:8px">
                         <rect x="8" y="34" width="12" height="14" rx="2" fill="#1e293b"/>
                         <rect x="24" y="24" width="12" height="24" rx="2" fill="#1e293b"/>
@@ -307,7 +147,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
                         <rect x="56" y="26" width="12" height="22" rx="2" fill="#1e293b"/>
                         <rect x="72" y="38" width="8" height="10" rx="2" fill="#1e293b"/>
                     </svg>
-                    <p class="t-aux" style="color:var(--ink2);margin:0">
+                    <p class="t-aux c-ink2 flow-0">
                         資料累積中，預計 9 月起提供。屆時會告訴你目前的倍率在過去 30 天裡算高還是算低。
                     </p>
                 </div>
@@ -315,7 +155,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         </section>
 
         <!-- 風險 -->
-        <section style="margin-top:24px">
+        <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                 <span>上面是目前的價格快照。你買進的箱子要等 7 天才能賣，實際成交價依當時市場狀況。<a href="risks.html">看完整風險說明</a></span>
@@ -327,71 +167,22 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">算算看這個品項能幫你省多少</h2>
-                    <p class="t-aux" style="color:var(--ink2);margin:8px 0 0">試算頁會依你的目標金額，把這個品項和其他品項組成一份購買清單。</p>
+                    <p class="t-aux c-ink2 flow-xs">試算頁會依你的目標金額，把這個品項和其他品項組成一份購買清單。</p>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:12px">
-                    <a href="calculator.html" class="btn btn-primary" style="text-decoration:none">加入試算</a>
-                    <a href="marketlist.html" class="btn btn-text" style="text-decoration:none">回市場列表</a>
+                    <a href="calculator.html" class="btn btn-primary">加入試算</a>
+                    <a href="marketlist.html" class="btn btn-text">回市場列表</a>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
     <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
-
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
         const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
         const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
         const CLIENT = supabase.createClient(supabaseUrl, supabaseKey);
@@ -412,6 +203,20 @@ setInterval(function () { renderTimestamps(); }, 60000);
                 : `${safe} 的 CSFloat 買價、Steam 賣價與扣除兩邊手續費後的實拿倍率，每個數字都標示資料抓取時間。`;
             document.getElementById('meta-description').setAttribute('content', desc);
             document.getElementById('crumb-name').textContent = safe;
+
+            // canonical 與社群卡片也跟著品項走（單品頁的網址帶 ?name=）
+            const url = 'https://kk162198.github.io/steam_casher_website/case.html'
+                      + (name ? '?name=' + encodeURIComponent(name) : '');
+            const setMeta = (sel, val) => {
+                const el = document.querySelector(sel);
+                if (el) el.setAttribute(el.hasAttribute('href') ? 'href' : 'content', val);
+            };
+            setMeta('link[rel="canonical"]', url);
+            setMeta('meta[property="og:url"]', url);
+            setMeta('meta[property="og:title"]', document.title);
+            setMeta('meta[property="og:description"]', desc);
+            setMeta('meta[name="twitter:title"]', document.title);
+            setMeta('meta[name="twitter:description"]', desc);
             const ld = {
                 "@context": "https://schema.org",
                 "@type": "Product",
@@ -422,14 +227,41 @@ setInterval(function () { renderTimestamps(); }, 60000);
             document.getElementById('ld-json').textContent = JSON.stringify(ld);
         }
 
+        // 交易連結：資料讀到才給 href。沒有 CSFloat_ID 就維持停用，
+        // 不要硬給一個會導到不相干商品的網址（site.js 的 csfloatBuyUrl 會回 null）。
+        function applyTradeLinks(item) {
+            const pairs = [
+                ['buy-link',  csfloatBuyUrl(item && item.CSFloat_ID), '資料庫還沒有這個品項的 CSFloat ID'],
+                ['sell-link', steamMarketUrl(item && item.name),      '沒有品項名稱，組不出 Steam 市場頁網址']
+            ];
+            pairs.forEach(function (pair) {
+                const el = document.getElementById(pair[0]);
+                if (!el) return;
+                if (pair[1]) {
+                    el.href = pair[1];
+                    el.removeAttribute('aria-disabled');
+                    el.style.opacity = '';
+                    el.style.pointerEvents = '';
+                    el.title = '另開新分頁';
+                } else {
+                    el.removeAttribute('href');
+                    el.setAttribute('aria-disabled', 'true');
+                    el.style.opacity = '.4';
+                    el.style.pointerEvents = 'none';
+                    el.title = pair[2];
+                }
+            });
+        }
+
         function showNotFound(message) {
             document.getElementById('case-name').textContent = caseName || '找不到這個品項';
             document.getElementById('case-verdict').innerHTML =
-                `<span style="color:var(--neg)">${escapeHtml(message)}</span>`;
-            ['case-ratio', 'case-profit', 'case-cost', 'case-steam', 'case-inventory'].forEach(id => {
+                `<span class="c-neg">${escapeHtml(message)}</span>`;
+            ['case-ratio', 'case-profit', 'case-cost', 'case-steam', 'case-income', 'case-inventory'].forEach(id => {
                 document.getElementById(id).textContent = '--';
             });
             document.querySelectorAll('.ts-chip').forEach(c => { c.style.display = 'none'; });
+            applyTradeLinks(null);
         }
 
         async function loadCase() {
@@ -462,12 +294,15 @@ setInterval(function () { renderTimestamps(); }, 60000);
                 const item = data[0];
                 const ratio = Number(item.ratio) || 0;
                 const steamPrice = Number(item.steam_price || 0) * rate;
-                const csfloatCost = Number(item.csfloat_price || 0) * rate;
+                // 💡 csfloat_cost 才是含買方手續費的實付成本（csfloat_price 是未含手續費的掛牌價）
+                const csfloatCost = Number(item.csfloat_cost || 0) * rate;
+                const steamIncome = Number(item.steam_income || 0) * rate;
                 const netProfit = Number(item.diff || 0) * rate;
                 const inventory = Number(item.csfloat_inventory || 0);
 
                 document.getElementById('case-name').textContent = item.name;
                 applySeo(item.name, ratio);
+                applyTradeLinks(item);
 
                 const ratioEl = document.getElementById('case-ratio');
                 ratioEl.textContent = ratio.toFixed(2);
@@ -479,9 +314,12 @@ setInterval(function () { renderTimestamps(); }, 60000);
 
                 document.getElementById('case-cost').textContent = `NT$ ${csfloatCost.toFixed(0)}`;
                 document.getElementById('case-steam').textContent = `NT$ ${steamPrice.toFixed(0)}`;
+                document.getElementById('case-income').textContent = `NT$ ${steamIncome.toFixed(0)}`;
                 document.getElementById('case-inventory').textContent = inventory || '--';
 
-                const pct = Math.max(4, Math.min(100, (inventory / 50) * 100));
+                // 庫存深度條：以本站抓取上限（單一價位 250 件）為滿格參考，僅作視覺提示
+                const INVENTORY_FULL = 250;
+                const pct = Math.max(4, Math.min(100, (inventory / INVENTORY_FULL) * 100));
                 document.getElementById('case-inventory-bar').style.width = pct + '%';
                 document.getElementById('case-inventory-note').textContent = inventory >= 30
                     ? '庫存充足，一次買齊通常沒問題。'
@@ -501,6 +339,7 @@ setInterval(function () { renderTimestamps(); }, 60000);
                             document.getElementById('chip-cost').setAttribute('data-updated', csAt); }
                 if (steamAt) { document.getElementById('chip-profit').setAttribute('data-updated', steamAt);
                                document.getElementById('chip-steam').setAttribute('data-updated', steamAt); }
+                setNavStatusFromTime(csAt || steamAt, csAt ? 'csfloat' : 'steam');
                 renderTimestamps(document);
 
             } catch (error) {
@@ -509,31 +348,8 @@ setInterval(function () { renderTimestamps(); }, 60000);
             }
         }
 
-        function loadNav(pageID) {
-            fetch("nav.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    const high_light = doc.getElementById(`nav-${pageID}`);
-                    if (high_light) {
-                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                    }
-                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
-                });
-        }
-        function loadFooter() {
-            fetch("footer.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
-                });
-        }
-
-        loadNav("marketlist");
-        loadFooter();
         loadCase();
+    
     </script>
 </body>
 </html>

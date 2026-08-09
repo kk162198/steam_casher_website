@@ -5,202 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Steam 加值幫手的更新日誌：新功能、資料變更與問題修正，依時間排序。">
     <title>更新日誌｜Steam 加值幫手</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/news.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/news.html">
+    <meta property="og:title" content="更新日誌｜Steam 加值幫手">
+    <meta property="og:description" content="Steam 加值幫手的更新日誌：新功能、資料變更與問題修正，依時間排序。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="更新日誌｜Steam 加值幫手">
+    <meta name="twitter:description" content="Steam 加值幫手的更新日誌：新功能、資料變更與問題修正，依時間排序。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
     <style>
-:root{
-  --base:#020617; --card:#0f172a; --line:#1e293b;
-  --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
-  --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
-}
-html{ -webkit-text-size-adjust:100%; }
-body{
-  margin:0; background:var(--base); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
-  font-size:16px; line-height:1.75;
-}
-
-/* ── 清單標記（Tailwind CDN 的 preflight 會把 list-style 清成 none，這裡補回來）── */
-.card ul,main ul,.card ol,main ol{list-style:revert}
-.card ul{list-style-type:disc}
-.card ol{list-style-type:decimal}
-.card li,main li{list-style:inherit}
-
-/* ── 字級 ───────────────────────────────── */
-.t-hero{font-size:32px;line-height:1.4;font-weight:700}
-.t-page{font-size:26px;line-height:1.4;font-weight:700}
-.t-sect{font-size:20px;line-height:1.4;font-weight:700}
-.t-sub {font-size:17px;line-height:1.4;font-weight:600}
-.t-body{font-size:16px;line-height:1.75}
-.t-aux {font-size:14px;line-height:1.75}
-.t-note{font-size:12px;line-height:1.75}
-@media (min-width:768px){
-  .t-hero{font-size:48px}
-  .t-page{font-size:32px}
-  .t-sect{font-size:24px}
-  .t-sub {font-size:18px}
-}
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-
-/* ── 版面 ───────────────────────────────── */
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-@media (min-width:768px){ .wrap{padding:0 32px} }
-.sec{padding-top:56px}
-@media (min-width:768px){ .sec{padding-top:96px} }
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
-@media (min-width:768px){ .card{padding:32px} }
-.hr{height:1px;background:var(--line);border:0;margin:0}
-
-/* ── focus ─────────────────────────────── */
-a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
-  outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;
-}
-a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-
-/* ── 1. 資料時間戳章 ────────────────────── */
-.ts-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 8px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(30,41,59,.35);
-  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;
-}
-.ts-chip .ts-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
-.ts-chip[data-state="aging"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
-.ts-chip[data-state="aging"] .ts-dot{background:var(--warn)}
-.ts-chip[data-state="stale"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
-.ts-chip[data-state="stale"] .ts-dot{display:none}
-.ts-chip svg{flex:none}
-.ts-chip .ts-src{color:inherit;opacity:.85}
-
-/* ── 2. 划算度徽章 ──────────────────────── */
-.badge{
-  display:inline-flex;align-items:center;gap:6px;flex:none;
-  padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
-  border:1px solid transparent;
-}
-.badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
-.badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
-.badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}
-
-/* ── 3. 風險提示條 ──────────────────────── */
-.risk-bar{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:12px 16px;background:rgba(251,191,36,.06);
-  border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
-  font-size:14px;line-height:1.75;color:var(--ink);
-}
-.risk-bar svg{color:var(--warn);margin-top:5px}
-.risk-bar a{white-space:nowrap}
-
-/* ── 4. 數據卡 ─────────────────────────── */
-.stat{display:flex;flex-direction:column;gap:6px}
-.stat-label{font-size:14px;color:var(--ink2)}
-.stat-value{font-size:32px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
-@media (min-width:768px){ .stat-value{font-size:40px} }
-.stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
-
-/* ── 5. 響應式資料表 ────────────────────── */
-.rt{
-  width:100%;border-collapse:collapse;text-align:left;
-  --rt-thead:table-header-group; --rt-tbody:table-row-group;
-  --rt-tr:table-row;   --rt-td:table-cell;  --rt-label:none;
-  --rt-tr-pad:0;       --rt-tr-bg:transparent;
-  --rt-tr-border:0;    --rt-tr-radius:0;    --rt-tr-mb:0;
-  --rt-td-pad:14px 16px; --rt-td-bb:1px solid var(--line);
-  --rt-key-size:16px;
-}
-.rt thead{display:var(--rt-thead)}
-.rt tbody{display:var(--rt-tbody)}
-.rt th{
-  padding:12px 16px;font-size:12px;font-weight:600;color:var(--ink2);
-  border-bottom:1px solid var(--line);white-space:nowrap;
-}
-.rt tbody tr{
-  display:var(--rt-tr);padding:var(--rt-tr-pad);background:var(--rt-tr-bg);
-  border:var(--rt-tr-border);border-radius:var(--rt-tr-radius);margin-bottom:var(--rt-tr-mb);
-}
-.rt tbody td{
-  display:var(--rt-td);padding:var(--rt-td-pad);border-bottom:var(--rt-td-bb);
-  font-size:14px;justify-content:space-between;align-items:baseline;gap:16px;
-  font-variant-numeric:tabular-nums;white-space:nowrap;
-}
-.rt tbody td::before{
-  display:var(--rt-label);content:attr(data-label);
-  color:var(--ink2);font-size:14px;white-space:nowrap;font-weight:400;
-}
-.rt td.rt-key{font-size:var(--rt-key-size);font-weight:600;color:var(--ink);font-variant-numeric:normal;white-space:normal}
-.rt tbody tr:hover{background:rgba(30,41,59,.28)}
-.rt-cards{ /* 手機／預覽用：改成卡片式堆疊 */
-  --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-  --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-  --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-  --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-}
-.rt-cards td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-.rt-cards td.rt-key::before{display:none}
-@media (max-width:767px){
-  .rt{
-    --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
-    --rt-tr-pad:16px; --rt-tr-bg:var(--card);
-    --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
-    --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
-  }
-  .rt td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
-  .rt td.rt-key::before{display:none}
-  .rt tbody tr:hover{background:var(--card)}
-}
-
-/* ── 6. 步驟 ───────────────────────────── */
-.step{display:flex;gap:16px}
-.step-no{
-  flex:none;width:36px;height:36px;border-radius:999px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.08);
-  color:var(--brand);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;
-}
-.step-check{
-  margin-top:12px;padding:12px 16px;border-radius:8px;
-  background:#0b1424;border:1px solid var(--line);
-}
-.step-check-title{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--brand);margin-bottom:4px;
-}
-
-/* ── 7. 狀態 ───────────────────────────── */
-.skel{background:var(--line);border-radius:4px;position:relative;overflow:hidden}
-.skel::after{
-  content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(148,163,184,.14),transparent);
-  animation:skel 1.4s infinite;
-}
-@keyframes skel{100%{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){ .skel::after{animation:none} }
-
-/* ── 8. 按鈕 ───────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  min-height:44px;padding:10px 20px;border-radius:8px;border:1px solid transparent;
-  font-size:16px;font-weight:700;line-height:1.4;cursor:pointer;
-  transition:background-color .15s,border-color .15s,color .15s;
-  font-family:inherit;
-}
-.btn-primary{background:var(--brand);color:#022c33}
-.btn-primary:hover{background:#67e8f9}
-.btn-primary:active{background:#06b6d4}
-.btn-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-secondary:hover{border-color:var(--ink3);background:rgba(30,41,59,.5)}
-.btn-secondary:active{background:rgba(30,41,59,.8)}
-.btn-text{background:transparent;color:var(--brand);padding:10px 8px}
-.btn-text:hover{background:rgba(34,211,238,.08)}
-.btn-text:active{background:rgba(34,211,238,.16)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:disabled:hover{background:var(--brand)}
-.btn-secondary:disabled:hover{background:transparent;border-color:var(--line)}
-.btn-text:disabled:hover{background:transparent}
-.btn-sm{min-height:44px;padding:8px 14px;font-size:14px}
-
+/* 本頁專屬樣式（共用設計系統在 assets/style.css）*/
         .tl { position: relative; padding-left: 28px; }
         .tl::before {
             content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px;
@@ -224,22 +48,35 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         .tag-feature { color: #22d3ee; background: rgba(34,211,238,.1); border-color: rgba(34,211,238,.35); }
         .tag-data { color: #34d399; background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.35); }
         .tag-fix { color: #fbbf24; background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.35); }
+
+        /* 篩選鈕：原本三個 tag 看起來像篩選器卻沒有功能，現在真的能篩 */
+        .tag-filter {
+            min-height: 32px; padding: 4px 12px; cursor: pointer;
+            font-family: inherit; opacity: .55; transition: opacity .15s, box-shadow .15s;
+        }
+        .tag-filter:hover { opacity: .85; }
+        .tag-filter[aria-pressed="true"] { opacity: 1; box-shadow: 0 0 0 1px currentColor inset; }
+        .tag-filter:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+        .tl-item[hidden] { display: none; }
+    
     </style>
 </head>
-<body>
-    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 w-100% z-50"></nav>
+<body data-page="news">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px;max-width:760px">
 
         <header style="padding-top:48px">
             <h1 class="t-page">更新日誌</h1>
-            <p class="t-body" style="color:var(--ink2);margin:12px 0 0;max-width:52ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:52ch">
                 這個網站改了什麼、資料源有什麼變動、修了哪些問題，都記在這裡。
             </p>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px">
-                <span class="tag tag-feature">新功能</span>
-                <span class="tag tag-data">資料</span>
-                <span class="tag tag-fix">修正</span>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:20px">
+                <span class="t-note c-ink3" style="margin-right:4px">篩選：</span>
+                <button type="button" class="tag tag-feature tag-filter" data-filter="feature" aria-pressed="true">新功能</button>
+                <button type="button" class="tag tag-data tag-filter" data-filter="data" aria-pressed="true">資料</button>
+                <button type="button" class="tag tag-fix tag-filter" data-filter="fix" aria-pressed="true">修正</button>
+                <span id="tl-count" class="t-note c-ink3" style="margin-left:4px"></span>
             </div>
         </header>
 
@@ -248,13 +85,74 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="feature">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
+                    <time class="t-note num c-ink3" datetime="2026-08-08">2026-08-08</time>
                     <span class="tag tag-feature">新功能</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">網站改版：手機可用、每個數字都標更新時間</h2>
-                <div class="t-body" style="color:var(--ink2);margin:8px 0 0">
-                    <p style="margin:0">整站重做了一輪，重點有三個：</p>
-                    <ul style="margin:8px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                <h2 class="t-sub flow-xs">「前往購買」上線：每個品項都能一鍵到 CSFloat 與 Steam</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        原本標示「即將推出」的按鈕已經是可以點的連結。市場列表、單品項頁、試算頁與購物清單頁，
+                        每一列都有<strong class="c-ink">「CSFloat 買」</strong>與<strong class="c-ink">「Steam 賣」</strong>兩個連結，一律另開分頁。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>CSFloat 連結已預先設定成「最低價、可立即購買」的排序，跟本站抓價時用的條件一致——你點進去看到的第一筆，就是這裡報價的那一筆。</li>
+                        <li>Steam 連結指向該款箱子的市場頁，7 天冷卻期過後可以直接在那裡掛賣。</li>
+                        <li>少數資料庫還沒填 CSFloat 編號的品項，購買連結會顯示成灰色不可點，不會導到不相干的商品。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        目前這些都是一般連結，沒有任何推薦碼或分潤參數。日後若加上，會在這裡與資料透明頁明確揭露。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="fix">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-03">2026-08-03</time>
+                    <span class="tag tag-fix">修正</span>
+                </div>
+                <h2 class="t-sub flow-xs">修正手續費算式：折扣從 22% 更正為 24%</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        資料透明頁公開的算式把 Steam 手續費寫成「賣價 × 0.85」，但 Steam 的 5% + 10% 是對<strong class="c-ink">賣家淨額</strong>計算，
+                        反推要用「賣價 ÷ 1.15」。這讓公開算式低估了實際折扣，也和首頁的示意圖對不起來。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>資料透明頁的算式與範例已全部更新（132／32／1.32／24%），現在跟後端程式碼算的是同一個答案。</li>
+                        <li>市場列表與單品項頁本來顯示的是 CSFloat 未含手續費的掛牌價，已改成含買方手續費的實付成本，並新增「你實拿」欄位，四個數字現在能完整對上。</li>
+                        <li>首頁的最佳倍率在資料還沒算完時可能顯示成 0%，已改成明確標示「資料計算中」。</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-03">2026-08-03</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">全站瘦身：首屏少載一個 100KB 的檔案</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        原本每個頁面都內嵌一份相同的樣式與程式碼，改成共用檔案後每頁少了約 12KB，
+                        並移除了開發用的 Tailwind CDN，首屏不會再閃版。導覽列的資料狀態點現在全站都會動。
+                    </p>
+                    <p class="flow-xs">
+                        更新日誌上方的三個標籤現在真的可以篩選了。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-07-31">2026-07-31</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">網站改版：手機可用、每個數字都標更新時間</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">整站重做了一輪，重點有三個：</p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
                         <li>市場列表以前在手機上會壞版，現在小螢幕會自動改成卡片式，不用左右捲。</li>
                         <li>每個價格旁邊都加了資料抓取時間，太舊會變黃、再舊會變紅。</li>
                         <li>新增資格快檢、風險與限制、資料透明、購物清單、單品項頁五個頁面。</li>
@@ -265,11 +163,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="feature">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
+                    <time class="t-note num c-ink3" datetime="2026-07-31">2026-07-31</time>
                     <span class="tag tag-feature">新功能</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算結果會先告訴你「這次值不值得做」</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                <h2 class="t-sub flow-xs">試算結果會先告訴你「這次值不值得做」</h2>
+                <p class="t-body c-ink2 flow-xs">
                     試算頁最上面加了划算度判斷。金額低於 1,000 元會直接標「不建議」，並建議你改用官方儲值或信用卡回饋。我們寧可你這次不用，也不想你花一小時只省兩百塊。
                 </p>
             </article>
@@ -277,11 +175,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="fix">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-31">2026-07-31</time>
+                    <time class="t-note num c-ink3" datetime="2026-07-31">2026-07-31</time>
                     <span class="tag tag-fix">修正</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">移除首頁上不準確的描述</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                <h2 class="t-sub flow-xs">移除首頁上不準確的描述</h2>
+                <p class="t-body c-ink2 flow-xs">
                     首頁原本對資料更新頻率與「前往購買」功能的描述都與實際不符，已經拿掉。資料實際上是每 3 至 6 小時更新一次，前往購買的按鈕還在開發中，現在標示為「即將推出」。
                 </p>
             </article>
@@ -289,11 +187,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="feature">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-26">2026-07-26</time>
+                    <time class="t-note num c-ink3" datetime="2026-07-26">2026-07-26</time>
                     <span class="tag tag-feature">新功能</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">試算、指南、常見問題、關於頁上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                <h2 class="t-sub flow-xs">試算、指南、常見問題、關於頁上線</h2>
+                <p class="t-body c-ink2 flow-xs">
                     補齊導覽列裡原本還沒建立的頁面。試算頁可以依你想拿到的金額，自動算出建議的購買組合與數量。
                 </p>
             </article>
@@ -301,11 +199,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="data">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-20">2026-07-20</time>
+                    <time class="t-note num c-ink3" datetime="2026-07-20">2026-07-20</time>
                     <span class="tag tag-data">資料</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">CSFloat 價格改為每 3 小時自動更新</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                <h2 class="t-sub flow-xs">CSFloat 價格改為每 3 小時自動更新</h2>
+                <p class="t-body c-ink2 flow-xs">
                     抓取程式排上 GitHub Actions，不再需要手動觸發。Steam 端因為 API 有頻率限制，目前是每 6 小時。
                 </p>
             </article>
@@ -313,11 +211,11 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
             <article class="tl-item" data-type="feature">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-                    <time class="t-note num" style="color:var(--ink3)" datetime="2026-07-12">2026-07-12</time>
+                    <time class="t-note num c-ink3" datetime="2026-07-12">2026-07-12</time>
                     <span class="tag tag-feature">新功能</span>
                 </div>
-                <h2 class="t-sub" style="margin:8px 0 0">首頁與市場列表上線</h2>
-                <p class="t-body" style="color:var(--ink2);margin:8px 0 0">
+                <h2 class="t-sub flow-xs">首頁與市場列表上線</h2>
+                <p class="t-body c-ink2 flow-xs">
                     市場列表串接資料庫，依實拿倍率排序顯示所有監控中的武器箱，可以手動重新讀取。
                 </p>
             </article>
@@ -327,12 +225,12 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
         <section class="sec">
             <div class="card">
                 <h2 class="t-sect">接下來要做的</h2>
-                <ul class="t-body" style="color:var(--ink2);margin:16px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                <ul class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
                     <li>歷史走勢與倍率百分位。需要累積至少 30 天的資料，預計 9 月起提供。</li>
                     <li>預估與實際成交的落差對照。同樣在累積資料，這是驗證工具準不準最直接的方式。</li>
-                    <li>前往購買按鈕直接帶到 CSFloat 對應的頁面。</li>
+                    <li>接入 Skinport、Waxpeer 等其他買進通道，永遠幫你取最低價。</li>
                 </ul>
-                <p class="t-aux" style="color:var(--ink3);margin:16px 0 0">
+                <p class="t-aux c-ink3 flow-md">
                     沒有時程保證，這是一個人做的個人專案。
                 </p>
             </div>
@@ -340,83 +238,47 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 
     </main>
 
-    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12 button-0"></footer>
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
+    <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
+    <script src="assets/site.js"></script>
     <script>
-/* ── 設計系統：資料時間戳章（與 design-system.html 同一份）── */
-var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
-};
-var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
+        /* 更新日誌的類型篩選。純前端、不依賴任何資料。
+           三種類型預設全開，至少要留一個開著（全部關掉等於整頁空白，沒有意義）。 */
+        (function () {
+            const buttons = Array.from(document.querySelectorAll('.tag-filter'));
+            const items = Array.from(document.querySelectorAll('.tl-item'));
+            const countEl = document.getElementById('tl-count');
 
-function tsAgo(min) {
-  if (min < 1) return '剛剛更新';
-  if (min < 60) return min + ' 分鐘前更新';
-  var h = Math.floor(min / 60);
-  if (h < 24) return h + ' 小時前更新';
-  return Math.floor(h / 24) + ' 天前更新';
-}
-
-function renderTimestamps(root) {
-  var scope = root || document;
-  var chips = scope.querySelectorAll('.ts-chip[data-updated]');
-  for (var i = 0; i < chips.length; i++) {
-    var el = chips[i];
-    var rule = TS_RULES[el.getAttribute('data-source')] || TS_RULES.csfloat;
-    var t = Date.parse(el.getAttribute('data-updated'));
-    if (isNaN(t)) {
-      el.setAttribute('data-state', 'stale');
-      el.innerHTML = TS_WARN_SVG + '<span class="ts-src">' + rule.label + '</span><span>沒有更新時間</span>';
-      continue;
-    }
-    var min = Math.max(0, Math.round((Date.now() - t) / 60000));
-    var state = min >= rule.stale ? 'stale' : (min >= rule.aging ? 'aging' : 'normal');
-    el.setAttribute('data-state', state);
-    el.setAttribute('title', rule.label + ' 資料抓取時間：' + new Date(t).toLocaleString('zh-TW', { hour12: false }));
-    el.innerHTML =
-      (state === 'stale' ? TS_WARN_SVG : '<span class="ts-dot"></span>') +
-      '<span class="ts-src">' + rule.label + '</span>' +
-      '<span>' + tsAgo(min) + (state === 'stale' ? '・資料過舊' : '') + '</span>';
-  }
-}
-/* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
-   實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */
-(function seedDemoTimestamps() {
-  var demo = document.querySelectorAll('.ts-chip[data-demo-ago]');
-  for (var i = 0; i < demo.length; i++) {
-    var min = Number(demo[i].getAttribute('data-demo-ago')) || 0;
-    demo[i].setAttribute('data-updated', new Date(Date.now() - min * 60000).toISOString());
-  }
-})();
-
-renderTimestamps();
-setInterval(function () { renderTimestamps(); }, 60000);
-
-        function loadNav(pageID) {
-            fetch("nav.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    const high_light = doc.getElementById(`nav-${pageID}`);
-                    if (high_light) {
-                        high_light.classList.remove('text-slate-300', 'hover:text-cyan-400');
-                        high_light.classList.add('text-cyan-400', 'bg-slate-900/50');
-                    }
-                    document.getElementById('nav').innerHTML = doc.body.innerHTML;
+            function apply() {
+                const on = new Set(
+                    buttons.filter(b => b.getAttribute('aria-pressed') === 'true')
+                           .map(b => b.dataset.filter)
+                );
+                let shown = 0;
+                items.forEach(it => {
+                    const visible = on.has(it.dataset.type);
+                    it.hidden = !visible;
+                    if (visible) shown++;
                 });
-        }
-        function loadFooter() {
-            fetch("footer.html")
-                .then(response => { if (!response.ok) throw new Error("網路回應不成功"); return response.text(); })
-                .then(html_text => {
-                    const doc = new DOMParser().parseFromString(html_text, "text/html");
-                    document.getElementById('footer').innerHTML = doc.body.innerHTML;
+                countEl.textContent = shown === items.length
+                    ? `共 ${items.length} 則`
+                    : `顯示 ${shown} / ${items.length} 則`;
+            }
+
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const on = btn.getAttribute('aria-pressed') === 'true';
+                    // 不允許把最後一個開著的也關掉
+                    const openCount = buttons.filter(b => b.getAttribute('aria-pressed') === 'true').length;
+                    if (on && openCount === 1) return;
+                    btn.setAttribute('aria-pressed', on ? 'false' : 'true');
+                    apply();
                 });
-        }
-        loadNav("news");
-        loadFooter();
+            });
+
+            apply();
+        })();
     </script>
 </body>
 </html>

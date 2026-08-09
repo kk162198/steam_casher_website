@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# 內部參考頁，不需要被索引
+Disallow: /design-system.html
+Disallow: /nav-footer-preview.html
+
+Sitemap: https://kk162198.github.io/steam_casher_website/sitemap.xml
