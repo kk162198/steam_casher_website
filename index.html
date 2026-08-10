@@ -33,16 +33,22 @@
 
         <!-- ① Hero -->
         <section style="padding-top:48px">
-            <h1 class="t-hero" style="max-width:24ch">
+            <h1 class="t-hero" style="max-width:15em">
                 你想買的遊戲，還可以再便宜約
                 <span class="num c-brand"><span id="discount">--</span>%</span>
             </h1>
-            <p class="t-body c-ink2" style="max-width:52ch;margin:20px 0 0">
+            <p class="t-body c-ink2" style="max-width:34em;margin:20px 0 0">
                 這個折扣疊加在官方特價之上，兩層是相乘、不是取代。<br>官方打 7 折的遊戲，你還能在那個價格上再省一次。
             </p>
             <p class="t-aux c-ink3 flow-sm">
                 代價：約 1 小時操作，加上 7 天等待。
             </p>
+            <!-- Tier 0 #1：畫面上的每個數字都要標抓取時間。
+                 上面的折扣是由兩邊的報價算出來的，所以這裡取「比較舊的那一邊」，
+                 使用者實際承擔的是那個時間點的資料。 -->
+            <div class="flow-sm">
+                <span id="chip-hero" class="ts-chip" data-source="csfloat"><span class="ts-dot"></span><span>資料讀取中</span></span>
+            </div>
             <div class="flow-xl" style="display:flex;flex-wrap:wrap;gap:12px">
                 <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
                 <a href="eligibility.html" class="btn btn-text">先確認我能不能用</a>
@@ -52,7 +58,7 @@
         <!-- ② 誠實比較表 -->
         <section class="sec">
             <h2 class="t-page">你有五個選擇，我們是其中一個</h2>
-            <p class="t-body c-ink2 flow-sm" style="max-width:58ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:38em">
                 我們主動列出你其實可以不用我們的選項。前兩個選項不用花任何時間，而且可以和這個工具同時用。
             </p>
 
@@ -150,17 +156,20 @@
         <!-- ④ 為什麼這個數字可信 -->
         <section class="sec">
             <h2 class="t-page">為什麼這個數字可信</h2>
-            <p class="t-body c-ink2 flow-sm" style="max-width:58ch">
-                很多比價工具給你的是帳面價差。我們給的是扣完兩邊手續費之後的數字：CSFloat 約 7.5% 買方手續費、Steam 市場 15% 手續費，都已經算進去了。你看到 28%，實際到手就是 28%。
+            <p class="t-body c-ink2 flow-sm" style="max-width:38em">
+                很多比價工具給你的是帳面價差。我們給的是扣完兩邊費用之後的數字：CSFloat 端抓 7.5% 的保守估計（實際是入金手續費，通常更低）、Steam 市場 15% 手續費，都已經算進去了。你看到 28%，實際到手至少就是 28%。
             </p>
 
             <div class="grid gap-3 lg:grid-cols-2 flow-lg">
-                <div class="card">
+                <!-- 兩張卡在 grid 裡等高。右卡有滑桿，天生比較高，
+                     左卡若只靠內容自然堆疊，下方會空出一大塊。
+                     讓內容區 flex:1 並平均分配，卡片才填得滿。 -->
+                <div class="card" style="display:flex;flex-direction:column">
                     <div class="t-note c-ink3">範例：一箱 NT$ 100 的武器箱</div>
-                    <div class="flow-md" style="display:flex;flex-direction:column;gap:16px">
+                    <div class="flow-md" style="display:flex;flex-direction:column;gap:16px;flex:1;justify-content:space-between">
                         <div>
                             <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
-                                <span class="t-aux">你在 CSFloat 付出（含買方手續費）</span>
+                                <span class="t-aux">你在 CSFloat 付出（含入金費保守估）</span>
                                 <span class="t-sub num">NT$ 100</span>
                             </div>
                             <div class="flow-xs" style="height:8px;border-radius:999px;background:var(--line)">
@@ -208,7 +217,12 @@
                             <span class="stat-value num c-pos" id="max-roi">--</span>
                             <span class="t-sub c-pos">元 Steam 餘額</span>
                         </div>
-                        <div class="stat-note">已扣除 CSFloat 約 7.5% 與 Steam 15% 手續費。</div>
+                        <div class="stat-note">已扣除 CSFloat 端 7.5%（保守估，實際通常更低）與 Steam 15% 手續費。<a href="transparency.html">費用怎麼算</a></div>
+                        <!-- 這個倍率同時吃 CSFloat 與 Steam 兩邊的報價，兩個時間都要標出來 -->
+                        <div class="ts-stack" style="align-items:flex-start;margin-top:4px">
+                            <span id="chip-max-csfloat" class="ts-chip" data-source="csfloat"><span class="ts-dot"></span><span class="ts-src">CSFloat</span><span>讀取中</span></span>
+                            <span id="chip-max-steam" class="ts-chip" data-source="steam"><span class="ts-dot"></span><span class="ts-src">Steam</span><span>讀取中</span></span>
+                        </div>
                     </div>
                     <div class="hr"></div>
                     <div>
@@ -303,12 +317,48 @@
     const maxRoiDisplay = document.getElementById('max-roi');
     const slider = document.getElementById('profit-slider');
     const discount = document.getElementById('discount')
-    let ratio = 1; 
+    const chipHero = document.getElementById('chip-hero');
+    const chipMaxCsfloat = document.getElementById('chip-max-csfloat');
+    const chipMaxSteam = document.getElementById('chip-max-steam');
+    let ratio = 1;
+
+    /* Tier 0 #1：資料時間標籤。
+       首頁的兩個數字（hero 折扣、最佳實拿倍率）都出自倍率最高的那一列，
+       而倍率是 CSFloat 成本與 Steam 報價一起算出來的，所以兩個時間都要標。
+       hero 只放一顆膠囊，取比較舊的那一邊——使用者實際承擔的是那個時間點的資料。 */
+    function markChip(el, source, iso) {
+        if (!el) return;
+        el.setAttribute('data-source', source);
+        if (iso) el.setAttribute('data-updated', iso);
+        else el.removeAttribute('data-updated');
+    }
+    function setTimestampChips(row) {
+        const cs = row && row.csfloat_updated_at ? row.csfloat_updated_at : null;
+        const st = row && row.steam_updated_at ? row.steam_updated_at : null;
+        markChip(chipMaxCsfloat, 'csfloat', cs);
+        markChip(chipMaxSteam, 'steam', st);
+        // 比較舊的那一邊；只有一邊有時間就用那一邊，兩邊都沒有就讓 renderTimestamps 顯示「沒有更新時間」
+        const csT = cs ? Date.parse(cs) : NaN;
+        const stT = st ? Date.parse(st) : NaN;
+        let older = null, olderSrc = 'csfloat';
+        if (!isNaN(csT) && !isNaN(stT)) { older = csT <= stT ? cs : st; olderSrc = csT <= stT ? 'csfloat' : 'steam'; }
+        else if (!isNaN(csT)) { older = cs; olderSrc = 'csfloat'; }
+        else if (!isNaN(stT)) { older = st; olderSrc = 'steam'; }
+        markChip(chipHero, olderSrc, older);
+        // 沒有 data-updated 的膠囊不會被 renderTimestamps 處理，這裡自己補上明講的文字
+        [chipHero, chipMaxCsfloat, chipMaxSteam].forEach(function (el) {
+            if (el && !el.hasAttribute('data-updated')) {
+                el.setAttribute('data-state', 'stale');
+                el.textContent = '沒有更新時間';
+            }
+        });
+        renderTimestamps();
+    }
     async function max_ratio() {
         try {
         const { data, error } = await CLIENT
             .from('cases_data')
-            .select('ratio, csfloat_updated_at')
+            .select('ratio, csfloat_updated_at, steam_updated_at')
             // 💡 PostgreSQL 的 ORDER BY DESC 預設是 NULLS FIRST，
             //    少了 nullsFirst:false 會讓還沒算出 ratio 的資料排到第一筆。
             .order('ratio', { ascending: false, nullsFirst: false });
@@ -318,6 +368,7 @@
         if (!data || data.length === 0) {
             maxRoiDisplay.innerText = "無獲取資料";
             setNavStatus('stale', '沒有可用資料');
+            setTimestampChips(null);
             return;
         }
 
@@ -327,6 +378,8 @@
             return (!isNaN(t) && t > acc) ? t : acc;
         }, 0);
         if (newestAt > 0) setNavStatusFromTime(new Date(newestAt).toISOString(), 'csfloat');
+        // 畫面上的兩個數字都出自 data[0]，時間標籤也要標這一列自己的抓取時間
+        setTimestampChips(data[0]);
         // 不要用 || 1 假裝正常：拿不到有效倍率就明講資料還在算
         const firstRowRatio = Number(data[0]?.ratio);
         if (!Number.isFinite(firstRowRatio) || firstRowRatio <= 0) {
@@ -341,8 +394,8 @@
         catch (error) {
             maxRoiDisplay.innerText = "無獲取資料";
             setNavStatus('stale', '資料讀取失敗');
+            setTimestampChips(null);
             console.error(error);
-        } finally {
         }
     }
     max_ratio()

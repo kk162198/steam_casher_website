@@ -68,7 +68,7 @@
 
         <header style="padding-top:48px">
             <h1 class="t-page">更新日誌</h1>
-            <p class="t-body c-ink2 flow-sm" style="max-width:52ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:34em">
                 這個網站改了什麼、資料源有什麼變動、修了哪些問題，都記在這裡。
             </p>
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:20px">
@@ -91,8 +91,7 @@
                 <h2 class="t-sub flow-xs">「前往購買」上線：每個品項都能一鍵到 CSFloat 與 Steam</h2>
                 <div class="t-body c-ink2 flow-xs">
                     <p class="flow-0">
-                        原本標示「即將推出」的按鈕已經是可以點的連結。市場列表、單品項頁、試算頁與購物清單頁，
-                        每一列都有<strong class="c-ink">「CSFloat 買」</strong>與<strong class="c-ink">「Steam 賣」</strong>兩個連結，一律另開分頁。
+                        原本標示「即將推出」的按鈕已經是可以點的連結。市場列表、單品項頁、試算頁與購物清單頁，每一列都有<strong class="c-ink">「CSFloat 買」</strong>與<strong class="c-ink">「Steam 賣」</strong>兩個連結，一律另開分頁。
                     </p>
                     <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
                         <li>CSFloat 連結已預先設定成「最低價、可立即購買」的排序，跟本站抓價時用的條件一致——你點進去看到的第一筆，就是這裡報價的那一筆。</li>
@@ -114,8 +113,7 @@
                 <h2 class="t-sub flow-xs">修正手續費算式：折扣從 22% 更正為 24%</h2>
                 <div class="t-body c-ink2 flow-xs">
                     <p class="flow-0">
-                        資料透明頁公開的算式把 Steam 手續費寫成「賣價 × 0.85」，但 Steam 的 5% + 10% 是對<strong class="c-ink">賣家淨額</strong>計算，
-                        反推要用「賣價 ÷ 1.15」。這讓公開算式低估了實際折扣，也和首頁的示意圖對不起來。
+                        資料透明頁公開的算式把 Steam 手續費寫成「賣價 × 0.85」，但 Steam 的 5% + 10% 是對<strong class="c-ink">賣家淨額</strong>計算，反推要用「賣價 ÷ 1.15」。這讓公開算式低估了實際折扣，也和首頁的示意圖對不起來。
                     </p>
                     <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
                         <li>資料透明頁的算式與範例已全部更新（132／32／1.32／24%），現在跟後端程式碼算的是同一個答案。</li>
@@ -134,8 +132,7 @@
                 <h2 class="t-sub flow-xs">全站瘦身：首屏少載一個 100KB 的檔案</h2>
                 <div class="t-body c-ink2 flow-xs">
                     <p class="flow-0">
-                        原本每個頁面都內嵌一份相同的樣式與程式碼，改成共用檔案後每頁少了約 12KB，
-                        並移除了開發用的 Tailwind CDN，首屏不會再閃版。導覽列的資料狀態點現在全站都會動。
+                        原本每個頁面都內嵌一份相同的樣式與程式碼，改成共用檔案後每頁少了約 12KB，並移除了開發用的 Tailwind CDN，首屏不會再閃版。導覽列的資料狀態點現在全站都會動。
                     </p>
                     <p class="flow-xs">
                         更新日誌上方的三個標籤現在真的可以篩選了。

@@ -28,11 +28,11 @@ pre{
   <header>
     <p class="t-note c-ink3" style="letter-spacing:.08em">STEAM 加值幫手・設計系統 v1</p>
     <h1 class="t-hero flow-xs">元件與規格</h1>
-    <p class="t-body c-ink2 flow-md" style="max-width:60ch">
+    <p class="t-body c-ink2 flow-md" style="max-width:39em">
       這頁是全站的施工圖。每個元件都可以直接複製到 .html 檔使用，樣式集中在本頁最上方的
       <span class="num">&lt;style&gt;</span> 區塊，複製過去即可。
     </p>
-    <div class="risk-bar flow-lg" style="max-width:70ch">
+    <div class="risk-bar flow-lg" style="max-width:45em">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01" stroke-linecap="round"/></svg>
       <span>設計原則：整頁的視覺重量落在數字上。四個語意色只在有語意的地方出現，不當裝飾。</span>
     </div>
@@ -178,7 +178,7 @@ pre{
   <!-- ══ 1. 資料時間戳章 ══ -->
   <section class="sec">
     <h2 class="t-page">1・資料時間戳章</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       任何顯示價格或倍率的地方，旁邊都要有這個。時間由 JS 依
       <span class="num">data-updated</span> 換算，狀態自動判定：CSFloat 超過 6 小時、Steam 超過 12 小時標為過舊。
       過舊狀態同時換圖示，不只換顏色。
@@ -211,7 +211,7 @@ pre{
   <!-- ══ 2. 划算度徽章 ══ -->
   <section class="sec">
     <h2 class="t-page">2・划算度徽章</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       先給判斷，再給細節。徽章右邊固定放一句話的理由，理由要有數字。
     </p>
     <div class="demo" style="display:flex;flex-direction:column;gap:16px">
@@ -244,7 +244,7 @@ pre{
   <!-- ══ 3. 風險提示條 ══ -->
   <section class="sec">
     <h2 class="t-page">3・風險提示條</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       一行式，左側 amber 直線。試算結果區與購物清單頁固定顯示，連向 <span class="num">risks.html</span>，全站只維護那一份說明。
     </p>
     <div class="demo" style="display:flex;flex-direction:column;gap:12px">
@@ -262,14 +262,14 @@ pre{
   <!-- ══ 4. 數據卡 ══ -->
   <section class="sec">
     <h2 class="t-page">4・數據卡</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       全站最常出現的元件。大數字用語意色，標籤與說明用次要色，右下角固定放時間戳章。
     </p>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div class="card stat">
         <div class="stat-label">目前最佳實拿倍率</div>
         <div class="stat-value c-pos">1.28</div>
-        <div class="stat-note">已扣除 CSFloat 約 7.5% 與 Steam 15% 手續費，相當於折扣約 22%。</div>
+        <div class="stat-note">已扣除 CSFloat 端 7.5%（保守估）與 Steam 15% 手續費，相當於折扣約 22%。</div>
         <div class="flow-xs"><span class="ts-chip" data-source="csfloat" data-demo-ago="38"></span></div>
       </div>
       <div class="card stat">
@@ -290,7 +290,7 @@ pre{
   <!-- ══ 5. 響應式資料表 ══ -->
   <section class="sec">
     <h2 class="t-page">5・響應式資料表</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       桌機是表格，寬度小於 768px 自動改成卡片式堆疊，每個欄位顯示欄位名稱與值。
       切換完全由 CSS 變數驅動，不需要 JS，也不需要橫向捲動。
       表頭用 <span class="num">&lt;th scope="col"&gt;</span>，欄名用外行看得懂的說法。
@@ -386,7 +386,7 @@ pre{
   <!-- ══ 6. 步驟 ══ -->
   <section class="sec">
     <h2 class="t-page">6・步驟元件</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       每一步固定三段：要做什麼、會卡在哪、怎麼確認做對了。第三段用不同底色的驗證區塊，這是現有教學頁最缺的一塊。
     </p>
     <div class="card" style="display:flex;flex-direction:column;gap:32px">
@@ -433,7 +433,7 @@ pre{
   <!-- ══ 7. 三種狀態 ══ -->
   <section class="sec">
     <h2 class="t-page">7・載入中／空狀態／錯誤</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       不要用純文字打發。三種狀態的共同要求：不要讓版面高度跳動，錯誤狀態一定要有重試按鈕，空狀態要告訴使用者下一步能做什麼。
     </p>
 
@@ -494,7 +494,7 @@ pre{
   <!-- ══ 8. 按鈕 ══ -->
   <section class="sec">
     <h2 class="t-page">8・按鈕</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       三階：主要／次要／文字型。一頁只有一個主要按鈕。所有按鈕最小高度 44px，focus-visible 用 cyan-400 外框。
     </p>
     <div class="demo">
@@ -548,7 +548,7 @@ pre{
   <!-- ══ 文案 ══ -->
   <section class="sec">
     <h2 class="t-page">文案規則</h2>
-    <p class="t-body c-ink2" style="max-width:66ch;margin:8px 0 24px">
+    <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       禁用詞清單見策略文件 §3.3。這頁刻意不重印那些詞，避免它們透過複製貼上回到網站上。以下是允許並且應該用的說法。
     </p>
     <div class="grid gap-3 md:grid-cols-2">

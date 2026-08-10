@@ -10,6 +10,10 @@
    ══════════════════════════════════════════════════════════════ */
 
 :root{
+  /* 全站是深色版面，但原生表單控制項（checkbox、number 的上下鈕、捲軸）
+     預設仍用系統的淺色配色，checkbox 未勾選時會是一個白色方塊，很突兀。
+     宣告 color-scheme 讓瀏覽器改用深色版本的原生控制項。 */
+  color-scheme:dark;
   --base:#020617; --card:#0f172a; --line:#1e293b;
   --brand:#22d3ee; --pos:#34d399; --warn:#fbbf24; --neg:#fb7185;
   --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
@@ -72,6 +76,12 @@ body{
 .flow-xl{margin:32px 0 0}
 
 /* ── 版面 ───────────────────────────────── */
+/* 行長一律用 em，不要用 ch。
+   ch 是數字「0」的寬度，在這套字型下約 0.5em，所以 max-width:52ch
+   對中文其實只有約 26 個字，行長只有預期的一半、右邊留一大片空白。
+   em 對中文剛好等於 1 個字：34em ≈ 34 字，落在中文適讀的 30–45 字區間。
+   （西文在同樣寬度下約 60–70 字元，也在適讀範圍內。）
+   常用值：內文 34em／較長的說明 38–39em／窄欄 22–29em。 */
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 /* grid 子項預設 min-width:auto，會被最長的那段不可斷內容撐開、
    在 320px 這種窄螢幕把整個版面推出畫面。歸零讓它可以正常收縮。 */
@@ -121,6 +131,9 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
   padding:5px 12px;border-radius:6px;font-size:14px;font-weight:700;line-height:1.4;
   border:1px solid transparent;
 }
+/* 小尺寸變體：塞在 .stat-note（12px）這種密集文字旁邊時用，
+   維持與 .badge 同一套配色，不要另外寫 inline style。 */
+.badge-sm{padding:2px 8px;font-size:12px;gap:4px}
 .badge-go{color:var(--pos);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35)}
 .badge-maybe{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35)}
 .badge-no{color:var(--neg);background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.35)}

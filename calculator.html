@@ -91,6 +91,12 @@
         .calc-grid { display: grid; gap: 20px; margin-top: 24px; align-items: stretch; }
         @media (min-width: 900px) {
             .calc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 32px; }
+            /* 左欄有三組輸入＋頁尾，天生比右邊的結果面板高。原本兩欄等高、
+               再用 margin-top:auto 把摘要壓到底，結果面板中間會空出約 160px 的洞。
+               改成高度隨內容、並在捲動時貼齊導覽列下方：洞不見了，
+               而且往下捲看清單時結果還留在畫面上，改參數馬上看得到變化。
+               88px = 導覽列 64px + 24px 呼吸空間。 */
+            .calc-result { align-self: start; position: sticky; top: 88px; }
         }
         .calc-inputs { display: flex; flex-direction: column; gap: 24px; }
         .calc-field { display: flex; flex-direction: column; gap: 8px; }
@@ -119,7 +125,7 @@
 
         <header style="padding-top:48px">
             <h1 class="t-page">加值試算</h1>
-            <p class="t-body c-ink2 flow-sm" style="max-width:56ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:36em">
                 輸入你這次想花的金額，會依目前資料庫裡的價格與庫存上限，算出花費最少、溢出最小的購買組合，並告訴你這次值不值得做。
             </p>
         </header>

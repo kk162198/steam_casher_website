@@ -72,7 +72,7 @@
                 <div class="card card-compact stat">
                     <div class="stat-label">CSFloat 買價</div>
                     <div id="case-cost" class="stat-value stat-value-md">--</div>
-                    <div class="stat-note">你買一個要付多少，含買方手續費。</div>
+                    <div class="stat-note">你買一個要付多少，含入金費的保守估計。</div>
                     <div class="flow-xs"><span id="chip-cost" class="ts-chip" data-source="csfloat"></span></div>
                 </div>
                 <div class="card card-compact stat">
@@ -90,7 +90,7 @@
                 <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
                     <div>
                         <h2 class="t-sub">庫存深度</h2>
-                        <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
                             CSFloat 上目前掛在最低價位的數量。買超過這個數量，後面幾件的成本會往上跳，倍率就沒有上面顯示的那麼好。
                         </p>
                     </div>
@@ -111,7 +111,7 @@
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
                 <div>
                     <h2 class="t-sub">前往交易</h2>
-                    <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
+                    <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
                         CSFloat 連結已依最低買價排序，第一筆就是上面報價的那一筆。Steam 連結是這款箱子的市場頁，7 天冷卻期過後在那裡賣出。
                     </p>
                 </div>
@@ -199,7 +199,7 @@
             const safe = name || '武器箱';
             document.title = `${safe}｜目前實拿倍率與稅後淨利｜Steam 加值幫手`;
             const desc = ratio
-                ? `${safe} 目前的實拿倍率約 ${ratio.toFixed(2)}，已扣除 CSFloat 買方手續費與 Steam 市場 15% 手續費。含 CSFloat 買價、Steam 賣價、庫存深度與資料抓取時間。`
+                ? `${safe} 目前的實拿倍率約 ${ratio.toFixed(2)}，已扣除 CSFloat 端的入金費保守估計與 Steam 市場 15% 手續費。含 CSFloat 買價、Steam 賣價、庫存深度與資料抓取時間。`
                 : `${safe} 的 CSFloat 買價、Steam 賣價與扣除兩邊手續費後的實拿倍率，每個數字都標示資料抓取時間。`;
             document.getElementById('meta-description').setAttribute('content', desc);
             document.getElementById('crumb-name').textContent = safe;

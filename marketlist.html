@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="所有監控中的 CS2 武器箱即時比價：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta name="description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <title>市場列表｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/marketlist.html">
     <meta property="og:title" content="市場列表｜Steam 加值幫手">
-    <meta property="og:description" content="所有監控中的 CS2 武器箱即時比價：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta property="og:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="市場列表｜Steam 加值幫手">
-    <meta name="twitter:description" content="所有監控中的 CS2 武器箱即時比價：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta name="twitter:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -54,7 +54,7 @@
         .th-info:hover { color: #22d3ee; }
         @media (min-width: 768px) { .th-info { display: inline-flex; } }
         .th-note {
-            display: none; max-width: 22ch; margin-top: 6px;
+            display: none; max-width: 15em; margin-top: 6px;
             font-size: 12px; font-weight: 400; line-height: 1.6; color: #94a3b8;
             white-space: normal;
         }
@@ -72,7 +72,7 @@
         <header style="padding-top:40px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
             <div>
                 <h1 class="t-page">市場列表</h1>
-                <p class="t-aux c-ink2 flow-xs" style="max-width:52ch">
+                <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
                     資料庫裡所有監控中的武器箱，依實拿倍率由高至低排序。倍率已扣掉 CSFloat 與 Steam 兩邊的手續費。
                 </p>
             </div>
@@ -93,10 +93,10 @@
                     <div class="stat-note">含目前倍率低於 1 的品項。</div>
                 </div>
                 <div class="card card-compact stat">
-                    <div class="stat-label">這頁的資料抓取時間</div>
+                    <div class="stat-label">最新一筆資料的抓取時間</div>
                     <div id="last-update" class="stat-value stat-value-md c-ink">--</div>
                     <div class="stat-note" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                        <span id="connection-badge" class="px-2 py-1 rounded text-xs font-semibold" style="background:rgba(251,113,133,.12);color:#fb7185;border:1px solid rgba(251,113,133,.4)">未連線</span>
+                        <span id="connection-badge" class="badge badge-sm badge-no">未連線</span>
                         <span>每個品項的實際抓取時間見表格內標籤。</span>
                     </div>
                 </div>
@@ -114,7 +114,7 @@
                 <summary class="t-aux c-ink2" style="cursor:pointer;min-height:44px;display:flex;align-items:center">欄位是什麼意思？</summary>
                 <dl class="t-aux c-ink2 flow-sm" style="display:flex;flex-direction:column;gap:10px">
                     <div><dt class="c-ink" style="font-weight:600">Steam 售價</dt><dd class="flow-0">目前 Steam 社群市場上的最低掛牌價，買家付的錢。</dd></div>
-                    <div><dt class="c-ink" style="font-weight:600">CSFloat 成本</dt><dd class="flow-0">你在 CSFloat 買一個要付多少，含買方手續費。</dd></div>
+                    <div><dt class="c-ink" style="font-weight:600">CSFloat 成本</dt><dd class="flow-0">你在 CSFloat 買一個要付多少，含入金費的保守估計。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">稅後淨利</dt><dd class="flow-0">賣掉一個實際多拿到多少，已扣 Steam 15% 手續費。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">實拿倍率</dt><dd class="flow-0">花 1 元換到多少 Steam 餘額。低於 1 代表會虧。</dd></div>
                 </dl>
@@ -158,7 +158,7 @@
                                     <button type="button" class="th-info" aria-expanded="false" aria-label="CSFloat 成本的說明">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01" stroke-linecap="round"/></svg>
                                     </button>
-                                    <span class="th-note">你買一個要付多少，含買方手續費。</span>
+                                    <span class="th-note">你買一個要付多少，含入金費的保守估計。</span>
                                 </th>
                                 <th scope="col">
                                     <button type="button" class="th-sort" data-sort-key="profit" data-sort-type="num">稅後淨利
@@ -341,7 +341,7 @@
                         <path d="M36 24v10M36 40v.01" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round"/>
                     </svg>
                     <div class="t-sub c-neg flow-sm">讀取資料失敗</div>
-                    <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:44ch" role="alert">
+                    <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:29em" role="alert">
                         連不上資料庫，這頁沒有可顯示的價格。請重試一次，或稍後再回來。
                     </p>
                     <p class="t-note c-ink3 flow-xs">${escapeHtml(message || '')}</p>
@@ -417,7 +417,7 @@
                             <path d="M58 44l6 6" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                         <div class="t-sub flow-sm">目前沒有可顯示的品項</div>
-                        <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:44ch">資料庫裡還沒有這一輪的價格。通常 1–3 小時內會有新的資料。</p>
+                        <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:29em">資料庫裡還沒有這一輪的價格。通常 1–3 小時內會有新的資料。</p>
                     </td></tr>`;
                     return;
                 }
@@ -431,11 +431,24 @@
                 // 更新頂部 KPI 卡片
                 maxRoiDisplay.innerText = `${maxRoi.toFixed(2)} %`;
                 monitoredCountDisplay.innerText = totalItems;
-                lastUpdateDisplay.innerText = new Date().toLocaleTimeString();
 
-                // 更新連線狀態燈號
+                /* Tier 0 #1：這一格原本寫 new Date()，也就是「你打開這頁的時間」，
+                   標題卻是「資料抓取時間」——顯示的東西跟標籤講的不是同一件事。
+                   改成資料裡真正最新的那一筆 updated_at。 */
+                const newestAt = data.reduce((acc, it) => {
+                    [it.csfloat_updated_at, it.steam_updated_at].forEach(v => {
+                        const t = v ? Date.parse(v) : NaN;
+                        if (!isNaN(t) && t > acc) acc = t;
+                    });
+                    return acc;
+                }, 0);
+                lastUpdateDisplay.innerText = newestAt > 0
+                    ? new Date(newestAt).toLocaleString('zh-TW', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '沒有更新時間';
+
+                // 更新連線狀態燈號（用設計系統的 .badge，不要用已經移除的 Tailwind class）
                 connectionBadge.innerText = "已連線";
-                connectionBadge.className = "px-2 py-1 rounded text-xs bg-emerald-500 text-slate-950 font-bold";
+                connectionBadge.className = "badge badge-sm badge-go";
 
                 // 清空並渲染表格
                 caseTableBody.innerHTML = '';
@@ -462,14 +475,7 @@
                 });
                 renderTimestamps(caseTableBody); // 畫面層：換算每一列的資料時間
                 applySavedSort();                // 畫面層：套用上次記住的排序
-                // 導覽列狀態點：用資料裡最新的抓取時間判斷，不要無條件寫 fresh
-                const newestAt = data.reduce((acc, it) => {
-                    [it.csfloat_updated_at, it.steam_updated_at].forEach(v => {
-                        const t = v ? Date.parse(v) : NaN;
-                        if (!isNaN(t) && t > acc) acc = t;
-                    });
-                    return acc;
-                }, 0);
+                // 導覽列狀態點：沿用上面算好的 newestAt，不要無條件寫 fresh
                 if (newestAt > 0) setNavStatusFromTime(new Date(newestAt).toISOString(), 'csfloat');
                 else setNavStatus('stale', '沒有更新時間');
 
@@ -478,6 +484,9 @@
             } catch (error) {
                 addLog(`<span style="color:#fb7185">Supabase 讀取失敗: ${error.message}</span>`);
                 showTableError(error.message); // 畫面層：錯誤狀態
+                lastUpdateDisplay.innerText = '讀取失敗';
+                connectionBadge.innerText = '未連線';
+                connectionBadge.className = 'badge badge-sm badge-no';
                 setNavStatus('stale', '資料讀取失敗');
                 console.error(error);
             } finally {

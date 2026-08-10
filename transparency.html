@@ -48,7 +48,7 @@
 
         <header style="padding-top:48px">
             <h1 class="t-page">資料透明</h1>
-            <p class="t-body c-ink2 flow-sm" style="max-width:52ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:34em">
                 這頁把資料怎麼來、公式怎麼算全部寫出來。你不用相信我們，你可以自己驗算。
             </p>
         </header>
@@ -69,15 +69,15 @@
                     <div class="stat-note">Steam 的公開報價 API 有頻率限制，抓取間隔比較長。</div>
                     <div class="flow-sm"><span id="chip-steam" class="ts-chip" data-source="steam"></span></div></div>
             </div>
-            <p class="t-aux c-ink2 flow-md" style="max-width:60ch">
-                上面兩個時間是資料庫裡最新一筆的抓取時間。網站上每個數字旁邊都有自己的時間標籤，因為不同品項的抓取時間可能不一樣。標籤超過閾值會變成 amber，再舊會變成 rose 並加上警告圖示。
+            <p class="t-aux c-ink2 flow-md" style="max-width:39em">
+                上面兩個時間是資料庫裡最新一筆的抓取時間。網站上每個數字旁邊都有自己的時間標籤，因為不同品項的抓取時間可能不一樣。標籤預設是灰色，資料稍舊會轉成黃色（CSFloat 逾 3 小時、Steam 逾 6 小時），再舊會轉成紅色並加上警告圖示（CSFloat 逾 6 小時、Steam 逾 12 小時）。
             </p>
         </section>
 
         <!-- 公式 -->
         <section class="sec">
             <h2 class="t-sect">實拿倍率怎麼算</h2>
-            <p class="t-body c-ink2 flow-sm" style="max-width:60ch">
+            <p class="t-body c-ink2 flow-sm" style="max-width:39em">
                 這是全站所有數字的基礎。兩邊的手續費都在公式裡，沒有藏起來的部分。
             </p>
 
@@ -95,10 +95,16 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="rt-key" data-label="項目">CSFloat 買方手續費</td>
-                                <td data-label="費率">約 7.5%</td>
+                                <td class="rt-key" data-label="項目">CSFloat 市場手續費</td>
+                                <td data-label="費率">0%</td>
+                                <td data-label="誰付">賣家</td>
+                                <td data-label="說明" style="white-space:normal">依 CSFloat 服務條款，買家不付市場手續費，只付掛牌價；手續費由賣家負擔。</td>
+                            </tr>
+                            <tr>
+                                <td class="rt-key" data-label="項目">CSFloat 入金手續費<br><span class="t-note c-ink3" style="font-weight:400">（我們用 7.5% 保守估）</span></td>
+                                <td data-label="費率">約 2.8% + US$0.30<br><span class="t-note c-ink3">依入金方式而異</span></td>
                                 <td data-label="誰付">你</td>
-                                <td data-label="說明" style="white-space:normal">已含在網站顯示的「CSFloat 成本」裡。</td>
+                                <td data-label="說明" style="white-space:normal">這筆錢是在「儲值到 CSFloat 帳戶」時付的，不是在買每一件商品時付的。網站的每件成本一律用 <strong class="c-ink">7.5%</strong> 計算——刻意抓得比實際高，寧可低估折扣。</td>
                             </tr>
                             <tr>
                                 <td class="rt-key" data-label="項目">Steam 市場手續費</td>
@@ -112,13 +118,24 @@
                 <p class="t-note c-ink3 flow-md">
                     兩個手續費分量各有 US$0.01 的最低收費，所以低價品項的實際費率會高於 15%；換算到賣價上，一般品項的實際抽成約 13%。網站顯示的數字已經照 Steam 的實際計算方式算過。
                 </p>
+                <div class="risk-bar flow-md">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                    <span>
+                        <strong class="c-ink">CSFloat 那 7.5% 是我們自己抓的保守估計值，不是 CSFloat 公告的費率。</strong>
+                        入金費是對「你儲值的總金額」收一次，不是每買一件收一次，所以攤到每件商品上的等效費率會隨你這次花多少而變動——花 NT$1,000 約 3.8%、花 NT$3,000 約 3.1%、花 NT$5,000 約 3.0%。我們沒有按金額動態調整，而是一律用 7.5%。
+                        意思是：<strong class="c-pos">你實際拿到的折扣，通常會比網站上顯示的更好一點</strong>，不會更差。等我們用真實交易核對出確切費率後會更新這裡，並記在更新日誌。
+                    </span>
+                </div>
             </div>
 
             <div class="card flow-md">
                 <h3 class="t-sub">完整算式</h3>
                 <div class="formula flow-md"><span class="c"># 1. 你在 CSFloat 實際付出的成本（每件）</span>
 <span class="c">#</span>
-<span class="c">#    掛牌價之外還要付 7.5% 的買方手續費。</span>
+<span class="c">#    CSFloat 不收買方市場手續費，你付的是掛牌價。</span>
+<span class="c">#    這裡多加的 7.5% 是「入金手續費」的保守估計值——</span>
+<span class="c">#    實際約 2.8% + US$0.30，且是對整筆儲值收一次、不是每件收一次。</span>
+<span class="c">#    我們刻意抓高，寧可低估折扣。</span>
 <span class="c">#</span>
 <span class="k">csfloat_cost</span> = csfloat_掛牌價 × (1 + <span class="v">0.075</span>)
 
@@ -221,7 +238,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                     <path d="M12 32l16-4 16 6 16-12 16 2" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <h3 class="t-sub" style="margin-top:8px">資料累積中，預計 9 月起提供</h3>
-                <p class="t-body c-ink2 flow-0" style="max-width:52ch">
+                <p class="t-body c-ink2 flow-0" style="max-width:34em">
                     這一區之後會顯示：網站在 7 天前預估的倍率，和 7 天後市場上的實際價格，兩者差多少。這是驗證這個工具準不準最直接的方式，所以我們會把它放出來，不管數字好不好看。
                 </p>
                 <p class="t-note c-ink3 flow-0">
@@ -266,7 +283,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                         </tbody>
                     </table></div>
             </div>
-            <p class="t-aux c-ink2 flow-md" style="max-width:60ch">
+            <p class="t-aux c-ink2 flow-md" style="max-width:39em">
                 抓取端用 Python 寫，排在 GitHub Actions 上跑，資料寫進 Supabase。前端是純靜態網頁，用唯讀金鑰直接查資料庫，沒有中間層。這代表你在瀏覽器的開發者工具裡看到的，就是我們拿到的原始資料。
             </p>
         </section>
