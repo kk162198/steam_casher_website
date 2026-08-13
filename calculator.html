@@ -335,18 +335,21 @@
 
         // ③ 把本次組合存起來，供購物清單頁（checklist.html）讀取。只讀不算。
         //    勾選狀態與購物清單頁共用同一個 key，兩頁互跳時不會掉。
-        const COMBO_STORAGE_KEY = 'sah-combo-v1';
-        const CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+        /* COMBO_STORAGE_KEY / CHECK_STORAGE_KEY 已移到 site.js（購物清單與賣出頁共用）。
 
+           ⚠️ 2026-08-13：勾選狀態的格式從「名稱陣列」改成「名稱 → 勾選時間」，
+              因為勾選的那一刻就是 7 天冷卻期的起點，賣出頁靠它算解鎖日。
+              這裡的讀寫一律走 site.js 的 readCheckedMap()／writeCheckedMap()，
+              它們含舊格式相容，**不要在這一頁再自己 JSON.parse 一次**——
+              寫成陣列會把所有購買時間清掉。 */
         function loadCheckedNames() {
-            try {
-                const raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || '[]');
-                return new Set(Array.isArray(raw) ? raw : []);
-            } catch (e) { return new Set(); }
+            return new Set(Object.keys(readCheckedMap()));
         }
         function saveCheckedNames(set) {
-            try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify([...set])); }
-            catch (e) { /* 無痕模式等情況忽略 */ }
+            const prev = readCheckedMap();
+            const next = {};
+            set.forEach(n => { next[n] = prev[n] || new Date().toISOString(); });  // 保留既有時間
+            writeCheckedMap(next);
         }
 
         function saveComboForChecklist(combo, rate) {

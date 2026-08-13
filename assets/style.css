@@ -209,6 +209,9 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 @media (min-width:768px){ .stat-value-sm{font-size:24px} }
 .stat-note{font-size:12px;color:var(--ink3);line-height:1.75}
 /* 窄螢幕改單欄：2 欄時每格只剩約 135px，說明文字會斷成 4 行、時間會攔腰折斷 */
+/* ⚠️ .stat-grid 只負責「最窄的時候收成一欄」，它本身**不會**建立 grid。
+   實際的欄數來自各頁的 Tailwind class（grid grid-cols-2 lg:grid-cols-4）。
+   只寫 class="stat-grid" 的話卡片會直向堆疊——2026-08-13 在賣出頁踩過。 */
 @media (max-width:479px){ .stat-grid{grid-template-columns:1fr} }
 
 /* ── 5. 響應式資料表 ────────────────────── */

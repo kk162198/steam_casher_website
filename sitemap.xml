@@ -34,6 +34,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://kk162198.github.io/steam_casher_website/sell.html</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://kk162198.github.io/steam_casher_website/transparency.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

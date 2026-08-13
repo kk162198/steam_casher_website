@@ -10,6 +10,10 @@
      ③ nav / footer 片段載入 loadNav() / loadFooter()
      ④ 交易連結 csfloatBuyUrl() / steamMarketUrl() / tradeLinksHtml()
      ⑤ 流動性分級 liquidityTier() / liquidityChipHtml()
+     ⑥ 冷卻期 COOLDOWN_DAYS / unlockAt() / cooldownText()
+     ⑦ 特賣時程 STEAM_SALES / nextSale()
+     ⑧ 行事曆 icsCalendar() / downloadIcs()
+     ⑨ 持有清單 readHoldings() / holdingsToParam() / paramToHoldings()
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -251,6 +255,258 @@ function liquidityChipHtml(volume) {
        + '</span>'
        + '<span class="liq-count t-note c-ink3">' + tradeEscape(count) + '</span>'
        + '</span>';
+}
+
+/* ── ⑥ 冷卻期 ───────────────────────────────────────────────
+   從物品進到庫存那一刻起算 7 天，期間不能交易、不能上架 Steam 市場。
+
+   ⚠️ 這 7 天其實同時受兩套機制限制，但**它們平行跑、不疊加**：
+     ① 2018 年的交易冷卻期：收到後 7 天不能再交易或上架
+     ② 2025-07 的 Trade Protection：同樣 7 天，期間寄送方可反轉交易
+   兩者同時起算、同時結束，所以等待時間就是 7 天，不是 14 天。
+   也因為兩者同時結束，「賣掉之後才被反轉」在機制上不會發生。
+   見 DECISIONS.md 4.10。 */
+var COOLDOWN_DAYS = 7;
+var COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+
+function unlockAt(boughtAt) {
+  var t = boughtAt ? Date.parse(boughtAt) : NaN;
+  return isNaN(t) ? null : new Date(t + COOLDOWN_MS);
+}
+
+/* 回傳 { state, days, text }。
+   state：'locked'（還在冷卻）｜'ready'（可以賣了）｜'unknown'（沒有購買時間） */
+function cooldownText(boughtAt, now) {
+  var u = unlockAt(boughtAt);
+  if (!u) return { state: 'unknown', days: null, text: '沒有記錄購買時間' };
+  var ms = u.getTime() - (now || Date.now());
+  if (ms <= 0) return { state: 'ready', days: 0, text: '可以賣了' };
+  var days = Math.ceil(ms / 86400000);
+  var hours = Math.ceil(ms / 3600000);
+  return {
+    state: 'locked',
+    days: days,
+    text: hours <= 24 ? ('約 ' + hours + ' 小時後解鎖') : ('還有 ' + days + ' 天解鎖')
+  };
+}
+
+/* ── ⑦ 特賣時程 ─────────────────────────────────────────────
+   Valve 提前半年公布整年時程（Steamworks 每年兩份公告），所以這張表
+   一年更新一次就夠，零維護。時間是 UTC。
+
+   ⚠️ **只放已經由 Valve 正式公布的檔期，不要推測。** 2027 年的日期
+      在對方公布之前保持空白——這一頁寧可說「還不知道」，也不要放一個
+      看起來很確定但其實是猜的日期。使用者會拿它安排七天前的買進時機。
+
+   ⚠️ 為什麼提醒要設在**特賣前 10 天**而不是特賣當天：
+      冷卻期是 7 天，看到特賣才開始買就一定來不及。春秋兩檔各只有
+      7–8 天，比冷卻期還短。見 DECISIONS.md 4.9。 */
+var SALE_LEAD_DAYS = 10;
+var STEAM_SALES = [
+  { key: 'autumn2026', name: '秋季特賣', start: '2026-10-01T17:00:00Z', end: '2026-10-08T17:00:00Z' },
+  { key: 'winter2026', name: '冬季特賣', start: '2026-12-17T18:00:00Z', end: '2027-01-04T18:00:00Z' }
+];
+/* 已經過去的 2026 檔期（保留備查，不進行事曆）：
+   春季 3/19–3/26、夏季 6/25–7/9 */
+
+function nextSale(now) {
+  var t = now || Date.now();
+  for (var i = 0; i < STEAM_SALES.length; i++) {
+    if (Date.parse(STEAM_SALES[i].end) > t) return STEAM_SALES[i];
+  }
+  return null; // 表已過期，要更新 STEAM_SALES
+}
+
+/* 買進期限＝特賣開始前 7 天（冷卻期長度）。這是精確的時間點。 */
+function buyByDate(sale) {
+  var s = Date.parse(sale.start);
+  return isNaN(s) ? null : new Date(s - COOLDOWN_MS);
+}
+
+/* 給畫面用的「最晚買進日」——回傳一個**整天**，那天之內任何時候買都來得及。
+
+   ⚠️ 為什麼不能直接顯示 buyByDate 的日期：特賣是 17:00 UTC 開始，
+      減 7 天之後是 UTC 17:00，換成台灣時間變成隔天凌晨 01:00。
+      直接格式化會顯示成 9/25，但實際上 9/25 早上 2 點就已經遲了——
+      使用者看到「最晚 9/25」而在 9/25 晚上買，會整批卡在冷卻期裡
+      錯過整檔特賣。
+
+   所以取「完全落在期限之前的最後一個整天」。這會比實際期限保守
+   最多不到一天，而保守的方向是安全的——跟 CSFLOAT_BUYER_FEE_RATE
+   刻意高估成本是同一個原則：寧可讓使用者早一點，不可讓他遲到。 */
+function buyByDisplayDate(sale) {
+  var d = buyByDate(sale);
+  if (!d) return null;
+  var local = new Date(d.getTime());
+  // 期限當地時間若不是剛好午夜，那一整天就不算安全，退一天
+  var isMidnight = local.getHours() === 0 && local.getMinutes() === 0 && local.getSeconds() === 0;
+  if (!isMidnight) local = new Date(local.getTime() - 86400000);
+  return new Date(local.getFullYear(), local.getMonth(), local.getDate());
+}
+
+/* ── ⑧ 行事曆（.ics） ───────────────────────────────────────
+   為什麼用行事曆而不是 email：不需要帳號、不需要收 email（沒有個資法
+   義務）、沒有 Gmail 每日 100 封的上限，而且離線也會提醒。見
+   STRATEGY.md 第二節。
+
+   ⚠️ 行事曆的目的不是取代造訪，是**造成造訪**——每個事件都要帶
+      回到賣出頁的連結。 */
+
+function icsEscape(text) {
+  return String(text == null ? '' : text)
+    .replace(/\\/g, '\\\\').replace(/;/g, '\\;')
+    .replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+function icsStampUTC(d) {
+  function p(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate())
+       + 'T' + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + 'Z';
+}
+/* 全天事件用 DATE 型別（沒有時間、沒有時區），提醒才不會因為時區
+   而跑到前一天晚上。 */
+function icsDate(d) {
+  function p(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
+}
+function icsDatePlusDays(d, n) {
+  return icsDate(new Date(d.getTime() + n * 86400000));
+}
+
+/* RFC 5545 要求每行不超過 75 個八位元組，超過要折行（續行開頭放一個空白）。
+   ⚠️ 中文是 UTF-8 三個位元組，所以必須依**位元組**數折，而且不能把一個
+      字元從中間切開——切開的話 Google 行事曆會顯示成亂碼。 */
+function icsFold(line) {
+  var out = '', len = 0, limit = 74; // 留 1 給續行的空白
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    var code = ch.charCodeAt(0);
+    var bytes = code < 0x80 ? 1 : (code < 0x800 ? 2 : 3);
+    if (len + bytes > limit) { out += '\r\n '; len = 1; limit = 74; }
+    out += ch; len += bytes;
+  }
+  return out;
+}
+
+/* events：[{ uid, start:Date, allDayDays:number|null, end:Date|null,
+              summary, description, url, alarmDaysBefore:number|null }] */
+function icsCalendar(events, calName) {
+  var now = new Date();
+  var lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//Steam 加值幫手//TW//ZH',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + icsEscape(calName || 'Steam 加值幫手'),
+    'X-WR-TIMEZONE:Asia/Taipei'
+  ];
+  events.forEach(function (e) {
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:' + e.uid);
+    lines.push('DTSTAMP:' + icsStampUTC(now));
+    if (e.allDayDays) {
+      lines.push('DTSTART;VALUE=DATE:' + icsDate(e.start));
+      lines.push('DTEND;VALUE=DATE:' + icsDatePlusDays(e.start, e.allDayDays));
+    } else {
+      lines.push('DTSTART:' + icsStampUTC(e.start));
+      lines.push('DTEND:' + icsStampUTC(e.end || new Date(e.start.getTime() + 3600000)));
+    }
+    lines.push('SUMMARY:' + icsEscape(e.summary));
+    if (e.description) lines.push('DESCRIPTION:' + icsEscape(e.description));
+    if (e.url) lines.push('URL:' + icsEscape(e.url));
+    lines.push('TRANSP:TRANSPARENT'); // 不要讓它把你的行事曆標成忙碌
+    if (e.alarmDaysBefore != null) {
+      lines.push('BEGIN:VALARM', 'ACTION:DISPLAY',
+        'DESCRIPTION:' + icsEscape(e.summary),
+        'TRIGGER:-P' + e.alarmDaysBefore + 'D', 'END:VALARM');
+    }
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold).join('\r\n') + '\r\n';
+}
+
+function downloadIcs(text, filename) {
+  var blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
+  var a = document.createElement('a');
+  var url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+/* ── ⑨ 持有清單 ─────────────────────────────────────────────
+   資料來源沿用購物清單那一套，不另起一份：
+     sah-combo-v1                買了什麼（試算頁寫入）
+     sah-checklist-checked-v1    哪些已經買到、以及**什麼時候**買到
+
+   ⚠️ 舊版的 checked 是純名稱陣列 ["A","B"]，沒有時間。這裡升級成
+      { "A": "ISO 時間" }，並保留舊格式的讀取相容——舊資料沒有時間，
+      退回用 combo 的 savedAt 當近似值，並在畫面上標示那是估計的。
+      **不要靜默假裝知道時間**，冷卻期算錯會讓人白等或提早去掛單。 */
+var COMBO_STORAGE_KEY = 'sah-combo-v1';
+var CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+
+function readCheckedMap() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || 'null');
+    if (Array.isArray(raw)) {          // 舊格式：只有名稱，沒有時間
+      var m = {};
+      raw.forEach(function (n) { m[n] = null; });
+      return m;
+    }
+    return (raw && typeof raw === 'object') ? raw : {};
+  } catch (e) { return {}; }
+}
+function writeCheckedMap(map) {
+  try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
+}
+
+/* 回傳已買到的品項 + 各自的購買時間。
+   { items:[{name,qty,unitCostTwd,defIndex,boughtAt,boughtAtIsEstimate}], savedAt } */
+function readHoldings() {
+  var combo = null;
+  try { combo = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null'); } catch (e) { /* 忽略 */ }
+  if (!combo || !Array.isArray(combo.items)) return { items: [], savedAt: null };
+  var checked = readCheckedMap();
+  var items = combo.items.filter(function (i) {
+    return Object.prototype.hasOwnProperty.call(checked, i.name);
+  }).map(function (i) {
+    var at = checked[i.name];
+    return {
+      name: i.name, qty: i.qty, unitCostTwd: i.unitCostTwd, defIndex: i.defIndex == null ? null : i.defIndex,
+      boughtAt: at || combo.savedAt || null,
+      boughtAtIsEstimate: !at            // 舊資料沒有勾選時間，用試算時間近似
+    };
+  });
+  return { items: items, savedAt: combo.savedAt || null };
+}
+
+/* 跨裝置：localStorage 不跨裝置，桌機買、手機收提醒是很常見的組合。
+   解法是讓行事曆事件自己攜帶品項清單，點連結時由網址參數還原。
+   格式沿用購物清單頁既有的 `名稱:數量:單價:defIndex`，多一個 bought 參數。
+
+   ⚠️ 網址參數是使用者看得到也改得動的，所以它只攜帶「買了什麼」，
+      **不攜帶任何價格計算結果**——賣價一律在頁面載入時重新查。 */
+function holdingsToParam(items) {
+  return items.map(function (i) {
+    return [i.name, i.qty, Math.round(i.unitCostTwd || 0), i.defIndex == null ? '' : i.defIndex]
+      .map(encodeURIComponent).join(':');
+  }).join(',');
+}
+function paramToHoldings(raw, boughtAt) {
+  if (!raw) return [];
+  return raw.split(',').map(function (part) {
+    var seg = part.split(':').map(decodeURIComponent);
+    return {
+      name: seg[0] || '未命名',
+      qty: Number(seg[1]) || 0,
+      unitCostTwd: Number(seg[2]) || 0,
+      defIndex: (seg[3] !== undefined && seg[3] !== '') ? seg[3] : null,
+      boughtAt: boughtAt || null,
+      boughtAtIsEstimate: false
+    };
+  }).filter(function (i) { return i.qty > 0; });
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

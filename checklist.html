@@ -103,10 +103,14 @@
                 <h2 class="t-sect">全部買完之後</h2>
                 <ol class="t-body c-ink2 flow-md" style="padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
                     <li>箱子會進到你的 Steam 庫存，滑鼠移上去會顯示 7 天後的可交易日期。</li>
-                    <li>到期後在 Steam 社群市場逐一上架，價格參考當下的最低掛牌價。</li>
-                    <li>成交後扣掉 Steam 手續費，餘額直接進錢包。</li>
+                    <li><strong>打勾的時間就是冷卻期的起點</strong>，賣出頁會依此倒數，到期提醒也是照這個算的。</li>
+                    <li>到期後在 Steam 社群市場逐一上架。賣出頁會告訴你該掛多少、實拿多少。</li>
                 </ol>
-                <a href="help.html" class="btn btn-text btn-sm flow-md">看完整操作指南</a>
+                <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
+                    <a href="sell.html" class="btn btn-primary btn-sm">去賣出頁看冷卻期</a>
+                    <a href="help.html" class="btn btn-text btn-sm">看完整操作指南</a>
+                </div>
+                <p id="cl-next-note" class="t-note c-ink3 flow-md"></p>
             </div>
         </section>
 
@@ -120,12 +124,19 @@
         /* 清單來源：試算頁在每次試算後把組合寫進 localStorage（key 如下）。
            也支援用網址參數覆寫，方便分享：?items=名稱:數量:單價:CSFloat_ID,...
            第四段的 CSFloat_ID 可省略（舊網址相容），省略時該列只會有 Steam 連結。 */
-        const COMBO_STORAGE_KEY = 'sah-combo-v1';
-        const CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+        /* COMBO_STORAGE_KEY / CHECK_STORAGE_KEY 已移到 site.js（賣出頁也要用），
+           這裡不再重複宣告。
+
+           ⚠️ 2026-08-13：勾選狀態從「名稱陣列」升級成「名稱 → 勾選時間」。
+              勾選的那一刻就是 7 天冷卻期的起點，賣出頁靠它算解鎖日。
+              舊格式（純陣列）仍讀得回來，只是沒有時間，賣出頁會退回用
+              試算時間估算並標示「日期為估算」——不要靜默假裝知道時間，
+              冷卻期算錯會讓人白等或提早去掛單。 */
 
         let items = [];
         let savedAt = null;
-        const checked = new Set();
+        let checkedMap = {};                                  // name -> ISO 時間 or null
+        const checked = { has: n => Object.prototype.hasOwnProperty.call(checkedMap, n) };
 
         function escapeHtml(str) {
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -157,14 +168,17 @@
             } catch (e) { /* 忽略 */ }
         }
 
-        function readChecked() {
-            try {
-                const raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || '[]');
-                if (Array.isArray(raw)) raw.forEach(n => checked.add(n));
-            } catch (e) { /* 忽略 */ }
-        }
-        function writeChecked() {
-            try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify([...checked])); } catch (e) { /* 忽略 */ }
+        function readChecked() { checkedMap = readCheckedMap(); }   // site.js，含舊格式相容
+        function writeChecked() { writeCheckedMap(checkedMap); }
+
+        function setChecked(name, on) {
+            if (on) {
+                // 已經勾過就保留原本的時間，不要因為重新渲染而把冷卻期重算
+                if (!checkedMap[name]) checkedMap[name] = new Date().toISOString();
+            } else {
+                delete checkedMap[name];
+            }
+            writeChecked();
         }
 
         // 清單的單列樣板
@@ -200,6 +214,24 @@
             prog.textContent = `${doneItems.length} / ${items.length}`;
             note.textContent = `共 ${doneQty} / ${totalQty} 件・已花約 NT$ ${spent.toFixed(0)}`;
             bar.style.width = (items.length ? (doneItems.length / items.length) * 100 : 0) + '%';
+
+            /* 勾了東西就把冷卻期的終點講出來。使用者在這一刻最需要知道的不是
+               「你買了幾件」，是「所以我什麼時候該回來」。 */
+            const next = document.getElementById('cl-next-note');
+            if (!next) return;
+            const times = doneItems.map(i => checkedMap[i.name]).filter(Boolean).sort();
+            if (!times.length) {
+                next.textContent = '還沒有打勾的品項。打勾之後這裡會顯示最早可以賣出的日期。';
+                return;
+            }
+            const firstUnlock = unlockAt(times[0]);
+            const lastUnlock = unlockAt(times[times.length - 1]);
+            next.textContent = firstUnlock && lastUnlock
+                ? ('最早 ' + firstUnlock.toLocaleDateString('zh-TW') + ' 可以賣'
+                   + (firstUnlock.toDateString() === lastUnlock.toDateString()
+                      ? '。' : '，最晚一項是 ' + lastUnlock.toLocaleDateString('zh-TW') + '。')
+                   + '賣出頁可以下載到期提醒，不用自己記。')
+                : '';
         }
 
         function renderEmpty() {
@@ -243,9 +275,8 @@
                 tr.style.opacity = isChecked ? '0.45' : '';
                 tr.innerHTML = renderChecklistRow(item, isChecked);
                 tr.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
-                    if (e.target.checked) { checked.add(item.name); tr.style.opacity = '0.45'; }
-                    else { checked.delete(item.name); tr.style.opacity = ''; }
-                    writeChecked();
+                    setChecked(item.name, e.target.checked);   // 勾選時間就是冷卻期起點
+                    tr.style.opacity = e.target.checked ? '0.45' : '';
                     updateProgress();
                 });
                 body.appendChild(tr);
@@ -255,7 +286,7 @@
         }
 
         document.getElementById('cl-reset').addEventListener('click', () => {
-            checked.clear();
+            checkedMap = {};
             writeChecked();
             render();
         });

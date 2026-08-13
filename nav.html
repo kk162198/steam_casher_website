@@ -63,6 +63,10 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
       <li><a id="nav-main" href="index.html" class="nav-link text-slate-300 hover:text-cyan-400">首頁</a></li>
       <li><a id="nav-calculator" href="calculator.html" class="nav-link text-slate-300 hover:text-cyan-400">試算</a></li>
       <li><a id="nav-marketlist" href="marketlist.html" class="nav-link text-slate-300 hover:text-cyan-400">市場</a></li>
+      <!-- 賣出頁必須在導覽列裡。使用者是七天後才回來的，那時候行事曆連結
+           可能已經找不到、localStorage 也可能在另一台裝置——如果導覽列
+           沒有入口，他就沒有路回到後半段流程。 -->
+      <li><a id="nav-sell" href="sell.html" class="nav-link text-slate-300 hover:text-cyan-400">賣出</a></li>
       <li><a id="nav-help" href="help.html" class="nav-link text-slate-300 hover:text-cyan-400">指南</a></li>
     </ul>
   </div>
@@ -100,6 +104,7 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
       <li><a class="m-link" data-page="main" href="index.html">首頁</a></li>
       <li><a class="m-link" data-page="calculator" href="calculator.html">試算</a></li>
       <li><a class="m-link" data-page="marketlist" href="marketlist.html">市場</a></li>
+      <li><a class="m-link" data-page="sell" href="sell.html">賣出</a></li>
       <li><a class="m-link" data-page="help" href="help.html">指南</a></li>
     </ul>
 

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="七天冷卻期倒數，到期後告訴你該掛多少、實拿多少、大概多久賣得掉。資料存在你自己的瀏覽器裡。">
+    <title>賣出｜Steam 加值幫手</title>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/sell.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/sell.html">
+    <meta property="og:title" content="賣出｜Steam 加值幫手">
+    <meta property="og:description" content="七天冷卻期倒數，到期後告訴你該掛多少、實拿多少、大概多久賣得掉。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="賣出｜Steam 加值幫手">
+    <meta name="twitter:description" content="七天冷卻期倒數，到期後告訴你該掛多少、實拿多少、大概多久賣得掉。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+/* 本頁專屬樣式（共用設計系統在 assets/style.css）*/
+        /* 冷卻期狀態標記。與流動性標籤刻意用不同形狀（方角 vs 圓角），
+           因為它們講的是不同維度：一個是「什麼時候能賣」，一個是「賣不賣得掉」。 */
+        .cd-chip{
+            display:inline-flex;align-items:center;gap:6px;
+            padding:3px 8px;border-radius:6px;
+            border:1px solid var(--line);background:rgba(30,41,59,.35);
+            font-size:12px;line-height:1.5;white-space:nowrap;color:var(--ink2);
+            font-variant-numeric:tabular-nums;
+        }
+        .cd-chip[data-state="ready"]{color:var(--pos);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08)}
+        .cd-chip[data-state="locked"]{color:var(--warn);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.08)}
+        .cd-chip[data-state="unknown"]{color:var(--ink3);border-style:dashed}
+        /* 建議掛價：這一頁的主角，要一眼看得到 */
+        .ask{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+        /* 回填成交價的輸入框 */
+        .fill-in{
+            width:7em;padding:6px 8px;border-radius:6px;
+            border:1px solid var(--line);background:var(--base);color:var(--ink);
+            font:inherit;font-size:13px;font-variant-numeric:tabular-nums;
+        }
+        .fill-in:focus{outline:2px solid var(--brand);outline-offset:1px}
+    </style>
+</head>
+<body data-page="sell">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
+
+    <main class="wrap" style="padding-bottom:56px">
+
+        <header style="padding-top:48px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+            <div>
+                <h1 class="t-page">賣出</h1>
+                <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                    冷卻期到了之後，這頁告訴你每個品項該掛多少、實拿多少、大概多久賣得掉。
+                    清單來自你的購物清單，存在你自己的瀏覽器裡，沒有上傳到任何地方。
+                </p>
+            </div>
+            <a href="checklist.html" class="btn btn-secondary btn-sm">回購物清單</a>
+        </header>
+
+        <!-- ① 冷卻期總覽 -->
+        <section class="flow-lg">
+            <!-- ⚠️ .stat-grid 本身不是 grid，版面靠的是後面那幾個 Tailwind class。
+                 只寫 .stat-grid 的話四張卡會直向堆疊。 -->
+            <div class="stat-grid grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div class="card card-compact stat">
+                    <div class="stat-label">最近解鎖</div>
+                    <div id="sl-next" class="stat-value stat-value-md">--</div>
+                    <div id="sl-next-note" class="stat-note">還沒有持有紀錄。</div>
+                </div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">可以賣的品項</div>
+                    <div id="sl-ready" class="stat-value stat-value-md">--</div>
+                    <div class="stat-note">冷卻期已過、現在就能上架的。</div>
+                </div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">全部賣掉預計實拿</div>
+                    <div id="sl-total" class="stat-value stat-value-md">--</div>
+                    <div class="stat-note">依目前價格估算，已扣 Steam 手續費。</div>
+                </div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">下一檔特賣</div>
+                    <div id="sl-sale" class="stat-value stat-value-md">--</div>
+                    <div id="sl-sale-note" class="stat-note">餘額拿到之後可以留到特賣再用。</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ② 行事曆提醒 -->
+        <section class="flow-md">
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+                    <div>
+                        <h2 class="t-sub">加進行事曆，不用記</h2>
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:38em">
+                            七天後才能賣，中間很容易忘。下載的檔案匯入手機或電腦的行事曆就會提醒你，
+                            <strong>不需要註冊、不需要留 email</strong>，提醒事項裡會帶著回到這一頁的連結，換裝置也打得開。
+                        </p>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                        <button type="button" id="sl-ics-cooldown" class="btn btn-primary btn-sm" disabled>冷卻期到期提醒</button>
+                        <a href="sales.ics" download class="btn btn-secondary btn-sm">特賣倒數行事曆</a>
+                    </div>
+                </div>
+                <p class="t-note c-ink3 flow-md" id="sl-ics-note">
+                    特賣倒數是整年時程，一次匯入就好；提醒設在特賣開始前 10 天——冷卻期要 7 天，看到特賣才開始買一定來不及。
+                </p>
+            </div>
+        </section>
+
+        <!-- ③ 持有清單 -->
+        <section class="flow-md">
+            <div class="card card-flush">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between">
+                    <div>
+                        <div class="t-sub">你手上的箱子</div>
+                        <div id="sl-source" class="spec c-ink3">讀取中...</div>
+                    </div>
+                    <span id="sl-chip" class="ts-chip" data-source="steam"></span>
+                </div>
+                <div style="padding:8px 20px 20px;overflow-x:auto">
+                    <table class="rt" id="sell-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">品項</th>
+                                <th scope="col">冷卻期</th>
+                                <th scope="col">建議掛價／你實拿</th>
+                                <th scope="col">流動性</th>
+                                <th scope="col">實際成交價</th>
+                                <th scope="col">前往交易</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sl-body">
+                            <tr><td class="c-ink3" colspan="6" style="padding:32px 0;text-align:center">讀取中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ④ 風險提示條 -->
+        <section class="flow-lg">
+            <div class="risk-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span>建議掛價是<strong>目前</strong>的市場快照，你實際上架時價格可能已經變了，請以 Steam 當下顯示的為準。冷卻期內物品帶有黃色盾牌，賣方可反轉交易。<a href="risks.html">看完整風險說明</a></span>
+            </div>
+        </section>
+
+        <!-- ⑤ 怎麼掛 -->
+        <section class="sec">
+            <div class="card">
+                <h2 class="t-sect">在 Steam 上架的時候</h2>
+                <ol class="t-body c-ink2 flow-md" style="padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
+                    <li>到 Steam 庫存點箱子、按「出售」。</li>
+                    <li>價格填成跟目前最低掛牌價一樣，或低 1 元。<strong>本站顯示的是近期中位成交價，跟當下最低掛牌價會有幾個百分點的出入</strong>，以 Steam 畫面上的為準。</li>
+                    <li>Steam 會顯示「您將收到」那一行，<strong>那才是扣完手續費你實際拿到的錢</strong>，不要看上面的總價。</li>
+                    <li>成交後餘額直接進錢包。賣完可以回來這裡填實際成交價，對照當初的估算。</li>
+                </ol>
+                <a href="help.html" class="btn btn-text btn-sm flow-md">看完整操作指南</a>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
+
+    <script src="assets/site.js"></script>
+    <script>
+        /* ════════════════════════════════════════════════════════════
+           賣出頁。網站原本只服務買進那一端——使用者買完之後就消失在
+           七天的空白裡，回來時得自己決定掛多少錢。這一頁補上後半段。
+
+           資料來源刻意沿用購物清單那一套，不另建一份：
+             sah-combo-v1              買了什麼（試算頁寫入）
+             sah-checklist-checked-v1  哪些買到了、什麼時候買到
+             sah-sold-v1              （本頁新增）實際成交價，只存本機
+
+           ⚠️ 不需要帳號，也**不會**把任何東西上傳。回填的成交價目前
+              只留在瀏覽器，之後要不要匿名寫回資料庫是另一個決定。
+           ════════════════════════════════════════════════════════════ */
+
+        const SOLD_STORAGE_KEY = 'sah-sold-v1';
+
+        let holdings = [];
+        let fromParam = false;
+        let priceMap = {};   // name -> { steam_price, steam_volume, steam_updated_at }
+        let rate = 32.5;
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        /* ── 實際成交價：只存本機 ───────────────────────────── */
+        function readSold() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(SOLD_STORAGE_KEY) || '{}');
+                return (raw && typeof raw === 'object') ? raw : {};
+            } catch (e) { return {}; }
+        }
+        function writeSold(map) {
+            try { localStorage.setItem(SOLD_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
+        }
+
+        /* ── 讀持有清單 ─────────────────────────────────────
+           優先讀網址參數：從行事曆提醒點進來時，資料是事件自己帶的，
+           那台裝置的 localStorage 可能根本沒有東西（桌機買、手機收提醒）。 */
+        function loadHoldings() {
+            const params = new URLSearchParams(location.search);
+            const raw = params.get('items');
+            if (raw) {
+                holdings = paramToHoldings(raw, params.get('bought'));
+                fromParam = true;
+                document.getElementById('sl-source').textContent =
+                    '這份清單來自行事曆提醒的連結（' + holdings.length + ' 項）';
+                return;
+            }
+            const h = readHoldings();
+            holdings = h.items;
+            const est = holdings.some(i => i.boughtAtIsEstimate);
+            document.getElementById('sl-source').textContent = holdings.length
+                ? ('來自你的購物清單，' + holdings.length + ' 項已標記買到'
+                   + (est ? '・部分項目沒有勾選時間，冷卻期用試算時間估算' : ''))
+                : '購物清單裡還沒有標記為「已買到」的品項';
+        }
+
+        /* ── 查目前價格 ─────────────────────────────────────
+           只查持有的那幾項，不整表撈。 */
+        async function loadPrices() {
+            const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
+            const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
+            const CLIENT = supabase.createClient(supabaseUrl, supabaseKey);
+
+            try {
+                const r = await fetch('https://open.er-api.com/v6/latest/USD');
+                const j = await r.json();
+                if (j && j.rates && j.rates.TWD) rate = j.rates.TWD;
+            } catch (e) { /* 匯率抓不到就用預設 32.5，不影響主要功能 */ }
+
+            if (!holdings.length) return;
+            const names = holdings.map(i => i.name);
+            const { data, error } = await CLIENT
+                .from('cases_data')
+                .select('name,steam_price,steam_income,steam_volume,steam_updated_at')
+                .in('name', names);
+            if (error) throw error;
+            (data || []).forEach(row => { priceMap[row.name] = row; });
+        }
+
+        /* ── 單列樣板 ──────────────────────────────────────── */
+        function renderSellRow(item, sold) {
+            const p = priceMap[item.name];
+            const cd = cooldownText(item.boughtAt);
+            const u = unlockAt(item.boughtAt);
+
+            const askTwd = p && p.steam_price ? Number(p.steam_price) * rate : null;
+            const netTwd = p && p.steam_income ? Number(p.steam_income) * rate : null;
+            const totalNet = netTwd != null ? netTwd * item.qty : null;
+
+            const cdNote = cd.state === 'locked' && u
+                ? '<span class="t-note c-ink3" style="display:block">' + u.toLocaleDateString('zh-TW') + ' 解鎖</span>'
+                : (item.boughtAtIsEstimate
+                    ? '<span class="t-note c-ink3" style="display:block">日期為估算</span>' : '');
+
+            /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
+            const priceCell = askTwd == null
+                ? '<span class="c-ink3 t-note">查不到目前價格</span>'
+                : '<span class="cell-stack">'
+                  + '<span class="ask">NT$ ' + askTwd.toFixed(0) + '</span>'
+                  + '<span class="t-note c-ink3">實拿 NT$ ' + netTwd.toFixed(0)
+                  + (item.qty > 1 ? '／個・共 NT$ ' + totalNet.toFixed(0) : '') + '</span>'
+                  + '</span>';
+
+            const soldVal = sold[item.name] != null ? sold[item.name] : '';
+            /* 回填欄只在解鎖後才給填——還在冷卻期就填成交價，代表填錯了 */
+            const soldCell = cd.state === 'locked'
+                ? '<span class="c-ink3 t-note">賣掉後再填</span>'
+                : '<label style="display:inline-flex;align-items:center;gap:6px">'
+                  + '<span class="c-ink3 t-note">NT$</span>'
+                  + '<input type="number" inputmode="decimal" min="0" step="1" class="fill-in" data-sold-for="'
+                  + escapeHtml(item.name) + '" value="' + escapeHtml(soldVal)
+                  + '" aria-label="' + escapeHtml(item.name) + ' 的實際成交價（每個）" placeholder="每個">'
+                  + '</label>';
+
+            return `
+                <td class="rt-key" data-label="品項">
+                    <a href="case.html?name=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
+                    <span class="t-note c-ink3" style="display:block;font-weight:400">${item.qty} 個</span>
+                </td>
+                <td data-label="冷卻期">
+                    <span class="cell-stack">
+                        <span class="cd-chip" data-state="${cd.state}">${escapeHtml(cd.text)}</span>
+                        ${cdNote}
+                    </span>
+                </td>
+                <td data-label="建議掛價／你實拿">${priceCell}</td>
+                <td data-label="流動性">${p ? liquidityChipHtml(p.steam_volume) : '<span class="c-ink3 t-note">--</span>'}</td>
+                <td data-label="實際成交價">${soldCell}</td>
+                <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
+        }
+
+        function renderEmpty(message) {
+            document.getElementById('sl-body').innerHTML = `
+                <tr><td colspan="6" style="padding:40px 16px;text-align:center">
+                    <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
+                        <rect x="8" y="10" width="56" height="38" rx="4" stroke="#1e293b" stroke-width="2"/>
+                        <path d="M8 22h56" stroke="#1e293b" stroke-width="2"/>
+                        <circle cx="36" cy="34" r="8" stroke="#64748b" stroke-width="2"/>
+                        <path d="M36 30v4l3 2" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <div class="t-sub flow-sm">還沒有可以賣的東西</div>
+                    <p class="t-aux c-ink2" style="margin:8px auto 0;max-width:28em">${escapeHtml(message)}</p>
+                    <div class="flow-md" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                        <a href="calculator.html" class="btn btn-primary btn-sm">去試算</a>
+                        <a href="checklist.html" class="btn btn-secondary btn-sm">去購物清單</a>
+                    </div>
+                </td></tr>`;
+        }
+
+        /* ── 總覽 ──────────────────────────────────────────── */
+        function renderSummary() {
+            const readyItems = holdings.filter(i => cooldownText(i.boughtAt).state === 'ready');
+            const locked = holdings.filter(i => cooldownText(i.boughtAt).state === 'locked');
+
+            document.getElementById('sl-ready').textContent =
+                holdings.length ? (readyItems.length + ' / ' + holdings.length) : '--';
+
+            // 最近解鎖：還在冷卻的裡面，最早解鎖的那一個
+            const nextUnlock = locked
+                .map(i => unlockAt(i.boughtAt))
+                .filter(Boolean)
+                .sort((a, b) => a - b)[0];
+            const nextEl = document.getElementById('sl-next');
+            const nextNote = document.getElementById('sl-next-note');
+            if (!holdings.length) {
+                nextEl.textContent = '--';
+                nextNote.textContent = '還沒有持有紀錄。';
+            } else if (!nextUnlock) {
+                nextEl.textContent = '全部已解鎖';
+                nextEl.style.color = 'var(--pos)';
+                nextNote.textContent = '手上的箱子都過了 7 天冷卻期，現在都能上架。';
+            } else {
+                const d = Math.ceil((nextUnlock - Date.now()) / 86400000);
+                nextEl.textContent = d + ' 天';
+                nextEl.style.color = 'var(--warn)';
+                nextNote.textContent = nextUnlock.toLocaleDateString('zh-TW') + ' 解鎖，共 ' + locked.length + ' 項還在冷卻期。';
+            }
+
+            // 全部賣掉預計實拿
+            let total = 0, missing = 0;
+            holdings.forEach(i => {
+                const p = priceMap[i.name];
+                if (p && p.steam_income) total += Number(p.steam_income) * rate * i.qty;
+                else missing++;
+            });
+            document.getElementById('sl-total').textContent =
+                holdings.length ? ('NT$ ' + total.toFixed(0)) : '--';
+            if (missing) {
+                document.querySelector('#sl-total').nextElementSibling.textContent =
+                    '有 ' + missing + ' 項查不到價格，沒有算進去。';
+            }
+
+            // 下一檔特賣
+            const sale = nextSale();
+            const saleEl = document.getElementById('sl-sale');
+            const saleNote = document.getElementById('sl-sale-note');
+            if (!sale) {
+                /* 時程表過期時要說實話，不要留白或亂猜——使用者會拿它決定買進時機 */
+                saleEl.textContent = '尚未公布';
+                saleNote.textContent = 'Valve 還沒公布下一年度的特賣時程，公布後這裡會更新。';
+            } else {
+                const days = Math.ceil((Date.parse(sale.start) - Date.now()) / 86400000);
+                const buyBy = buyByDisplayDate(sale);   // 整天，當天買都來得及
+                saleEl.textContent = days > 0 ? (sale.name + ' ' + days + ' 天') : (sale.name + '進行中');
+                saleNote.textContent = days > 0
+                    ? ('最晚 ' + buyBy.toLocaleDateString('zh-TW') + ' 當天買進，才來得及在特賣期間用到餘額。')
+                    : ('到 ' + new Date(Date.parse(sale.end)).toLocaleDateString('zh-TW') + ' 結束。');
+            }
+
+            // 資料時間標籤：取持有品項裡最舊的那一筆
+            const times = holdings.map(i => priceMap[i.name] && priceMap[i.name].steam_updated_at)
+                .filter(Boolean).sort();
+            const chip = document.getElementById('sl-chip');
+            if (times.length) {
+                chip.setAttribute('data-updated', times[0]);
+                setNavStatusFromTime(times[0], 'steam');
+            } else {
+                chip.style.display = 'none';
+            }
+        }
+
+        /* ── 行事曆：冷卻期到期提醒 ─────────────────────────
+           每個解鎖日一個全天事件（同一天買的合併成一則，不要洗版）。
+           事件裡帶著回到這一頁的連結與品項清單，換裝置也打得開。 */
+        /* ⚠️ 日期一定要用**使用者當地時間**分組，不能用 UTC。
+
+           解鎖時刻是「買進時間 + 7 天」的精確瞬間。若用 toISOString() 取日期，
+           一個台灣時間 8/14 凌晨 1 點解鎖的品項會被算成 UTC 的 8/13——
+           提醒早一天響，使用者跑去 Steam 卻發現東西還鎖著。
+           **這個功能存在的唯一目的就是把人準時叫回來，早一天等於功能是壞的。**
+
+           而且表格那邊用的是 toLocaleDateString（當地時間），兩邊會對不起來。
+           所以這裡一律走當地時間，並且無條件取「解鎖瞬間所在的那一整天」，
+           寧可晚幾小時提醒，也不要早一天。 */
+        function localDayKey(d) {
+            const p = n => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        }
+
+        function buildCooldownIcs() {
+            const locked = holdings.filter(i => cooldownText(i.boughtAt).state === 'locked');
+            const src = locked.length ? locked : holdings;   // 全解鎖了就把全部列進去當紀錄
+            const byDay = {};
+            src.forEach(i => {
+                const u = unlockAt(i.boughtAt);
+                if (!u) return;                              // 沒有購買時間就不編事件，寧可少一則也不要給錯日期
+                const key = localDayKey(u);
+                (byDay[key] = byDay[key] || []).push(i);
+            });
+            const base = location.href.split('?')[0];
+            const events = Object.keys(byDay).sort().map(day => {
+                const group = byDay[day];
+                const qty = group.reduce((s, i) => s + i.qty, 0);
+                const url = base + '?items=' + encodeURIComponent(holdingsToParam(group))
+                          + '&bought=' + encodeURIComponent(group[0].boughtAt || '');
+                const [y, m, d] = day.split('-').map(Number);
+                return {
+                    uid: 'cooldown-' + day + '-' + Math.random().toString(36).slice(2, 8) + '@steam-casher',
+                    // icsDate() 讀的是 getUTC*，所以用 Date.UTC 組出「UTC 欄位剛好等於當地日期」的值
+                    start: new Date(Date.UTC(y, m - 1, d)),
+                    allDayDays: 1,
+                    summary: '可以賣了：' + qty + ' 個箱子解鎖',
+                    description: group.map(i => '・' + i.name + ' ×' + i.qty).join('\n')
+                        + '\n\n7 天冷卻期到期，可以在 Steam 社群市場上架了。'
+                        + '\n點下面的連結看目前該掛多少、實拿多少。\n' + url,
+                    url: url,
+                    alarmDaysBefore: 0
+                };
+            });
+            return events.length ? icsCalendar(events, 'Steam 加值幫手｜冷卻期到期') : null;
+        }
+
+        /* ── 綁定 ──────────────────────────────────────────── */
+        function bindSoldInputs() {
+            document.querySelectorAll('[data-sold-for]').forEach(el => {
+                el.addEventListener('change', () => {
+                    const map = readSold();
+                    const v = el.value.trim();
+                    if (v === '') delete map[el.dataset.soldFor];
+                    else map[el.dataset.soldFor] = Number(v);
+                    writeSold(map);
+                });
+            });
+        }
+
+        document.getElementById('sl-ics-cooldown').addEventListener('click', () => {
+            const text = buildCooldownIcs();
+            const note = document.getElementById('sl-ics-note');
+            if (!text) {
+                note.textContent = '沒有可以做成提醒的品項——需要知道購買時間才算得出解鎖日。到購物清單重新勾選一次就會記錄時間。';
+                return;
+            }
+            downloadIcs(text, 'steam-casher-cooldown.ics');
+            note.textContent = '已下載。用手機的話，點開檔案就會問你要不要加進行事曆。';
+        });
+
+        /* ── 主流程 ────────────────────────────────────────── */
+        async function main() {
+            loadHoldings();
+            if (!holdings.length) {
+                renderEmpty('先到試算頁算出組合，再到購物清單把買到的品項打勾。打勾的時間就是 7 天冷卻期的起點。');
+                renderSummary();
+                return;
+            }
+            document.getElementById('sl-ics-cooldown').disabled = false;
+            try {
+                await loadPrices();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('sl-source').textContent += '・價格讀取失敗，只顯示冷卻期';
+            }
+            const sold = readSold();
+            const body = document.getElementById('sl-body');
+            body.innerHTML = '';
+            /* 排序：先列可以賣的，再依解鎖日由近到遠——使用者來這頁是想知道
+               「現在能做什麼」，不是想看完整庫存清單。 */
+            holdings.slice().sort((a, b) => {
+                const ua = unlockAt(a.boughtAt), ub = unlockAt(b.boughtAt);
+                if (!ua) return 1;
+                if (!ub) return -1;
+                return ua - ub;
+            }).forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = renderSellRow(item, sold);
+                body.appendChild(tr);
+            });
+            renderSummary();
+            renderTimestamps(document);
+            bindSoldInputs();
+        }
+        main();
+    </script>
+</body>
+</html>
