@@ -106,7 +106,11 @@
             background: var(--base); border: 1px solid var(--line); border-radius: 12px;
             padding: 20px; display: flex; flex-direction: column; gap: 16px;
         }
-        .calc-stats { margin-top: auto; }
+        /* margin-top:auto 是為了把這組數字推到 .calc-result 這個 flex 欄的底部，
+           只在那個容器內有意義。⚠️ 一定要 scope：不 scope 的話它會蓋掉別處
+           .calc-stats 的 .flow-* 間距（class 特異度相同，而本頁 style 在 style.css
+           之後載入，所以後者輸）——2026-08-13 在第②節踩過。 */
+        .calc-result .calc-stats { margin-top: auto; }
         .calc-stat {
             display: flex; align-items: baseline; justify-content: space-between;
             gap: 16px; padding: 10px 0; border-top: 1px solid var(--line);
@@ -222,12 +226,49 @@
             </div>
         </section>
 
-        <!-- ② 預期區間 -->
+        <!-- ② 預期區間
+             2026-08-13 改寫。原本寫「還沒有累積足夠的歷史資料，所以先不給區間數字」，
+             但其實已經有 25 筆自用帳本的實際成交紀錄可以講——講不出來的只是「同類品項的
+             大盤波動範圍」，不是「實際結果會偏多少」。原本的寫法等於把已經知道的事
+             也一起藏起來了。
+
+             ⚠️ 這裡的數字都是**實際成交 vs 當初試算**的落差，樣本 n=25、2026 年、
+                全部來自本站作者一人。這個限制必須寫出來，不能包裝成市場統計。 -->
         <section class="flow-md">
             <div class="card">
-                <h2 class="t-sub">上面的數字會變</h2>
+                <h2 class="t-sub">上面的數字會變，請自己留緩衝</h2>
                 <p id="range-note" class="t-body c-ink2 flow-xs">
-                    這是目前的價格快照。你實際賣出的是 7 天後的價格，可能高於也可能低於現在。我們還沒有累積足夠的歷史資料，所以這裡先不給區間數字；等資料夠了會直接顯示過去 7 天同類品項的實際波動範圍。
+                    這是<strong>目前</strong>的價格快照。你實際賣出的是 7 天後的價格，可能高於也可能低於現在。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    我們把自己 2026 年的 25 筆實際交易拿來對照當初的試算，結果是：
+                </p>
+                <div class="calc-stats flow-md">
+                    <div class="calc-stat">
+                        <span>多數落在</span>
+                        <span class="t-sub num c-ink">±5% 以內</span>
+                    </div>
+                    <div class="calc-stat">
+                        <span>平均落差</span>
+                        <span class="t-sub num c-ink">−1.2%</span>
+                    </div>
+                    <div class="calc-stat">
+                        <span>最差的一筆</span>
+                        <span class="t-sub num c-warn">−16%</span>
+                    </div>
+                </div>
+                <p class="t-body c-ink2 flow-md">
+                    也就是說<strong>平均而言試算是準的，但單筆會跳</strong>。25 筆裡有 17 筆落在 ±5% 內、24 筆落在 ±10% 內，
+                    只有 1 筆低於 −10%。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    <strong>實務上的意思：買的品項種類越少、金額越集中，越可能剛好碰到那個 −16%。</strong>
+                    如果你是拿這筆錢去買一個非買不可的東西，請照最差情況抓，不要照上面的數字抓剛好。
+                </p>
+                <p class="t-note c-ink3 flow-md">
+                    樣本說明：n=25，2026 年，全部來自本站作者自己的交易紀錄，不是市場統計。
+                    比較基準是「實際入帳金額 vs 當初試算的實拿金額」，兩邊都是扣完手續費的淨額。
+                    <a href="transparency.html">看我們怎麼算的</a>
                 </p>
             </div>
         </section>
