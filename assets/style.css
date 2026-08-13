@@ -125,6 +125,42 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .ts-chip svg{flex:none}
 .ts-chip .ts-src{color:inherit;opacity:.85}
 
+/* ── 1b. 流動性標籤 ─────────────────────────
+   對應 DECISIONS.md 4.8：品項之間的流動性差 3,901 倍，而且與單價反向。
+   使用者看得到倍率，看不到「這個品項一天只有 25 個人買」——這一組樣式
+   就是為了把後者講出來。
+
+   配色刻意與 .badge 分開：.badge 講的是「划不划算」，這裡講的是
+   「賣不賣得掉」，兩者不是同一個維度，混用同一套顏色會讓人誤讀成
+   「低流動 = 不划算」。低流動的品項往往倍率更好，那正是危險的地方。 */
+.liq-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(30,41,59,.35);
+  font-size:12px;line-height:1.5;color:var(--ink2);white-space:nowrap;
+}
+.liq-chip .liq-dot{width:6px;height:6px;border-radius:999px;background:var(--ink3);flex:none}
+.liq-chip[data-tier="high"]{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08);color:var(--pos)}
+.liq-chip[data-tier="high"] .liq-dot{background:var(--pos)}
+.liq-chip[data-tier="mid"]{color:var(--ink2)}
+.liq-chip[data-tier="mid"] .liq-dot{background:var(--ink2)}
+.liq-chip[data-tier="low"]{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:var(--warn)}
+.liq-chip[data-tier="low"] .liq-dot{background:var(--warn)}
+.liq-chip[data-tier="verylow"]{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1);color:var(--neg)}
+.liq-chip[data-tier="verylow"] .liq-dot{background:var(--neg)}
+.liq-chip[data-tier="unknown"]{border-style:dashed;color:var(--ink3)}
+.liq-chip[data-tier="unknown"] .liq-dot{display:none}
+/* 原始數字。分級讓人看得懂，數字讓人可以自己驗證——兩個都要有。 */
+.liq-count{display:block;margin-top:2px;font-variant-numeric:tabular-nums}
+/* 極低流動性的整列警示。只加標記、不動排序：排序仍然依倍率，
+   由使用者自己判斷。網站的工作是把事實講出來，不是替他決定。 */
+.liq-warn{
+  display:flex;align-items:flex-start;gap:6px;
+  margin-top:6px;font-size:12px;line-height:1.6;color:var(--neg);
+  white-space:normal;max-width:22em;
+}
+.liq-warn svg{flex:none;margin-top:3px}
+
 /* ── 2. 划算度徽章 ──────────────────────── */
 .badge{
   display:inline-flex;align-items:center;gap:6px;flex:none;

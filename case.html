@@ -78,7 +78,7 @@
                 <div class="card card-compact stat">
                     <div class="stat-label">Steam 賣價（買家付）</div>
                     <div id="case-steam" class="stat-value stat-value-md">--</div>
-                    <div class="stat-note">目前市場最低掛牌價。你實拿 <span id="case-income" class="num c-ink">--</span>（＝賣價 ÷ 1.15）。</div>
+                    <div class="stat-note">Steam 近期的<strong>中位成交價</strong>，不是當下最低掛牌價。你實拿 <span id="case-income" class="num c-ink">--</span>（＝賣價 ÷ 1.15）。</div>
                     <div class="flow-xs"><span id="chip-steam" class="ts-chip" data-source="steam"></span></div>
                 </div>
             </div>
@@ -103,6 +103,30 @@
                     <div id="case-inventory-bar" style="width:0%;height:8px;border-radius:999px;background:var(--brand);transition:width .3s"></div>
                 </div>
                 <p id="case-inventory-note" class="t-note c-ink3 flow-xs"></p>
+            </div>
+        </section>
+
+        <!-- 賣出流動性（2026-08-13 新增，對應 DECISIONS.md 4.8）
+             刻意緊接在「庫存深度」後面：那一段講的是「買得到幾個」，
+             這一段講的是「賣得掉幾個」。兩件事都會卡住資金，而網站
+             原本只講了前者。 -->
+        <section class="flow-md">
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+                    <div>
+                        <h2 class="t-sub">賣出流動性</h2>
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
+                            這個品項近 24 小時在 Steam 市場賣掉幾個。買得到不等於賣得掉——成交量低的品項，
+                            你掛上去可能好幾天沒人買，資金被鎖的時間會遠超過 7 天冷卻期。
+                        </p>
+                    </div>
+                    <div style="text-align:right">
+                        <div id="case-volume" class="stat-value num">--</div>
+                        <div class="t-note c-ink3">近 24 小時成交</div>
+                    </div>
+                </div>
+                <div class="flow-md" id="case-liquidity"></div>
+                <p id="case-liquidity-note" class="t-note c-ink3 flow-xs"></p>
             </div>
         </section>
 
@@ -257,7 +281,7 @@
             document.getElementById('case-name').textContent = caseName || '找不到這個品項';
             document.getElementById('case-verdict').innerHTML =
                 `<span class="c-neg">${escapeHtml(message)}</span>`;
-            ['case-ratio', 'case-profit', 'case-cost', 'case-steam', 'case-income', 'case-inventory'].forEach(id => {
+            ['case-ratio', 'case-profit', 'case-cost', 'case-steam', 'case-income', 'case-inventory', 'case-volume'].forEach(id => {
                 document.getElementById(id).textContent = '--';
             });
             document.querySelectorAll('.ts-chip').forEach(c => { c.style.display = 'none'; });
@@ -326,6 +350,19 @@
                     : (inventory > 0
                         ? '庫存偏少，數量多的時候後面幾件可能要用比較高的價格買。'
                         : '目前最低價位沒有掛單。');
+
+                /* 賣出流動性。分級 + 原始數字，不做「幾小時賣掉」的推估——
+                   那需要假設你的掛單佔成交量的比例，是推測不是資料。 */
+                const liq = liquidityTier(item.steam_volume);
+                document.getElementById('case-volume').textContent =
+                    liq.volume === null ? '--' : formatVolume(liq.volume);
+                document.getElementById('case-liquidity').innerHTML = liquidityChipHtml(item.steam_volume);
+                /* 只有「值得買但賣不掉」才把話講重。倍率已經低於 1 的品項
+                   不需要再警告一次，那會變成雜訊。 */
+                document.getElementById('case-liquidity-note').textContent =
+                    (liq.key === 'verylow' && ratio >= 1)
+                        ? liq.note + '這個品項倍率不錯，但買多了會很難出清——這正是最容易踩到的組合。'
+                        : liq.note;
 
                 const discount = ratio > 0 ? (1 - 1 / ratio) * 100 : 0;
                 document.getElementById('case-verdict').textContent = ratio >= 1

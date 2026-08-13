@@ -113,10 +113,11 @@
             <details class="sm-only card" style="padding:16px;margin-bottom:12px">
                 <summary class="t-aux c-ink2" style="cursor:pointer;min-height:44px;display:flex;align-items:center">欄位是什麼意思？</summary>
                 <dl class="t-aux c-ink2 flow-sm" style="display:flex;flex-direction:column;gap:10px">
-                    <div><dt class="c-ink" style="font-weight:600">Steam 售價</dt><dd class="flow-0">目前 Steam 社群市場上的最低掛牌價，買家付的錢。</dd></div>
+                    <div><dt class="c-ink" style="font-weight:600">Steam 售價</dt><dd class="flow-0">Steam 社群市場近期的<strong>中位成交價</strong>，買家付的錢。不是當下的最低掛牌價。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">CSFloat 成本</dt><dd class="flow-0">你在 CSFloat 買一個要付多少，含入金費的保守估計。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">稅後淨利</dt><dd class="flow-0">賣掉一個實際多拿到多少，已扣 Steam 15% 手續費。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">實拿倍率</dt><dd class="flow-0">花 1 元換到多少 Steam 餘額。低於 1 代表會虧。</dd></div>
+                    <div><dt class="c-ink" style="font-weight:600">流動性</dt><dd class="flow-0">這個品項近 24 小時在 Steam 賣掉幾個。數字越小，你掛上去越可能等好幾天。</dd></div>
                 </dl>
             </details>
 
@@ -149,7 +150,7 @@
                                     <button type="button" class="th-info" aria-expanded="false" aria-label="Steam 售價與你實拿的說明">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01" stroke-linecap="round"/></svg>
                                     </button>
-                                    <span class="th-note">上：目前市場最低掛牌價，買家付的錢。下：賣掉一個實際入帳多少，＝售價 ÷ 1.15。</span>
+                                    <span class="th-note">上：Steam 近期的中位成交價，買家付的錢（不是當下最低掛牌價）。下：賣掉一個實際入帳多少，＝售價 ÷ 1.15。</span>
                                 </th>
                                 <th scope="col">
                                     <button type="button" class="th-sort" data-sort-key="cost" data-sort-type="num">CSFloat 成本
@@ -178,16 +179,28 @@
                                     </button>
                                     <span class="th-note">花 1 元換到多少餘額。低於 1 代表會虧。</span>
                                 </th>
+                                <!-- 流動性欄（2026-08-13 新增，對應 DECISIONS.md 4.8）
+                                     刻意排在「實拿倍率」右邊：倍率最高的品項往往流動性最差，
+                                     兩欄相鄰才看得到這個反向關係。 -->
+                                <th scope="col">
+                                    <button type="button" class="th-sort" data-sort-key="volume" data-sort-type="num">流動性
+                                        <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                    <button type="button" class="th-info" aria-expanded="false" aria-label="流動性的說明">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01" stroke-linecap="round"/></svg>
+                                    </button>
+                                    <span class="th-note">近 24 小時在 Steam 賣掉幾個。數字越小，你掛上去越可能等好幾天，資金被鎖的時間會超過 7 天冷卻期。</span>
+                                </th>
                                 <th scope="col">資料時間</th>
                                 <th scope="col">前往交易</th>
                             </tr>
                         </thead>
                         <tbody id="case-table-body">
-                            <tr><td colspan="7" style="padding:12px 0"><div class="skel" style="height:14px;width:100%"></div></td></tr>
-                            <tr><td colspan="7" style="padding:12px 0"><div class="skel" style="height:14px;width:92%"></div></td></tr>
-                            <tr><td colspan="7" style="padding:12px 0"><div class="skel" style="height:14px;width:96%"></div></td></tr>
-                            <tr><td colspan="7" style="padding:12px 0"><div class="skel" style="height:14px;width:88%"></div></td></tr>
-                            <tr><td colspan="7" style="padding:12px 0"><div class="skel" style="height:14px;width:94%"></div></td></tr>
+                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:100%"></div></td></tr>
+                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:92%"></div></td></tr>
+                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:96%"></div></td></tr>
+                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:88%"></div></td></tr>
+                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:94%"></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -244,12 +257,29 @@
                 .replace(/"/g, '&quot;');
         }
 
+        /* 極低流動性的警示（2026-08-13 新增）。
+           放在「實拿倍率」那一格底下而不是流動性那一格，是刻意的：
+           使用者的視線停在倍率上——那是他做決定的數字——警示要出現在
+           他看的地方，不是出現在他可能略過的欄位裡。
+
+           ⚠️ 只警示、不改排序。排序仍然依倍率，由使用者自己判斷。
+              網站的工作是把事實講出來，不是替他決定。 */
+        const LIQ_WARN_HTML =
+            '<span class="liq-warn">'
+          + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">'
+          + '<path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>'
+          + '<span>倍率高但一天成交不到 100 個，可能好幾天賣不掉。</span>'
+          + '</span>';
+
         // ① 主資料表的單列樣板。
         //    item：Supabase 原始資料列
         //    vals：{ steamPrice, steamIncome, csfloatCost, netProfit, ratio, roiPercentage }
         function renderCaseRow(item, vals) {
             const name = String(item.name == null ? '' : item.name);
             const ratioColor = vals.ratio >= 1 ? 'var(--pos)' : 'var(--neg)';
+            // 只有「值得買但賣不掉」才警示。倍率已經低於 1 的品項不需要再提醒一次，
+            // 那只會變成雜訊，而雜訊會讓真正重要的警示被忽略。
+            const thin = vals.ratio >= 1 && isThinLiquidity(item.steam_volume);
             const profitColor = vals.netProfit > 0 ? 'var(--pos)' : 'var(--neg)';
             const steamChip = item.steam_updated_at
                 ? '<span class="ts-chip" data-source="steam" data-updated="' + escapeHtml(item.steam_updated_at) + '"></span>'
@@ -269,9 +299,14 @@
                 </td>
                 <td data-label="CSFloat 成本">NT$ ${vals.csfloatCost.toFixed(0)}</td>
                 <td data-label="稅後淨利" style="color:${profitColor}">${vals.netProfit > 0 ? '＋' : ''}NT$ ${vals.netProfit.toFixed(0)}</td>
-                <td data-label="實拿倍率" style="color:${ratioColor};font-weight:700">${vals.ratio.toFixed(2)}
-                    <span class="t-note c-ink3" style="display:block;font-weight:400">${vals.roiPercentage > 0 ? '+' : ''}${vals.roiPercentage.toFixed(1)}%</span>
+                <td data-label="實拿倍率" style="color:${ratioColor};font-weight:700">
+                    <span class="cell-stack">
+                        <span>${vals.ratio.toFixed(2)}</span>
+                        <span class="t-note c-ink3" style="font-weight:400">${vals.roiPercentage > 0 ? '+' : ''}${vals.roiPercentage.toFixed(1)}%</span>
+                        ${thin ? LIQ_WARN_HTML : ''}
+                    </span>
                 </td>
+                <td data-label="流動性">${liquidityChipHtml(item.steam_volume)}</td>
                 <td data-label="資料時間">
                     <span class="ts-stack">${steamChip}${csfloatChip}</span>
                 </td>
@@ -335,7 +370,7 @@
         function showTableError(message) {
             const body = document.getElementById('case-table-body');
             body.innerHTML = `
-                <tr><td colspan="7" style="padding:40px 16px;text-align:center">
+                <tr><td colspan="8" style="padding:40px 16px;text-align:center">
                     <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
                         <path d="M36 10l22 38H14L36 10z" stroke="#fb7185" stroke-width="2" stroke-linejoin="round"/>
                         <path d="M36 24v10M36 40v.01" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round"/>
@@ -407,7 +442,7 @@
 
                 if (!data || data.length === 0) {
                     addLog('<span style="color:#fbbf24">連線成功，但目前 cases_data 表中沒有任何數據。</span>');
-                    caseTableBody.innerHTML = `<tr><td colspan="7" style="padding:40px 16px;text-align:center">
+                    caseTableBody.innerHTML = `<tr><td colspan="8" style="padding:40px 16px;text-align:center">
                         <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
                             <rect x="8" y="10" width="56" height="38" rx="4" stroke="#1e293b" stroke-width="2"/>
                             <path d="M8 22h56" stroke="#1e293b" stroke-width="2"/>
@@ -470,6 +505,10 @@
                     row.dataset.sortCost = csfloatCost;
                     row.dataset.sortProfit = netProfit;
                     row.dataset.sortRatio = ratio;
+                    /* 沒有成交量資料時填 -1 而不是 0：0 是「真的一個都沒賣掉」，
+                       -1 是「還沒抓到資料」，遞增排序時兩者要分得開。 */
+                    row.dataset.sortVolume = (item.steam_volume === null || item.steam_volume === undefined)
+                        ? -1 : Number(item.steam_volume);
                     row.innerHTML = renderCaseRow(item, { steamPrice, steamIncome, csfloatCost, netProfit, ratio, roiPercentage });
                     caseTableBody.appendChild(row);
                 });

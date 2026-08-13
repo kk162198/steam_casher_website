@@ -9,6 +9,7 @@
      ② 導覽列狀態點 setNavStatus()
      ③ nav / footer 片段載入 loadNav() / loadFooter()
      ④ 交易連結 csfloatBuyUrl() / steamMarketUrl() / tradeLinksHtml()
+     ⑤ 流動性分級 liquidityTier() / liquidityChipHtml()
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -182,6 +183,74 @@ function tradeLinksHtml(defIndex, name) {
       + ' aria-label="到 Steam 市場看 ' + safeName + '（另開分頁）">Steam 賣</a>'
     : '<span class="trade-link trade-off">Steam 賣</span>';
   return out + '</span>';
+}
+
+/* ── ⑤ 流動性分級 ───────────────────────────────────────────
+   資料來源是 cases_data.steam_volume，也就是 Steam priceoverview 回傳的
+   「近 24 小時成交量」。這一段對應 DECISIONS.md 4.8。
+
+   為什麼需要它：實測品項之間的流動性差 3,901 倍（最高 97,544、最低 25），
+   而且**與單價反向**——低流動性那組的平均單價是 US$63.85，高流動性那組
+   只有 US$0.50。使用者為了湊 NT$3,000–5,000 的客單會傾向選高單價品項，
+   但那些一天只成交 25 個，掛上去可能好幾天賣不掉，資金被鎖的時間遠超
+   7 天冷卻期。這正是 risks.html「成交不保證」那條的量化版本。
+
+   ⚠️ 分級門檻是「量級」不是精算值，刻意取 10 的次方對齊人的直覺。
+      門檻若要調整，理由請寫進 commit message——這是會影響使用者決策的
+      數字，不該無聲改動。
+
+   ⚠️ 這裡只呈現事實，不做預測。**不要**在這裡加「預估幾小時賣掉」——
+      那需要假設「你的掛單佔成交量的多少比例」，是推測不是資料，與
+      「資料庫存的是稅後實拿淨值」那個核心正確性標準不一致。 */
+var LIQUIDITY_TIERS = [
+  { min: 20000, key: 'high',     label: '高流動',  note: '一天成交上萬個，掛上去通常很快賣掉。' },
+  { min: 1000,  key: 'mid',      label: '中流動',  note: '一天成交數千個，正常情況下不難賣。' },
+  { min: 100,   key: 'low',      label: '低流動',  note: '一天只成交數百個，買多了可能要等幾天。' },
+  { min: 0,     key: 'verylow',  label: '極低流動', note: '一天成交不到 100 個。掛上去可能好幾天沒人買，資金會被鎖更久。' }
+];
+
+/* 回傳 { key, label, note, volume } —— 沒有資料時 key 是 'unknown'。
+   「沒有資料」與「成交量是 0」是兩件事，不要混在一起顯示。 */
+function liquidityTier(volume) {
+  if (volume === null || volume === undefined || volume === '' || isNaN(Number(volume))) {
+    return { key: 'unknown', label: '無資料', note: '這個品項還沒有成交量資料。', volume: null };
+  }
+  var v = Number(volume);
+  for (var i = 0; i < LIQUIDITY_TIERS.length; i++) {
+    if (v >= LIQUIDITY_TIERS[i].min) {
+      var t = LIQUIDITY_TIERS[i];
+      return { key: t.key, label: t.label, note: t.note, volume: v };
+    }
+  }
+  return { key: 'verylow', label: '極低流動', note: LIQUIDITY_TIERS[3].note, volume: v };
+}
+
+/* 極低流動性要不要另外警示。marketlist 用它決定要不要在該列加標記。 */
+function isThinLiquidity(volume) {
+  return liquidityTier(volume).key === 'verylow';
+}
+
+function formatVolume(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return '--';
+  return Number(v).toLocaleString('en-US');
+}
+
+/* 分級標籤 + 原始數字。分級讓人看得懂，數字讓人可以自己驗證。
+
+   外層包一個 .cell-stack：表格的 <td> 在手機卡片模式下是
+   `display:flex; justify-content:space-between`，直接放兩個並列元素會被
+   拉開到兩端（標籤在左、數字被推到最右）。包成單一元素就只佔一個
+   flex item，桌機與手機的排版都跟同列其他欄位一致。 */
+function liquidityChipHtml(volume) {
+  var t = liquidityTier(volume);
+  var count = t.volume === null ? '無資料' : formatVolume(t.volume) + ' / 日';
+  return '<span class="cell-stack">'
+       + '<span class="liq-chip" data-tier="' + t.key + '" title="' + tradeEscape(t.note) + '">'
+       + '<span class="liq-dot" aria-hidden="true"></span>'
+       + '<span class="liq-label">' + tradeEscape(t.label) + '</span>'
+       + '</span>'
+       + '<span class="liq-count t-note c-ink3">' + tradeEscape(count) + '</span>'
+       + '</span>';
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

@@ -191,6 +191,11 @@ csfloat_cost   = 93 × 1.075
 
 <span class="c"># 2. 你在 Steam 賣掉實際拿到多少</span>
 <span class="c">#</span>
+<span class="c">#    152 是「近期中位成交價」，不是當下最低掛牌價。</span>
+<span class="c">#    我們兩個都有記錄，實測下來沒有系統性差距</span>
+<span class="c">#    （平均 −0.19%，範圍約 ±7%），所以用哪個都不會</span>
+<span class="c">#    系統性高估或低估——但你實際掛單時看到的價格</span>
+<span class="c">#    會跟這裡有幾個百分點的出入，那是正常的。</span>
 steam_income   = 152 ÷ 1.15
                = <span class="v">NT$ 132</span>
 
@@ -270,7 +275,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                             </tr>
                             <tr>
                                 <td class="rt-key" data-label="來源">Steam 社群市場</td>
-                                <td data-label="取得什麼" style="white-space:normal">最低掛牌價、近期成交量</td>
+                                <td data-label="取得什麼" style="white-space:normal">近期中位成交價（本站顯示的賣價）、當下最低掛牌價、近 24 小時成交量</td>
                                 <td data-label="方式">公開報價 API</td>
                                 <td data-label="頻率">每 6 小時</td>
                             </tr>
