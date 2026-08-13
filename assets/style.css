@@ -152,14 +152,25 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .liq-chip[data-tier="unknown"] .liq-dot{display:none}
 /* 原始數字。分級讓人看得懂，數字讓人可以自己驗證——兩個都要有。 */
 .liq-count{display:block;margin-top:2px;font-variant-numeric:tabular-nums}
-/* 極低流動性的整列警示。只加標記、不動排序：排序仍然依倍率，
-   由使用者自己判斷。網站的工作是把事實講出來，不是替他決定。 */
+/* 極低流動性的警示。只加標記、不動排序：排序仍然依倍率，
+   由使用者自己判斷。網站的工作是把事實講出來，不是替他決定。
+
+   ⚠️ 初版寫了 max-width:22em，但它其實是被放進一個約 110px 寬的表格欄裡，
+      22em 從來沒有生效過——文字直接斷成六行，把整列從 138px 撐到 197px。
+      這裡改成跟著欄寬走，文案也縮短到一行放得下。
+      教訓：元件的寬度限制要對齊它實際被放進去的容器，不是對齊閱讀舒適度。 */
 .liq-warn{
-  display:flex;align-items:flex-start;gap:6px;
-  margin-top:6px;font-size:12px;line-height:1.6;color:var(--neg);
-  white-space:normal;max-width:22em;
+  display:flex;align-items:center;gap:4px;
+  margin-top:4px;font-size:11px;line-height:1.45;color:var(--neg);
+  max-width:100%;
 }
-.liq-warn svg{flex:none;margin-top:3px}
+/* 中文沒有空白可斷詞，一旦寬度不夠就會斷在任意字元，出現「掉」單獨一行
+   這種孤字。文案已縮到一行放得下，這裡用 nowrap 明確禁止換行——寧可
+   在極端窄的情況下溢出被看到，也不要留一個看起來像壞版的孤字。 */
+.liq-warn > span{white-space:nowrap}
+.liq-warn svg{flex:none}
+/* 手機卡片模式下欄寬不是問題，讓它靠右跟同列其他值對齊 */
+@media (max-width:767px){ .liq-warn{justify-content:flex-end} }
 
 /* ── 2. 划算度徽章 ──────────────────────── */
 .badge{
@@ -328,10 +339,22 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .trade-sell:hover{background:rgba(30,41,59,.5);border-color:var(--ink3)}
 .trade-off{color:var(--ink3);opacity:.5;cursor:not-allowed}
 
-/* 兩個資料時間標籤疊在同一格。市場列表把 Steam／CSFloat 兩欄合併成一欄「資料時間」，
-   桌機省下約 150px 的表格寬度，讓「前往交易」欄放得進 1120px 的容器。
-   手機的卡片模式下 td 是 flex 靠右對齊，所以這裡也靠右，兩頁視覺一致。 */
+/* 表格內的交易連結：桌機收成同一行的小連結（2026-08-13）。
+   44px 的最小觸控尺寸是給手指用的，桌機是滑鼠，不需要——而兩顆 44px 的
+   按鈕上下堆疊，正是市場列表列高的第二大來源（第一是名稱換行）。
+   ⚠️ 767px 以下是卡片模式、是手機，維持 44px 不要動。 */
+@media (min-width:768px){
+  .rt .trade-links{flex-wrap:nowrap}
+  .rt .trade-link{min-height:0;padding:5px 9px;font-size:12px;border-radius:6px}
+}
+
+/* 兩個資料時間標籤疊在同一格。
+   ⚠️ 2026-08-13：市場列表已移除固定的「資料時間」欄——45 列全部顯示相同文字，
+      資訊量是零卻佔掉 180px。該頁改成只在資料過舊或兩來源不同步時才掛章，
+      掛在品項名稱底下。這個 class 仍供 case.html 與該情況使用。 */
 .ts-stack{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px}
+/* 掛在名稱底下時要靠左，跟名稱對齊，不要沿用表格右對齊 */
+.rt-key .ts-stack{align-items:flex-start}
 
 /* 一格塞兩個數字（主值 + 註解值）。市場列表把「Steam 售價」與「你實拿」合併成一欄後，
    售價在上、實拿在下。桌機靠左、手機卡片模式靠右，跟同列其他數字對齊方式一致。 */

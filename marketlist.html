@@ -115,8 +115,7 @@
                 <dl class="t-aux c-ink2 flow-sm" style="display:flex;flex-direction:column;gap:10px">
                     <div><dt class="c-ink" style="font-weight:600">Steam 售價</dt><dd class="flow-0">Steam 社群市場近期的<strong>中位成交價</strong>，買家付的錢。不是當下的最低掛牌價。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">CSFloat 成本</dt><dd class="flow-0">你在 CSFloat 買一個要付多少，含入金費的保守估計。</dd></div>
-                    <div><dt class="c-ink" style="font-weight:600">稅後淨利</dt><dd class="flow-0">賣掉一個實際多拿到多少，已扣 Steam 15% 手續費。</dd></div>
-                    <div><dt class="c-ink" style="font-weight:600">實拿倍率</dt><dd class="flow-0">花 1 元換到多少 Steam 餘額。低於 1 代表會虧。</dd></div>
+                    <div><dt class="c-ink" style="font-weight:600">實拿倍率／淨利</dt><dd class="flow-0">上：花 1 元換到多少 Steam 餘額，低於 1 代表會虧。下：賣掉一個實際多拿到多少，已扣兩邊手續費。</dd></div>
                     <div><dt class="c-ink" style="font-weight:600">流動性</dt><dd class="flow-0">這個品項近 24 小時在 Steam 賣掉幾個。數字越小，你掛上去越可能等好幾天。</dd></div>
                 </dl>
             </details>
@@ -161,23 +160,22 @@
                                     </button>
                                     <span class="th-note">你買一個要付多少，含入金費的保守估計。</span>
                                 </th>
-                                <th scope="col">
-                                    <button type="button" class="th-sort" data-sort-key="profit" data-sort-type="num">稅後淨利
-                                        <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    </button>
-                                    <button type="button" class="th-info" aria-expanded="false" aria-label="稅後淨利的說明">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01" stroke-linecap="round"/></svg>
-                                    </button>
-                                    <span class="th-note">你實拿 − CSFloat 成本，已扣兩邊手續費。</span>
-                                </th>
+                                <!-- 「實拿倍率」與「稅後淨利」合併（2026-08-13）
+                                     原本是兩欄，而且倍率格裡同時寫 1.34 與 +33.7%——那是同一個
+                                     數字寫兩次。改成主值放倍率、註解值放淨利，資訊量增加、
+                                     欄位減少。兩個排序鍵都保留。 -->
                                 <th scope="col">
                                     <button type="button" class="th-sort" data-sort-key="ratio" data-sort-type="num">實拿倍率
                                         <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                     </button>
-                                    <button type="button" class="th-info" aria-expanded="false" aria-label="實拿倍率的說明">
+                                    <span class="c-ink3" style="font-size:12px" aria-hidden="true">／</span>
+                                    <button type="button" class="th-sort" data-sort-key="profit" data-sort-type="num">淨利
+                                        <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                    <button type="button" class="th-info" aria-expanded="false" aria-label="實拿倍率與淨利的說明">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01" stroke-linecap="round"/></svg>
                                     </button>
-                                    <span class="th-note">花 1 元換到多少餘額。低於 1 代表會虧。</span>
+                                    <span class="th-note">上：花 1 元換到多少餘額，低於 1 代表會虧。下：賣掉一個實際多拿到多少，＝你實拿 − CSFloat 成本。</span>
                                 </th>
                                 <!-- 流動性欄（2026-08-13 新增，對應 DECISIONS.md 4.8）
                                      刻意排在「實拿倍率」右邊：倍率最高的品項往往流動性最差，
@@ -191,16 +189,25 @@
                                     </button>
                                     <span class="th-note">近 24 小時在 Steam 賣掉幾個。數字越小，你掛上去越可能等好幾天，資金被鎖的時間會超過 7 天冷卻期。</span>
                                 </th>
-                                <th scope="col">資料時間</th>
+                                <!-- 「資料時間」欄已於 2026-08-13 移除。
+                                     移除的理由是它當時傳達的資訊量是零：45 列全部顯示相同的兩行
+                                     文字（Steam 與 CSFloat 的抓取時間一致），卻佔掉 180px——
+                                     全表第二寬的欄位。
+
+                                     ⚠️ 但「資料多新」是這個站的誠實承諾之一，不能就這樣消失。
+                                     取代方式是**異常才顯示**：只有當某一列的資料過舊、或兩個來源
+                                     的時間差超過一輪抓取間隔時，才在名稱底下掛一個時間戳章。
+                                     正常情況看整頁頂端的「最新一筆資料的抓取時間」即可。
+                                     也就是說：沒有標籤 = 這列跟全表一樣新，有標籤 = 這列要注意。 -->
                                 <th scope="col">前往交易</th>
                             </tr>
                         </thead>
                         <tbody id="case-table-body">
-                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:100%"></div></td></tr>
-                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:92%"></div></td></tr>
-                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:96%"></div></td></tr>
-                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:88%"></div></td></tr>
-                            <tr><td colspan="8" style="padding:12px 0"><div class="skel" style="height:14px;width:94%"></div></td></tr>
+                            <tr><td colspan="6" style="padding:12px 0"><div class="skel" style="height:14px;width:100%"></div></td></tr>
+                            <tr><td colspan="6" style="padding:12px 0"><div class="skel" style="height:14px;width:92%"></div></td></tr>
+                            <tr><td colspan="6" style="padding:12px 0"><div class="skel" style="height:14px;width:96%"></div></td></tr>
+                            <tr><td colspan="6" style="padding:12px 0"><div class="skel" style="height:14px;width:88%"></div></td></tr>
+                            <tr><td colspan="6" style="padding:12px 0"><div class="skel" style="height:14px;width:94%"></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -257,23 +264,59 @@
                 .replace(/"/g, '&quot;');
         }
 
-        /* 極低流動性的警示（2026-08-13 新增）。
-           放在「實拿倍率」那一格底下而不是流動性那一格，是刻意的：
-           使用者的視線停在倍率上——那是他做決定的數字——警示要出現在
-           他看的地方，不是出現在他可能略過的欄位裡。
-
+        /* 極低流動性的警示（2026-08-13）。
            ⚠️ 只警示、不改排序。排序仍然依倍率，由使用者自己判斷。
-              網站的工作是把事實講出來，不是替他決定。 */
+              網站的工作是把事實講出來，不是替他決定。
+
+           初版把它放在「實拿倍率」格底下，理由是使用者的視線停在倍率上。
+           實測後改放流動性格：倍率欄只有約 105px，而警示句帶著
+           max-width:22em 進去會斷成六行，把整列從 138px 撐到 197px——
+           一個為了被看見而做的東西，結果讓整張表更難看完。
+           改放流動性格 + 縮短文案，警示與它解釋的數字也剛好相鄰。 */
         const LIQ_WARN_HTML =
             '<span class="liq-warn">'
           + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">'
           + '<path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>'
-          + '<span>倍率高但一天成交不到 100 個，可能好幾天賣不掉。</span>'
+          + '<span>可能等好幾天</span>'
           + '</span>';
+
+        /* 資料時間：只在異常時顯示（2026-08-13）。
+           原本每列固定掛兩個時間戳章，但 45 列全部顯示相同文字——
+           資訊量是零，卻佔掉 180px。正常情況改看頁面頂端的「最新一筆
+           資料的抓取時間」。
+
+           兩種情況才掛章，因為這兩種才是使用者需要知道的：
+             ① 某個來源的資料過舊（超過 TS_RULES 的 stale 門檻）
+             ② 兩個來源差超過 6 小時 —— 代表其中一邊那一輪沒抓到，
+                此時倍率是拿新價格對舊價格算的，數字會失真
+           沒有標籤 = 這列跟全表一樣新。有標籤 = 這列要注意。 */
+        const TS_DIVERGE_MS = 6 * 60 * 60 * 1000;
+        function staleChipHtml(item) {
+            const s = item.steam_updated_at ? Date.parse(item.steam_updated_at) : NaN;
+            const c = item.csfloat_updated_at ? Date.parse(item.csfloat_updated_at) : NaN;
+            const now = Date.now();
+            const chips = [];
+            // 缺時間本身就是異常，要講出來，不能靜默當作正常
+            if (isNaN(s)) chips.push(['steam', null]);
+            else if (now - s >= TS_RULES.steam.stale * 60000) chips.push(['steam', item.steam_updated_at]);
+            if (isNaN(c)) chips.push(['csfloat', null]);
+            else if (now - c >= TS_RULES.csfloat.stale * 60000) chips.push(['csfloat', item.csfloat_updated_at]);
+            // 兩邊都不算過舊，但彼此差太多：把比較舊的那一個標出來
+            if (!chips.length && !isNaN(s) && !isNaN(c) && Math.abs(s - c) >= TS_DIVERGE_MS) {
+                chips.push(s < c ? ['steam', item.steam_updated_at] : ['csfloat', item.csfloat_updated_at]);
+            }
+            if (!chips.length) return '';
+            return '<span class="ts-stack" style="margin-top:6px">' + chips.map(function (p) {
+                return '<span class="ts-chip" data-source="' + p[0] + '"'
+                     + (p[1] ? ' data-updated="' + escapeHtml(p[1]) + '"' : '') + '></span>';
+            }).join('') + '</span>';
+        }
 
         // ① 主資料表的單列樣板。
         //    item：Supabase 原始資料列
-        //    vals：{ steamPrice, steamIncome, csfloatCost, netProfit, ratio, roiPercentage }
+        //    vals：{ steamPrice, steamIncome, csfloatCost, netProfit, ratio }
+        //    （roiPercentage 已不再由這裡使用：1.34 與 +33.7% 是同一個數字，
+        //      表格只留倍率。頂部「目前最佳加成」那張 KPI 卡仍然要用它。）
         function renderCaseRow(item, vals) {
             const name = String(item.name == null ? '' : item.name);
             const ratioColor = vals.ratio >= 1 ? 'var(--pos)' : 'var(--neg)';
@@ -281,15 +324,10 @@
             // 那只會變成雜訊，而雜訊會讓真正重要的警示被忽略。
             const thin = vals.ratio >= 1 && isThinLiquidity(item.steam_volume);
             const profitColor = vals.netProfit > 0 ? 'var(--pos)' : 'var(--neg)';
-            const steamChip = item.steam_updated_at
-                ? '<span class="ts-chip" data-source="steam" data-updated="' + escapeHtml(item.steam_updated_at) + '"></span>'
-                : '<span class="ts-chip" data-source="steam"></span>';
-            const csfloatChip = item.csfloat_updated_at
-                ? '<span class="ts-chip" data-source="csfloat" data-updated="' + escapeHtml(item.csfloat_updated_at) + '"></span>'
-                : '<span class="ts-chip" data-source="csfloat"></span>';
             return `
                 <td class="rt-key" data-label="武器箱">
                     <a href="case.html?name=${encodeURIComponent(name)}">${escapeHtml(name)}</a>
+                    ${staleChipHtml(item)}
                 </td>
                 <td data-label="Steam 售價／你實拿">
                     <span class="cell-stack">
@@ -298,17 +336,17 @@
                     </span>
                 </td>
                 <td data-label="CSFloat 成本">NT$ ${vals.csfloatCost.toFixed(0)}</td>
-                <td data-label="稅後淨利" style="color:${profitColor}">${vals.netProfit > 0 ? '＋' : ''}NT$ ${vals.netProfit.toFixed(0)}</td>
-                <td data-label="實拿倍率" style="color:${ratioColor};font-weight:700">
+                <td data-label="實拿倍率／淨利" style="font-weight:700">
                     <span class="cell-stack">
-                        <span>${vals.ratio.toFixed(2)}</span>
-                        <span class="t-note c-ink3" style="font-weight:400">${vals.roiPercentage > 0 ? '+' : ''}${vals.roiPercentage.toFixed(1)}%</span>
-                        ${thin ? LIQ_WARN_HTML : ''}
+                        <span style="color:${ratioColor}">${vals.ratio.toFixed(2)}</span>
+                        <span class="t-note" style="font-weight:400;color:${profitColor}">${vals.netProfit > 0 ? '＋' : ''}NT$ ${vals.netProfit.toFixed(0)}</span>
                     </span>
                 </td>
-                <td data-label="流動性">${liquidityChipHtml(item.steam_volume)}</td>
-                <td data-label="資料時間">
-                    <span class="ts-stack">${steamChip}${csfloatChip}</span>
+                <td data-label="流動性">
+                    <span class="cell-stack">
+                        ${liquidityChipHtml(item.steam_volume)}
+                        ${thin ? LIQ_WARN_HTML : ''}
+                    </span>
                 </td>
                 <td data-label="前往交易">${tradeLinksHtml(item.CSFloat_ID, name)}</td>
             `;
@@ -370,7 +408,7 @@
         function showTableError(message) {
             const body = document.getElementById('case-table-body');
             body.innerHTML = `
-                <tr><td colspan="8" style="padding:40px 16px;text-align:center">
+                <tr><td colspan="6" style="padding:40px 16px;text-align:center">
                     <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
                         <path d="M36 10l22 38H14L36 10z" stroke="#fb7185" stroke-width="2" stroke-linejoin="round"/>
                         <path d="M36 24v10M36 40v.01" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round"/>
@@ -442,7 +480,7 @@
 
                 if (!data || data.length === 0) {
                     addLog('<span style="color:#fbbf24">連線成功，但目前 cases_data 表中沒有任何數據。</span>');
-                    caseTableBody.innerHTML = `<tr><td colspan="8" style="padding:40px 16px;text-align:center">
+                    caseTableBody.innerHTML = `<tr><td colspan="6" style="padding:40px 16px;text-align:center">
                         <svg width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
                             <rect x="8" y="10" width="56" height="38" rx="4" stroke="#1e293b" stroke-width="2"/>
                             <path d="M8 22h56" stroke="#1e293b" stroke-width="2"/>
@@ -488,7 +526,6 @@
                 // 清空並渲染表格
                 caseTableBody.innerHTML = '';
                 data.forEach(item => {
-                    const roiPercentage = (Number(item.ratio) - 1) * 100; // 比率(1.39) 轉成 百分比(39%)
                     
                     // 💡 關鍵修正：csfloat_cost 才是含買方手續費的實付成本（csfloat_price 是未含手續費的掛牌價）
                     const netProfit = Number(item.diff || 0) * rate;
@@ -509,7 +546,7 @@
                        -1 是「還沒抓到資料」，遞增排序時兩者要分得開。 */
                     row.dataset.sortVolume = (item.steam_volume === null || item.steam_volume === undefined)
                         ? -1 : Number(item.steam_volume);
-                    row.innerHTML = renderCaseRow(item, { steamPrice, steamIncome, csfloatCost, netProfit, ratio, roiPercentage });
+                    row.innerHTML = renderCaseRow(item, { steamPrice, steamIncome, csfloatCost, netProfit, ratio });
                     caseTableBody.appendChild(row);
                 });
                 renderTimestamps(caseTableBody); // 畫面層：換算每一列的資料時間
