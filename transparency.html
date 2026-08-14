@@ -288,9 +288,35 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                     <li>把所有組別彙總成分布（平均、中位、百分位、最差值）。</li>
                 </ol>
                 <p class="t-note c-ink3 flow-md">
-                    ⚠️ 兩個算的時候會踩到的地方：<strong>同一品項的相鄰視窗互相重疊</strong>（<span class="num">d</span> 與 <span class="num">d+1</span> 那兩段有 6 天是共用的），
-                    所以樣本數不等於獨立觀察數，直接套信賴區間會高估精確度；另外
-                    <span class="num">steam_price</span> 是<strong>中位成交價</strong>，不是最低掛牌價。
+                    ⚠️ 三個算的時候會踩到的地方：<strong>同一品項的相鄰視窗互相重疊</strong>（<span class="num">d</span> 與 <span class="num">d+1</span> 那兩段有 6 天是共用的），
+                    所以樣本數不等於獨立觀察數，直接套信賴區間會高估精確度；
+                    <span class="num">steam_price</span> 是<strong>中位成交價</strong>，不是最低掛牌價；
+                    還有下面這一條，是我們自己查資料時才發現的。
+                </p>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">⚠️ 早期的資料是「單點取樣」，這會影響你算出來的結果</h3>
+                <p class="t-body c-ink2 flow-xs">
+                    <span class="num">steam_price</span>、<span class="num">csfloat_price</span> 這些欄位，
+                    <strong>2026-08-14 以前存的是每天某一個瞬間抓到的值</strong>，不是那一天的代表值。
+                    而且那個「瞬間」其實不固定——排程設在 00:30 UTC，實際落在 <span class="num">02:28–04:06</span> 之間。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    我們用自己的資料量過這件事：判定「跳一下、隔天又彈回去」（真實的價格移動會延續，取樣噪音會彈回原位），
+                    <strong>Steam 有 25%、CSFloat 有 30% 的大幅變動屬於這一類</strong>。也就是說早期序列裡約有四分之一的波動是取樣造成的，不是市場造成的。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    <strong>2026-08-14 起改成每次抓價都記錄，隔日彙總成當天的中位數。</strong>
+                    新欄位是 <span class="num">*_median</span>（中位數，建議用這個）、
+                    <span class="num">*_mean</span>（平均，拿來對照）、
+                    <span class="num">*_n</span>（當天的樣本數）。
+                    原本的單點欄位<strong>保留不動</strong>——已經下載過的版本要對得上，而且兩種取法並存才比較得出彙總修正了多少。
+                </p>
+                <p class="t-note c-ink3 flow-md">
+                    為什麼是中位數不是平均：一天抓 8 次，只要其中一次抓到離群的掛單，平均就會被拉走，中位數不會。
+                    我們遇過一筆 US$0.05 的掛單把某個品項的倍率拉到 2 倍——<strong>那種情況平均擋不掉</strong>。
+                    <span class="num">*_mean</span> 留著就是給你比對用的：與中位數差很多，代表那一天有離群值。
                 </p>
             </div>
 
@@ -475,19 +501,48 @@ discount       = (1 − 1 ÷ 1.32) × 100%
               「你拿到的跟我們拿到的是同一份」。 */
         const SNAPSHOT_TABLE = 'cases_ratio_history';
         // 固定欄位順序，讓不同時間下載的 CSV 可以直接比對
+        /* ⚠️ 單點欄位與日彙總欄位並列，順序固定：先原本的單點值，再 *_median /
+              *_mean / *_n。2026-08-14 之前的列不會有彙總值（那時還沒開始記錄
+              每次抓價），空欄本身就是有意義的資訊，不要拿單點值去填。 */
         const SNAPSHOT_COLS = ['name','snapshot_date','ratio','steam_price','csfloat_price',
-                               'steam_lowest_price','ratio_lowest','steam_volume','csfloat_inventory','captured_at'];
+                               'steam_lowest_price','ratio_lowest','steam_volume','csfloat_inventory',
+                               'steam_price_median','steam_price_mean','steam_price_n',
+                               'csfloat_price_median','csfloat_price_mean','csfloat_price_n',
+                               'steam_volume_median','steam_volume_n',
+                               'captured_at'];
+        // 遷移前就存在的欄位。⚠️ 這一組是 fallback 的底線，不要往裡面加新欄位。
+        const SNAPSHOT_COLS_BASE = ['name','snapshot_date','ratio','steam_price','csfloat_price',
+                                    'steam_lowest_price','ratio_lowest','steam_volume',
+                                    'csfloat_inventory','captured_at'];
         let snapshotRows = null;   // 抓過就留著，按下載時不用再查一次
+        let snapshotCols = SNAPSHOT_COLS;   // 實際查得到的欄位（可能退回 BASE）
 
         async function fetchSnapshots() {
             if (snapshotRows) return snapshotRows;
-            const { data, error } = await CLIENT
-                .from(SNAPSHOT_TABLE)
-                .select(SNAPSHOT_COLS.join(','))
-                .order('snapshot_date', { ascending: true })
-                .order('name', { ascending: true })
-                .limit(100000);
-            if (error) throw error;
+
+            /* ⚠️ 日彙總欄位是 2026-08-14 新增的，資料庫要先跑 db/schema.sql 的 ⑤ 段。
+                  PostgREST 對「select 了不存在的欄位」是整個查詢報錯，不是忽略那幾欄——
+                  所以遷移還沒跑的時候，這一頁會**整區壞掉**（統計數字與下載都失效）。
+                  這一頁的重點是「資料公開可驗證」，為了幾個新欄位讓它整個掛掉，
+                  比少幾個欄位嚴重得多。所以失敗就退回遷移前的欄位組。
+               ⚠️ 遷移跑完之後這段 fallback 就不會再觸發，但不要拿掉——
+                  它同時保護了「未來又加欄位、但忘了先跑遷移」的情況。 */
+            async function query(cols) {
+                return await CLIENT
+                    .from(SNAPSHOT_TABLE)
+                    .select(cols.join(','))
+                    .order('snapshot_date', { ascending: true })
+                    .order('name', { ascending: true })
+                    .limit(100000);
+            }
+
+            let { data, error } = await query(SNAPSHOT_COLS);
+            if (error) {
+                console.warn('查詢含日彙總欄位失敗，退回基本欄位：', error.message || error);
+                snapshotCols = SNAPSHOT_COLS_BASE;
+                ({ data, error } = await query(SNAPSHOT_COLS_BASE));
+                if (error) throw error;
+            }
             snapshotRows = data || [];
             return snapshotRows;
         }
@@ -529,8 +584,9 @@ discount       = (1 − 1 ÷ 1.32) × 100%
             btn.textContent = '準備中...';
             try {
                 const rows = await fetchSnapshots();
-                const lines = [SNAPSHOT_COLS.join(',')];
-                rows.forEach(r => lines.push(SNAPSHOT_COLS.map(c => csvCell(r[c])).join(',')));
+                const cols = snapshotCols;   // 可能是退回後的基本欄位組
+                const lines = [cols.join(',')];
+                rows.forEach(r => lines.push(cols.map(c => csvCell(r[c])).join(',')));
                 // BOM：沒有它 Excel 開中文品項名會變亂碼
                 const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
