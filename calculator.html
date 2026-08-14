@@ -246,13 +246,14 @@
         </section>
 
         <!-- ② 預期區間
-             2026-08-13 改寫。原本寫「還沒有累積足夠的歷史資料，所以先不給區間數字」，
-             但其實已經有 25 筆自用帳本的實際成交紀錄可以講——講不出來的只是「同類品項的
-             大盤波動範圍」，不是「實際結果會偏多少」。原本的寫法等於把已經知道的事
-             也一起藏起來了。
+             2026-08-14 精簡。原本用三格 calc-stat ＋兩段敘述把各期間的實測落差逐一
+             列出來，但保守緩衝做出來之後，那些數字已經在檔位表的「依據」欄與按鈕
+             說明裡出現過一次，這裡再講一遍是重複，而且把該讀的動作推到很下面。
+             改成「最好／最差各一個數字」帶過，細節交給 transparency.html。
 
-             ⚠️ 這裡的數字都是**實際成交 vs 當初試算**的落差，樣本 n=25、2026 年、
-                全部來自本站作者一人。這個限制必須寫出來，不能包裝成市場統計。 -->
+             ⚠️ 唯一不可以再刪的是最後那段樣本說明：n=51、全部來自本站作者一人、
+                不是市場統計。DECISIONS.md 4.7 明白寫這個限制必須寫出來。
+                精簡文案時可以改寫法，不能拿掉這條。 -->
         <section class="flow-md">
             <div class="card">
                 <h2 class="t-sub">上面的數字會變，請自己留緩衝</h2>
@@ -260,25 +261,7 @@
                     這是<strong>目前</strong>的價格快照。你實際賣出的是 7 天後的價格，可能高於也可能低於現在。
                 </p>
                 <p class="t-body c-ink2 flow-md">
-                    我們把自己的實際交易拿來對照當初的預估。<strong>最近一批（2026 年 6–7 月，10 筆）的結果是：</strong>
-                </p>
-                <div class="calc-stats flow-md">
-                    <div class="calc-stat">
-                        <span>10 筆全部</span>
-                        <span class="t-sub num c-warn">低於預估</span>
-                    </div>
-                    <div class="calc-stat">
-                        <span>平均少了</span>
-                        <span class="t-sub num c-warn">−5.7%</span>
-                    </div>
-                    <div class="calc-stat">
-                        <span>最差的一筆</span>
-                        <span class="t-sub num c-warn">−16%</span>
-                    </div>
-                </div>
-                <p class="t-body c-ink2 flow-md">
-                    <strong>但這個數字會換檔，不是固定的。</strong>同樣的方法，2026 年 2–3 月那批是 <strong>+1.8%</strong>（15 筆全部高於預估），
-                    1 月那批甚至是 <strong>+21.8%</strong>。市況好的時候你會拿到比試算更多，市況差的時候會更少——
+                    差多少？我們拿自己的 51 筆交易對照過當初的預估：<strong>最好的一批多了 21.8%，最差的一筆少了 22.4%</strong>，
                     而<strong>沒有人知道七天後是哪一種</strong>。
                 </p>
                 <p class="t-body c-ink2 flow-md">
@@ -290,50 +273,39 @@
                         <thead>
                             <tr>
                                 <th scope="col">檔位</th>
-                                <th scope="col">依據</th>
+                                <th scope="col">擋得住</th>
                                 <th scope="col">目標要多抓</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td class="rt-key" data-label="檔位">一般</td>
-                                <td class="c-ink2" data-label="依據">最近一批平均少 5.7%</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 5.7%</td>
                                 <td class="num c-brand" data-label="目標要多抓">+6.0%</td>
                             </tr>
                             <tr>
                                 <td class="rt-key" data-label="檔位">保守</td>
-                                <td class="c-ink2" data-label="依據">2026 年最差的一筆，少 16.0%</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 16.0%</td>
                                 <td class="num c-brand" data-label="目標要多抓">+19.1%</td>
                             </tr>
                             <tr>
                                 <td class="rt-key" data-label="檔位">最保守</td>
-                                <td class="c-ink2" data-label="依據">51 筆裡最差的一筆，少 22.4%</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 22.4%</td>
                                 <td class="num c-brand" data-label="目標要多抓">+28.8%</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <p class="t-note c-ink3 flow-md">
-                    <strong>為什麼少 16% 要多抓 19.1% 而不是 16%？</strong>
-                    因為補的是「剩下那 84% 要撐起原本的 100%」：<span class="num">1 ÷ 0.840 = 1.191</span>。
-                    多抓 16% 只能補到 <span class="num">1.16 × 0.84 = 0.974</span>，還是差 2.6%。
+                    少 16% 要多抓的是 19.1% 不是 16%——補的是「剩下那 84% 要撐起原本的 100%」：<span class="num">1 ÷ 0.840 = 1.191</span>。
                 </p>
                 <p class="t-body c-ink2 flow-md">
-                    ⚠️ <strong>但多買不是萬靈丹，它有一條數學上的界線。</strong>
-                    保底要成立，你這組合的倍率必須先高過「1 ÷ 剩下的比例」：
-                    <strong>一般檔要 x1.06、保守檔要 x1.19、最保守檔要 x1.29</strong>。
-                    低於這條線的話，跌幅吃掉的比賺到的還多，<strong>多買只是把部位放大，補不回來</strong>。
-                    倍率每天都在變，所以這條線由試算頁在你按下去的當下幫你檢查，我們不在這裡寫死一個數字。
-                </p>
-                <p class="t-body c-ink2 flow-md">
-                    <strong>真的越線時，試算結果會直接標示「最差情況倒賠」並算給你看。</strong>
-                    看到那行的時候，正確的做法是不要做，<strong>不是換一個比較寬鬆的檔位再算一次</strong>——
-                    換檔位不會讓風險變小，只會讓它從畫面上消失。
+                    ⚠️ <strong>但多買不是萬靈丹。</strong>保底要成立，你這組合的倍率得先高過「1 ÷ 剩下的比例」——
+                    <strong>保守檔要 x1.19、最保守檔要 x1.29</strong>。低於這條線，跌幅吃掉的比賺到的還多，<strong>多買只是把部位放大</strong>。
+                    真的越線時試算會直接標示「最差情況倒賠」，<strong>那時候正確的做法是不要做，不是換一個寬鬆的檔位再算一次</strong>。
                 </p>
                 <p class="t-note c-ink3 flow-md">
-                    樣本說明：合計 51 筆（2025–2026），全部來自本站作者自己的交易紀錄，<strong>不是市場統計</strong>。
-                    比較基準是「實際入帳金額 vs 買進當下預估的實拿金額」，兩邊都是扣完手續費的淨額，買進到賣出間隔 8–22 天。
-                    上面用最近一批而不是全部平均，是因為<strong>各期間差異很大，全部平均會得到一個誰都不代表的數字</strong>。
+                    上面 51 筆全部來自本站作者自己的交易紀錄，<strong>不是市場統計</strong>，也不保證對你成立。
                     <a href="transparency.html">看我們怎麼算的</a>
                 </p>
             </div>
@@ -430,16 +402,18 @@
              normal 0.0570 → 2026-06~07 那批的平均（n=10，10/10 全負）
              safe   0.1603 → 2026 年最差的一筆
              safest 0.2235 → 全部 51 筆裡最差的一筆（2025-09~10）
-           ⚠️ 改這裡的數字時，第②節的文案與 DECISIONS.md 4.7 要一起改。 */
+           ⚠️ 改這裡的數字時，第②節的文案與 DECISIONS.md 4.7 要一起改。
+           ⚠️ note 只寫「什麼時候選這個」，不要再寫一次數字的出處——
+              落差已經顯示在同一行，出處在第②節與 transparency.html。 */
         const BUFFER_TIERS = [
             { id: 'none',   label: '不留緩衝', drop: 0,
-              note: '照今天的價格算，不預留。七天後賣價若下跌，實際拿到的會少於目標。' },
+              note: '照今天的價格算，不預留。' },
             { id: 'normal', label: '一般',     drop: 0.0570,
-              note: '依最近一批實測（2026 年 6–7 月，10 筆平均少 5.7%）預留。多數情況夠用。' },
+              note: '多數情況夠用。' },
             { id: 'safe',   label: '保守',     drop: 0.1603,
-              note: '依 2026 年最差的一筆（少 16.0%）預留。這筆錢有指定用途、少了就不夠時選這個。' },
+              note: '這筆錢有指定用途、少了就不夠時選這個。' },
             { id: 'safest', label: '最保守',   drop: 0.2235,
-              note: '依全部 51 筆裡最差的一筆（2025 年 9–10 月，少 22.4%）預留。' }
+              note: '完全不能少的時候再用，成本會明顯變高。' }
         ];
         const BUFFER_STORAGE_KEY = 'sah-buffer-tier-v1';
         const BUFFER_DEFAULT = 'none';   // 預設不動既有行為
