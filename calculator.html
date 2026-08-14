@@ -323,7 +323,7 @@
                     保底要成立，你這組合的倍率必須先高過「1 ÷ 剩下的比例」：
                     <strong>一般檔要 x1.06、保守檔要 x1.19、最保守檔要 x1.29</strong>。
                     低於這條線的話，跌幅吃掉的比賺到的還多，<strong>多買只是把部位放大，補不回來</strong>。
-                    目前排行前段的倍率大約在 x1.25–x1.30，所以最保守檔本來就貼著界線在跑。
+                    倍率每天都在變，所以這條線由試算頁在你按下去的當下幫你檢查，我們不在這裡寫死一個數字。
                 </p>
                 <p class="t-body c-ink2 flow-md">
                     <strong>真的越線時，試算結果會直接標示「最差情況倒賠」並算給你看。</strong>
@@ -622,8 +622,10 @@
                 btn.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
             const pct = (bufferMultiplier(tier.drop) - 1) * 100;
+            // ⚠️ 這行在手機上只有約 386px 寬，講太長會變 4 行。
+            //    「為什麼是除不是加」的算式放在第②節，不在這裡重複。
             bufferNote.textContent = tier.drop > 0
-                ? `目標金額會自動多抓 ${pct.toFixed(1)}%（要補回少 ${(tier.drop * 100).toFixed(1)}% 的賣價，得除以 ${(1 - tier.drop).toFixed(4)}，不是加 ${(tier.drop * 100).toFixed(1)}%）。${tier.note}`
+                ? `目標自動多抓 ${pct.toFixed(1)}%，補回「賣價少 ${(tier.drop * 100).toFixed(1)}%」的落差。${tier.note}`
                 : tier.note;
         }
 
@@ -940,9 +942,14 @@
                ⚠️ 這裡刻意把「最差情況」講成金額而不是百分比：使用者要決定的是
                   「這樣夠不夠付我要買的東西」，不是「跌幅是多少」。 */
             if (tier.drop > 0) {
-                floorLabel.textContent = `最差情況仍有（賣價少 ${(tier.drop * 100).toFixed(1)}%）`;
+                // 標籤要短：390px 時「最差情況仍有（賣價少 16.0%）」會把這一列撐成 3 行
+                floorLabel.textContent = `最差情況仍有（−${(tier.drop * 100).toFixed(1)}%）`;
                 resultFloor.textContent = `NT$ ${floorTwd.toFixed(0)}`;
-                resultFloor.className = `t-sub num ${floorTwd >= targetTwd - 1 ? 'c-pos' : 'c-warn'}`;
+                /* ⚠️ 綠色的條件是「有達標**而且**沒倒賠」兩個都要成立。
+                   只看達標的話，會出現「保底金額標綠色、底下同時掛著倒賠警示」
+                   這種自相矛盾的畫面——保底達成但整筆是賠的，那不是好消息。 */
+                const floorOk = floorTwd >= targetTwd - 1 && worstRatio >= 1;
+                resultFloor.className = `t-sub num ${floorOk ? 'c-pos' : 'c-warn'}`;
                 floorStat.style.display = '';
 
                 /* ⚠️ 這一段是這個功能真正的重點，不要拿掉。
