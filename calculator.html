@@ -197,6 +197,18 @@
                                 <p id="buffer-note" class="t-note c-ink3 flow-0"></p>
                             </div>
 
+                            <!-- 流動性篩選：門檻沿用 site.js 的 LIQUIDITY_TIERS，不要在這裡另立一套 -->
+                            <div class="calc-field">
+                                <span class="t-aux c-ink2">只買賣得掉的（流動性篩選）</span>
+                                <div id="liq-group" role="group" aria-label="流動性篩選" style="display:flex;flex-wrap:wrap;gap:8px">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-liq="all">不限</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-liq="no-verylow">排除極低流動</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-liq="mid-up">中流動以上</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-liq="high">只要高流動</button>
+                                </div>
+                                <p id="liq-note" class="t-note c-ink3 flow-0"></p>
+                            </div>
+
                             <div class="calc-foot">
                                 <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">重新載入最新資料</button>
                                 <p id="rate-note" class="t-note c-ink3 flow-0">匯率載入中...</p>
@@ -318,6 +330,10 @@
                 已依各武器箱目前的庫存上限限制數量，超過上限的部分會改用次高倍率的品項補足。
             </p>
             <p id="cap-note" class="t-aux c-warn flow-xs" style="display:none"></p>
+            <!-- 篩選的代價：篩掉品項會讓倍率下降，這一行把差多少直接算出來 -->
+            <p id="liq-cost" class="t-aux c-ink2 flow-xs" style="display:none"></p>
+            <!-- 買量相對日成交量偏高的彙總警示 -->
+            <p id="thin-note" class="t-aux c-warn flow-xs" style="display:none"></p>
 
             <div class="card card-flush flow-lg">
                 <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
@@ -332,7 +348,10 @@
                                 <th scope="col">數量</th>
                                 <th scope="col">單價</th>
                                 <th scope="col">庫存</th>
-                                <th scope="col">資料時間</th>
+                                <!-- 「資料時間」欄併進「單價」的副行（時間戳本來就是在講價格的新鮮度），
+                                     空出來的欄位給流動性。沿用 marketlist.html 8→6 欄那次的判斷：
+                                     每一列都顯示相同文字的欄位，資訊量是零。 -->
+                                <th scope="col">賣出流動性</th>
                                 <th scope="col">已買到</th>
                                 <th scope="col">前往交易</th>
                             </tr>
@@ -418,6 +437,37 @@
         const BUFFER_STORAGE_KEY = 'sah-buffer-tier-v1';
         const BUFFER_DEFAULT = 'none';   // 預設不動既有行為
 
+        /* ①-c 流動性篩選
+           ────────────────────────────────────────────────────────────
+           ⚠️ 門檻一律用 site.js 的 LIQUIDITY_TIERS（20000 / 1000 / 100），
+              **不要在這裡另立一套**。同一個品項在市場列表叫「低流動」、
+              在計算器卻算進「中流動以上」，使用者會直接不信這個站。
+              要調門檻就改 site.js 那一份，理由寫進 commit message。
+
+           minVolume 是「近 24 小時成交量」的下限，null 代表不篩。
+           ⚠️ 沒有成交量資料的品項（volume 為 null）在任何篩選檔位下都會被排除——
+              「沒資料」不等於「流動性夠」，放行等於用未知冒充合格。 */
+        const LIQ_FILTERS = [
+            { id: 'all',        label: '不限',         minVolume: null,
+              note: '所有品項都納入，包含一天只成交幾十個的。' },
+            { id: 'no-verylow', label: '排除極低流動', minVolume: 100,
+              note: '排除一天成交不到 100 個的品項。' },
+            { id: 'mid-up',     label: '中流動以上',   minVolume: 1000,
+              note: '只留一天成交 1,000 個以上的品項。' },
+            { id: 'high',       label: '只要高流動',   minVolume: 20000,
+              note: '只留一天成交 20,000 個以上的品項，通常只剩少數幾個。' }
+        ];
+        const LIQ_STORAGE_KEY = 'sah-liq-filter-v1';
+        const LIQ_DEFAULT = 'all';   // 預設不動既有行為
+
+        /* 買量相對於「一天成交量」的警示門檻。
+           ⚠️ 這裡刻意**不換算成「預估幾天賣掉」**——那要假設你的掛單佔成交量的
+              多少比例，是推測不是資料，site.js 第⑤節已經明文禁止。
+              這裡只做一件事：把「你要賣幾個」和「一天成交幾個」擺在一起，
+              結論留給使用者自己下。 */
+        const QTY_SHARE_WARN = 0.25;    // 單一品項買量 ≥ 當日成交量的 25% → 提醒
+        const THIN_VALUE_WARN = 0.40;   // 極低流動品項合計 ≥ 組合金額的 40% → 提醒
+
         // 目標金額的放大倍數。drop=0 時回 1，不影響任何既有計算。
         function bufferMultiplier(drop) { return 1 / (1 - drop); }
 
@@ -428,16 +478,24 @@
             const chip = row.updatedAt
                 ? '<span class="ts-chip" data-source="csfloat" data-updated="' + escapeHtml(row.updatedAt) + '"></span>'
                 : '<span class="ts-chip" data-source="csfloat"></span>';
+            /* 買量 vs 當日成交量。⚠️ 只把兩個事實擺在一起，不換算成「幾天賣掉」。
+               vals.qtyShare 為 null 代表沒有成交量資料，這時什麼都不說，
+               不要用「無資料」暗示它沒問題。 */
+            const shareLine = (vals.qtyShare === null) ? ''
+                : `<span class="t-note ${vals.qtyShare >= QTY_SHARE_WARN ? 'c-warn' : 'c-ink3'}" style="font-weight:400;display:block">`
+                  + `佔當日成交 ${vals.qtyShare < 0.01 ? '<1' : (vals.qtyShare * 100).toFixed(0)}%</span>`;
             return `
                 <td class="rt-key" data-label="品項">${escapeHtml(row.name)}</td>
                 <td class="c-brand" data-label="數量" style="font-weight:700">${row.qty} 個
-                    <span class="t-note c-ink3" style="font-weight:400;display:block">佔 ${Number(vals.sharePct || 0).toFixed(0)}%</span>
+                    <span class="t-note c-ink3" style="font-weight:400;display:block">佔金額 ${Number(vals.sharePct || 0).toFixed(0)}%</span>
+                    ${shareLine}
                 </td>
                 <td data-label="單價">NT$ ${vals.unitCostTwd.toFixed(0)}
                     <span class="t-note c-ink3" style="display:block">小計 NT$ ${vals.subtotalTwd.toFixed(0)}・到手 NT$ ${vals.valueTwd.toFixed(0)}</span>
+                    <span class="t-note c-ink3" style="display:block">${chip}</span>
                 </td>
                 <td class="c-ink2" data-label="庫存">${row.inventory}</td>
-                <td data-label="資料時間">${chip}</td>
+                <td data-label="賣出流動性">${liquidityChipHtml(row.volume)}</td>
                 <td data-label="已買到">
                     <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
                         <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(row.name)} 已買到"${vals.isChecked ? ' checked' : ''}>
@@ -554,6 +612,10 @@
         const capNote = document.getElementById('cap-note');
         const bufferGroup = document.getElementById('buffer-group');
         const bufferNote = document.getElementById('buffer-note');
+        const liqGroup = document.getElementById('liq-group');
+        const liqNote = document.getElementById('liq-note');
+        const liqCost = document.getElementById('liq-cost');
+        const thinNote = document.getElementById('thin-note');
         const floorStat = document.getElementById('floor-stat');
         const floorLabel = document.getElementById('floor-label');
         const resultFloor = document.getElementById('result-floor');
@@ -603,6 +665,40 @@
                 : tier.note;
         }
 
+        // 流動性篩選檔位，同樣記在 localStorage
+        let liqFilterId = LIQ_DEFAULT;
+        try {
+            const saved = localStorage.getItem(LIQ_STORAGE_KEY);
+            if (saved && LIQ_FILTERS.some(f => f.id === saved)) liqFilterId = saved;
+        } catch (e) { /* 無痕模式等情況忽略 */ }
+
+        function currentLiqFilter() {
+            return LIQ_FILTERS.find(f => f.id === liqFilterId) || LIQ_FILTERS[0];
+        }
+
+        /* 實際拿去湊組合的品項清單。
+           ⚠️ 這個函式要是唯一的入口：投入現金反推目標走的是 costTwdForTarget 的
+              二分逼近，它跟 runCalculation 必須看到同一份清單，否則雙向連動會歪。 */
+        function usableCases() {
+            const min = currentLiqFilter().minVolume;
+            if (min === null) return casesCache;
+            // volume 為 null 一律排除：沒資料不等於流動性夠
+            return casesCache.filter(c => c.volume !== null && c.volume >= min);
+        }
+
+        function syncLiqButtons() {
+            const f = currentLiqFilter();
+            liqGroup.querySelectorAll('button[data-liq]').forEach(btn => {
+                const active = btn.dataset.liq === f.id;
+                btn.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`;
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            const kept = usableCases().length, total = casesCache.length;
+            liqNote.textContent = total === 0
+                ? f.note
+                : `${f.note}目前 ${total} 個品項中有 ${kept} 個符合。`;
+        }
+
         function capLabel(p) { return p >= 1 ? '不限' : `${Math.round(p * 100)}%`; }
 
         function syncCapButtons() {
@@ -642,7 +738,7 @@
 
         function costTwdForTarget(targetTwd) {
             if (!(targetTwd > 0) || casesCache.length === 0) return 0;
-            const { totalCostUsd } = buildCombo(plannedTargetTwd(targetTwd) / usdToTwd, casesCache, capPct);
+            const { totalCostUsd } = buildCombo(plannedTargetTwd(targetTwd) / usdToTwd, usableCases(), capPct);
             return totalCostUsd * usdToTwd;
         }
 
@@ -727,6 +823,9 @@
                     incomeUsd: Number(item.steam_income),
                     inventory: Number(item.csfloat_inventory),
                     ratio: Number(item.ratio || (item.steam_income / item.csfloat_cost)),
+                    // 賣出側的成交量。⚠️ 用 ?? 而不是 ||，否則成交量真的是 0 會被當成「沒資料」
+                    volume: (item.steam_volume === null || item.steam_volume === undefined)
+                        ? null : Number(item.steam_volume),
                     updatedAt: item.csfloat_updated_at || null, // 新增：只給資料時間戳章顯示用，不參與計算
                     defIndex: item.CSFloat_ID ?? null           // 新增：只給「前往購買」連結用，不參與計算
                 }))
@@ -806,7 +905,7 @@
             const combo = state
                 .filter(i => i.used > 0)
                 .sort((a, b) => b.ratio - a.ratio)
-                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, updatedAt: i.updatedAt, defIndex: i.defIndex }));
+                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, volume: i.volume, updatedAt: i.updatedAt, defIndex: i.defIndex }));
 
             const totalCostUsd = combo.reduce((s, i) => s + i.costUsd * i.qty, 0);
             const totalIncomeUsd = combo.reduce((s, i) => s + i.incomeUsd * i.qty, 0);
@@ -831,9 +930,16 @@
             capNote.style.display = 'none';
             floorStat.style.display = 'none';
             floorWarn.style.display = 'none';
+            liqCost.style.display = 'none';
+            thinNote.style.display = 'none';
 
-            if (targetUsd <= 0 || casesCache.length === 0) {
-                comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">目前沒有可用的價格資料，或目標金額為 0</td></tr>`;
+            const pool = usableCases();
+            if (targetUsd <= 0 || pool.length === 0) {
+                // 分開講：「沒資料」與「你自己把品項篩光了」是兩個不同的問題，解法也不同
+                const emptyMsg = (pool.length === 0 && casesCache.length > 0)
+                    ? `目前沒有品項符合「${escapeHtml(currentLiqFilter().label)}」這個流動性條件。可以放寬篩選再試一次。`
+                    : '目前沒有可用的價格資料，或目標金額為 0';
+                comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';
                 resultRatio.innerText = '--';
@@ -845,7 +951,7 @@
                 return;
             }
 
-            const { combo, totalCostUsd, totalIncomeUsd, reached, capRelaxed, maxShare } = buildCombo(targetUsd, casesCache, capPct);
+            const { combo, totalCostUsd, totalIncomeUsd, reached, capRelaxed, maxShare } = buildCombo(targetUsd, pool, capPct);
 
             if (combo.length === 0) {
                 comboBody.innerHTML = `<tr><td class="c-warn" colspan="7" style="padding:32px 0;text-align:center">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
@@ -877,16 +983,29 @@
             saveCheckedNames(checkedNames);
 
             comboBody.innerHTML = '';
+            /* 兩種不同的流動性風險，不要混為一談：
+               ① thinRows：**你要賣的數量**相對該品項一天的成交量偏高 → 這批可能掛不完
+               ② thinValueTwd：**金額**集中在極低流動品項 → 就算數量賣得掉，
+                  你的錢仍然壓在一個隨時可能沒人接手的品項上
+               實測看過一個組合：85% 的金額壓在一天成交 99 個的品項，但只買 7 個——
+               ① 不會觸發（7/99 很安全），② 才抓得到。只做 ① 會漏掉這種。 */
+            const thinRows = [];
+            let thinValueTwd = 0;
             combo.forEach(row => {
                 const unitCostTwd = row.costUsd * usdToTwd;
                 const subtotalTwd = unitCostTwd * row.qty;
                 const valueTwd = row.incomeUsd * usdToTwd * row.qty;
                 const sharePct = totalIncomeUsd > 0 ? (row.incomeUsd * row.qty / totalIncomeUsd) * 100 : 0;
                 const isChecked = checkedNames.has(row.name);
+                // 你要賣的數量 ÷ 這個品項一天的成交量。沒有成交量資料就是 null。
+                const qtyShare = (row.volume === null || !(row.volume > 0)) ? null : row.qty / row.volume;
+                if (qtyShare !== null && qtyShare >= QTY_SHARE_WARN) thinRows.push({ name: row.name, qty: row.qty, volume: row.volume, share: qtyShare });
+                // 金額集中在極低流動品項，是與「數量佔比」不同的另一種風險，見下方註解
+                if (isThinLiquidity(row.volume)) thinValueTwd += valueTwd;
 
                 const tr = document.createElement('tr');
                 tr.style.opacity = isChecked ? '0.45' : '';
-                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, sharePct, isChecked });
+                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, sharePct, qtyShare, isChecked });
 
                 const checkbox = tr.querySelector('input[type="checkbox"]');
                 // 用 property 而非 innerHTML 屬性字串塞名稱，避免武器箱名稱裡有特殊字元造成問題
@@ -945,6 +1064,43 @@
             updateShoppingProgress();
             updateVerdict(targetTwd, totalCostTwd, totalValueTwd, combo.reduce((s, i) => s + i.qty, 0), tier.drop > 0 ? floorTwd : null); // 畫面層
             syncBudgetFromCost(totalCostTwd, source);
+
+            /* 篩選的代價。⚠️ 一定要顯示：篩掉低流動品項會讓倍率下降，
+               而使用者按的時候看不到那個代價。不講的話，這個功能等於
+               在背後默默讓他少賺，而他以為自己只是變安全了。 */
+            if (currentLiqFilter().minVolume !== null && casesCache.length > 0) {
+                const base = buildCombo(targetUsd, casesCache, capPct);
+                const baseCostTwd = base.totalCostUsd * usdToTwd;
+                const extraTwd = totalCostTwd - baseCostTwd;
+                if (base.combo.length > 0 && Math.abs(extraTwd) >= 1) {
+                    liqCost.textContent = extraTwd > 0
+                        ? `篩選的代價：同樣拿到 NT$ ${totalValueTwd.toFixed(0)}，不篩選只要花 NT$ ${baseCostTwd.toFixed(0)}，你多付了 NT$ ${extraTwd.toFixed(0)}（約 ${(extraTwd / baseCostTwd * 100).toFixed(1)}%）換賣得掉。`
+                        : `篩選後反而更便宜 NT$ ${Math.abs(extraTwd).toFixed(0)}——被篩掉的品項本來就不划算。`;
+                    liqCost.style.display = 'block';
+                }
+            }
+
+            /* 買量 vs 成交量的彙總警示。
+               ⚠️ 措辭只擺事實（買幾個 vs 一天成交幾個），不寫「要等幾天」。 */
+            const thinValueShare = totalValueTwd > 0 ? thinValueTwd / totalValueTwd : 0;
+            const msgs = [];
+            if (thinRows.length > 0) {
+                const worst = thinRows.slice().sort((a, b) => b.share - a.share)[0];
+                const others = thinRows.length - 1;
+                msgs.push(
+                    `有 ${thinRows.length} 個品項你要買的量相對成交量偏高`
+                    + `——最極端的是「${worst.name}」：你要賣 ${worst.qty} 個，而它一天只成交 ${worst.volume.toLocaleString('en-US')} 個`
+                    + `（相當於 ${(worst.share * 100).toFixed(0)}%）。`
+                    + (others > 0 ? `另外還有 ${others} 個也在同樣情況。` : ''));
+            }
+            if (thinValueShare >= THIN_VALUE_WARN) {
+                msgs.push(`你有 ${(thinValueShare * 100).toFixed(0)}% 的金額（約 NT$ ${thinValueTwd.toFixed(0)}）壓在「極低流動」的品項上，也就是一天成交不到 100 個的那些。`);
+            }
+            if (msgs.length > 0) {
+                thinNote.textContent = '⚠️ ' + msgs.join(' ')
+                    + ' 這類品項掛上去不一定當天賣得掉，資金會被鎖得比 7 天冷卻期更久。想避開就把上面的流動性篩選調嚴，或調低單一武器箱佔比上限讓部位分散。';
+                thinNote.style.display = 'block';
+            }
 
             if (capRelaxed) {
                 capNote.textContent = `在單箱 ${capLabel(capPct)} 的上限下湊不滿目標金額（可買的品項種類或庫存不夠），剩下的缺口已改為在各品項間平均分配，最高單箱佔 ${(maxShare * 100).toFixed(0)}%。可調高上限或調降目標金額。`;
@@ -1046,12 +1202,25 @@
             runCalculation('target');
         });
 
+        liqGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-liq]');
+            if (!btn) return;
+            liqFilterId = btn.dataset.liq;
+            try { localStorage.setItem(LIQ_STORAGE_KEY, liqFilterId); } catch (err) { /* 無痕模式等情況忽略 */ }
+            syncLiqButtons();
+            runCalculation('target');
+        });
+
         updateSliderBackground(targetSlider.value);
         paintSlider(budgetSlider, budgetSlider.value);
         syncCapButtons();
         syncBufferButtons();
+        syncLiqButtons();
         Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
-            .then(() => runCalculation('target'));
+            .then(() => {
+                syncLiqButtons();   // 資料進來後才知道「45 個裡有幾個符合」
+                runCalculation('target');
+            });
     
     </script>
 </body>
