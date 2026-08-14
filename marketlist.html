@@ -85,7 +85,7 @@
                 <div class="card card-compact stat">
                     <div class="stat-label">目前最佳加成</div>
                     <div id="max-roi" class="stat-value stat-value-md c-pos">-- %</div>
-                    <div class="stat-note">每投入 100 元多拿到的餘額，已扣兩邊手續費。</div>
+                    <div id="max-roi-note" class="stat-note">每投入 100 元多拿到的餘額，已扣兩邊手續費。</div>
                 </div>
                 <div class="card card-compact stat">
                     <div class="stat-label">監控中的品項</div>
@@ -280,6 +280,35 @@
           + '<span>可能等好幾天</span>'
           + '</span>';
 
+        /* 買進側深度過淺的警示（2026-08-14）。
+           ⚠️ 同樣只警示、不改排序——與上面那條同一個判斷。
+
+           起因：2026-08-14 抓到 Sealed Genesis Terminal 最低掛牌 US$0.05，
+           但那個價位**只有 1 件**，倍率因此是 x2.00 排到第 1 名，第 2 名只有
+           x1.53。使用者點過去只會看到一個掛單，這是會直接損害信任的那種落差。
+
+           ⚠️ 這不是系統性偏差，是尾端離群值：「該價位只有 1 件」那 11 個品項的
+              平均倍率是 x1.305，「2–10 件」x1.300、「超過 10 件」x1.331——
+              深度淺的整體並沒有比較高。標示的目的是讓人看到「這個倍率只適用於
+              這幾件」，不是暗示淺深度的品項不好。
+
+           門檻取 2：實測 45 個品項裡有 15 個會掛上這個標示（33%）。比例確實不低，
+           但那就是市場的實際狀態——三分之一的品項在最好的價位只有一兩件。
+           ⚠️ 不要再放寬到 3：那會超過 40%，標示密到失去指示作用。
+
+           沿用上面那條的 gate：倍率低於 1 的不警示，那種列不需要再提醒一次。 */
+        const DEPTH_WARN_MAX = 2;
+        function depthWarnHtml(inventory) {
+            if (inventory === null || inventory === undefined) return '';
+            const n = Number(inventory);
+            if (!(n > 0) || n > DEPTH_WARN_MAX) return '';
+            return '<span class="liq-warn">'
+                 + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">'
+                 + '<path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>'
+                 + '<span>此價只有 ' + n + ' 件</span>'
+                 + '</span>';
+        }
+
         /* 資料時間：只在異常時顯示（2026-08-13）。
            原本每列固定掛兩個時間戳章，但 45 列全部顯示相同文字——
            資訊量是零，卻佔掉 180px。正常情況改看頁面頂端的「最新一筆
@@ -335,7 +364,12 @@
                         <span class="t-note c-ink3" style="font-weight:400">實拿 NT$ ${vals.steamIncome.toFixed(0)}</span>
                     </span>
                 </td>
-                <td data-label="CSFloat 成本">NT$ ${vals.csfloatCost.toFixed(0)}</td>
+                <td data-label="CSFloat 成本">
+                    <span class="cell-stack">
+                        <span>NT$ ${vals.csfloatCost.toFixed(0)}</span>
+                        ${vals.ratio >= 1 ? depthWarnHtml(item.csfloat_inventory) : ''}
+                    </span>
+                </td>
                 <td data-label="實拿倍率／淨利" style="font-weight:700">
                     <span class="cell-stack">
                         <span style="color:${ratioColor}">${vals.ratio.toFixed(2)}</span>
@@ -434,6 +468,7 @@
         const refreshBtn = document.getElementById('refresh-btn');
         const caseTableBody = document.getElementById('case-table-body');
         const maxRoiDisplay = document.getElementById('max-roi');
+        const maxRoiNote = document.getElementById('max-roi-note');
         const monitoredCountDisplay = document.getElementById('monitored-count');
         const lastUpdateDisplay = document.getElementById('last-update');
         const connectionBadge = document.getElementById('connection-badge');
@@ -497,12 +532,28 @@
 
                 const totalItems = data.length;
 
-                // 💡 修正：從「第一筆有效 ratio」的資料換算最高 ROI，避免 null 資料把最佳 ROI 誤算成 0%
-                const firstValidRow = data.find(item => item.ratio !== null && item.ratio !== undefined);
-                const maxRoi = firstValidRow ? (Number(firstValidRow.ratio) - 1) * 100 : 0;
+                /* 💡 從「第一筆有效 ratio」的資料換算最高 ROI，避免 null 資料把最佳 ROI 誤算成 0%
 
-                // 更新頂部 KPI 卡片
-                maxRoiDisplay.innerText = `${maxRoi.toFixed(2)} %`;
+                   ⚠️ 2026-08-14 修正：這一格原本直接取排序後的第一筆，於是當天
+                   顯示「目前最佳加成 100.00%」——來源是 Sealed Genesis Terminal
+                   US$0.05 × **1 件**。整站第一眼看到的數字，實際上只買得到一個。
+
+                   表格那邊的判斷是「標示但不動排序」，因為排序是給人自己挑的。
+                   但這張 KPI 卡不是排序，它是網站主動講的一句話——用一個買不到量的
+                   掛單去講「最佳加成」，就是在誇大。所以這裡**排除深度過淺的品項**，
+                   並在找不到夠深的品項時老實說沒有，而不是退回去用那個離群值。 */
+                const deepEnough = data.filter(item =>
+                    item.ratio !== null && item.ratio !== undefined
+                    && item.csfloat_inventory !== null && item.csfloat_inventory !== undefined
+                    && Number(item.csfloat_inventory) > DEPTH_WARN_MAX);
+                const bestRow = deepEnough[0];   // data 已依 ratio 由高到低排序
+                if (bestRow) {
+                    maxRoiDisplay.innerText = `${((Number(bestRow.ratio) - 1) * 100).toFixed(2)} %`;
+                    maxRoiNote.textContent = `每投入 100 元多拿到的餘額，已扣兩邊手續費。只計入最低價位有 ${DEPTH_WARN_MAX + 1} 件以上的品項。`;
+                } else {
+                    maxRoiDisplay.innerText = '--';
+                    maxRoiNote.textContent = '目前沒有「最低價位有足夠件數」的品項，所以不給這個數字。';
+                }
                 monitoredCountDisplay.innerText = totalItems;
 
                 /* Tier 0 #1：這一格原本寫 new Date()，也就是「你打開這頁的時間」，
