@@ -234,6 +234,49 @@ function isThinLiquidity(volume) {
   return liquidityTier(volume).key === 'verylow';
 }
 
+/* ── ⑤-b 買進側深度（2026-08-14）───────────────────────────────
+   `csfloat_inventory` 是「與最低掛牌價完全相同」的掛售筆數，不是總庫存。
+   那個價位可能只有 1 件——2026-08-14 抓到 Sealed Genesis Terminal
+   US$0.05 × 1 件，倍率因此是 x2.00，於是：
+     · marketlist 排到第 1 名（第 2 名只有 x1.53）
+     · marketlist 的 KPI「目前最佳加成」顯示 100.00%
+     · 首頁 hero 顯示「省 50%」、最佳倍率 2.00、收益滑桿整條用 2.00 校準
+   而首頁自己的表格寫的是「13–30%（稅後）」——**網站在自打嘴巴**。
+   見 DECISIONS.md 4.14。
+
+   ⚠️ 門檻放在這裡是為了三頁一致。marketlist 標示、首頁挑代表值、
+      以後其他頁要用，都讀同一個常數——一旦各頁各立一套，
+      同一個品項在 A 頁被排除、在 B 頁被當成最佳，使用者會直接不信這個站。
+
+   ⚠️ 取 2：實測 45 個品項有 15 個（33%）落在門檻內。比例不低，但那是市場的
+      實際狀態。放寬到 3 會超過 40%，標示密到失去指示作用。
+
+   ⚠️ 這條與流動性（`steam_volume`）是兩件事，不要混用：
+      深度講的是「買得到幾件」，流動性講的是「賣不賣得掉」。 */
+var DEPTH_WARN_MAX = 2;
+
+/* 這個品項在最低價位的掛售筆數，少到不足以代表市場嗎？
+   ⚠️ 沒有庫存資料時回傳 true（視為不足）——「沒資料」不等於「深度夠」，
+      放行等於用未知冒充合格，與流動性篩選那邊同一個原則。 */
+function isThinDepth(inventory) {
+  if (inventory === null || inventory === undefined || inventory === '') return true;
+  var n = Number(inventory);
+  if (isNaN(n)) return true;
+  return n <= DEPTH_WARN_MAX;
+}
+
+/* 深度過淺的警示標記。marketlist 用它在「CSFloat 成本」格加標。 */
+function depthWarnHtml(inventory) {
+  if (inventory === null || inventory === undefined) return '';
+  var n = Number(inventory);
+  if (!(n > 0) || n > DEPTH_WARN_MAX) return '';
+  return '<span class="liq-warn">'
+       + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">'
+       + '<path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>'
+       + '<span>此價只有 ' + n + ' 件</span>'
+       + '</span>';
+}
+
 function formatVolume(v) {
   if (v === null || v === undefined || isNaN(Number(v))) return '--';
   return Number(v).toLocaleString('en-US');

@@ -40,7 +40,12 @@
             <p class="t-body c-ink2" style="max-width:34em;margin:20px 0 0">
                 這個折扣疊加在官方特價之上，兩層是相乘、不是取代。<br>官方打 7 折的遊戲，你還能在那個價格上再省一次。
             </p>
+            <!-- ⚠️ 這個數字是「目前最好的那一個品項」，不是你會拿到的平均。
+                 2026-08-14 之前這裡沒講清楚，而同一頁往下捲的表格寫的是
+                 「13–30%（稅後）」，兩個數字並列會讓人以為 hero 那個是常態。
+                 一句話就能講完的事，不要讓使用者自己去對。 -->
             <p class="t-aux c-ink3 flow-sm">
+                這是<strong class="c-ink2">目前最好的那一個品項</strong>，不是平均；我們自己實測的區間是 13–30%。
                 代價：約 1 小時操作，加上 7 天等待。
             </p>
             <!-- Tier 0 #1：畫面上的每個數字都要標抓取時間。
@@ -217,7 +222,9 @@
                             <span class="stat-value num c-pos" id="max-roi">--</span>
                             <span class="t-sub c-pos">元 Steam 餘額</span>
                         </div>
-                        <div class="stat-note">已扣除 CSFloat 端 7.5%（保守估，實際通常更低）與 Steam 15% 手續費。<a href="transparency.html">費用怎麼算</a></div>
+                        <div class="stat-note">已扣除 CSFloat 端 7.5%（保守估，實際通常更低）與 Steam 15% 手續費。
+                            只計入最低價位有 3 件以上的品項——<strong class="c-ink2">只有一兩件的掛單買不到量，不能代表市場</strong>。
+                            <a href="transparency.html">費用怎麼算</a></div>
                         <!-- 這個倍率同時吃 CSFloat 與 Steam 兩邊的報價，兩個時間都要標出來 -->
                         <div class="ts-stack" style="align-items:flex-start;margin-top:4px">
                             <span id="chip-max-csfloat" class="ts-chip" data-source="csfloat"><span class="ts-dot"></span><span class="ts-src">CSFloat</span><span>讀取中</span></span>
@@ -358,7 +365,7 @@
         try {
         const { data, error } = await CLIENT
             .from('cases_data')
-            .select('ratio, csfloat_updated_at, steam_updated_at')
+            .select('ratio, csfloat_inventory, csfloat_updated_at, steam_updated_at')
             // 💡 PostgreSQL 的 ORDER BY DESC 預設是 NULLS FIRST，
             //    少了 nullsFirst:false 會讓還沒算出 ratio 的資料排到第一筆。
             .order('ratio', { ascending: false, nullsFirst: false });
@@ -378,18 +385,38 @@
             return (!isNaN(t) && t > acc) ? t : acc;
         }, 0);
         if (newestAt > 0) setNavStatusFromTime(new Date(newestAt).toISOString(), 'csfloat');
-        // 畫面上的兩個數字都出自 data[0]，時間標籤也要標這一列自己的抓取時間
-        setTimestampChips(data[0]);
+
+        /* ⚠️ 2026-08-14 修正：這一頁原本直接取 data[0]，也就是倍率最高的那一列。
+           當天那一列是 Sealed Genesis Terminal——US$0.05、該價位**只有 1 件**、
+           倍率 x2.00。於是首頁三個東西同時被一個掛單帶著走：
+             · hero 顯示「省 50%」
+             · 「目前資料裡最好的實拿倍率」顯示 2.00
+             · <profit-slider> 整條用 2.00 校準，使用者拖出來的每個數字都偏高
+           而**同一頁往下捲的表格寫的是「13–30%（稅後）」**——網站在自打嘴巴。
+
+           首頁是整個站可信度最貴的地方：陌生人只會看到這個數字，不會看到
+           它背後只有一件庫存。所以這裡用「深度足夠的品項」裡最好的那一個。
+
+           ⚠️ 門檻用 site.js 的 isThinDepth()，與 marketlist 的標示同一套。
+              各頁各立一套會讓同一個品項在 A 頁被排除、在 B 頁被當成最佳。
+           ⚠️ 找不到夠深的品項時明講「資料計算中」，**不要退回去用離群值**。 */
+        const deepEnough = data.filter(it =>
+            Number.isFinite(Number(it.ratio)) && Number(it.ratio) > 0 && !isThinDepth(it.csfloat_inventory));
+        const bestRow = deepEnough[0];   // data 已依 ratio 由高到低排序
+
+        // 時間標籤要標「畫面上這個數字」那一列的抓取時間，不是全表第一列
+        setTimestampChips(bestRow || null);
+
         // 不要用 || 1 假裝正常：拿不到有效倍率就明講資料還在算
-        const firstRowRatio = Number(data[0]?.ratio);
-        if (!Number.isFinite(firstRowRatio) || firstRowRatio <= 0) {
+        if (!bestRow) {
             maxRoiDisplay.innerText = "資料計算中";
             discount.innerHTML = "--";
             return;
         }
-        maxRoiDisplay.innerText = firstRowRatio.toFixed(2);
-        ratio = firstRowRatio;
-        discount.innerHTML = ((1-1/firstRowRatio)*100).toFixed(0);
+        const bestRatio = Number(bestRow.ratio);
+        maxRoiDisplay.innerText = bestRatio.toFixed(2);
+        ratio = bestRatio;
+        discount.innerHTML = ((1-1/bestRatio)*100).toFixed(0);
         }
         catch (error) {
             maxRoiDisplay.innerText = "無獲取資料";

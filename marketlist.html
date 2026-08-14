@@ -280,34 +280,10 @@
           + '<span>可能等好幾天</span>'
           + '</span>';
 
-        /* 買進側深度過淺的警示（2026-08-14）。
-           ⚠️ 同樣只警示、不改排序——與上面那條同一個判斷。
-
-           起因：2026-08-14 抓到 Sealed Genesis Terminal 最低掛牌 US$0.05，
-           但那個價位**只有 1 件**，倍率因此是 x2.00 排到第 1 名，第 2 名只有
-           x1.53。使用者點過去只會看到一個掛單，這是會直接損害信任的那種落差。
-
-           ⚠️ 這不是系統性偏差，是尾端離群值：「該價位只有 1 件」那 11 個品項的
-              平均倍率是 x1.305，「2–10 件」x1.300、「超過 10 件」x1.331——
-              深度淺的整體並沒有比較高。標示的目的是讓人看到「這個倍率只適用於
-              這幾件」，不是暗示淺深度的品項不好。
-
-           門檻取 2：實測 45 個品項裡有 15 個會掛上這個標示（33%）。比例確實不低，
-           但那就是市場的實際狀態——三分之一的品項在最好的價位只有一兩件。
-           ⚠️ 不要再放寬到 3：那會超過 40%，標示密到失去指示作用。
-
-           沿用上面那條的 gate：倍率低於 1 的不警示，那種列不需要再提醒一次。 */
-        const DEPTH_WARN_MAX = 2;
-        function depthWarnHtml(inventory) {
-            if (inventory === null || inventory === undefined) return '';
-            const n = Number(inventory);
-            if (!(n > 0) || n > DEPTH_WARN_MAX) return '';
-            return '<span class="liq-warn">'
-                 + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">'
-                 + '<path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>'
-                 + '<span>此價只有 ' + n + ' 件</span>'
-                 + '</span>';
-        }
+        /* 買進側深度的警示：DEPTH_WARN_MAX 與 depthWarnHtml() 已移到 assets/site.js。
+           ⚠️ 不要在這裡重新定義一份——首頁挑「最佳倍率」時用的是同一個門檻，
+              各頁各立一套會讓同一個品項在 A 頁被排除、在 B 頁被當成最佳。
+              理由與實測數字寫在 site.js 第⑤-b 節。 */
 
         /* 資料時間：只在異常時顯示（2026-08-13）。
            原本每列固定掛兩個時間戳章，但 45 列全部顯示相同文字——
