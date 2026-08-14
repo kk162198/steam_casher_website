@@ -233,21 +233,81 @@ discount       = (1 − 1 ÷ 1.32) × 100%
             </div>
         </section>
 
-        <!-- 預估落差（空狀態） -->
+        <!-- 原始資料下載
+             2026-08-14 改寫。原本這一區是「資料累積中，預計 9 月起提供」的佔位卡片，
+             等我們自己算完再公布結論——但那等於要使用者相信我們算得對，
+             而這個站唯一的資產就是「說的話可以信」。可驗證比可信強。
+
+             ⚠️ 這一區的立場是**開放原始資料與算法，不公布我們自己的分析結論**。
+                目前只有 15 天，7 日視窗互相重疊（8 個窗口實際上約等於 1 次觀察），
+                拿它下結論會犯我們自己在試算頁警告別人的錯。資料夠了再說。
+             ⚠️ 快照的 steam_volume / csfloat_inventory 欄位自 2026-08-12 才開始寫入，
+                在那之前是空的。按流動性分層的分析要等這一欄也滿 30 天。 -->
         <section class="sec">
-            <h2 class="t-sect">預估與實際成交的落差</h2>
-            <div class="card card-roomy flow-lg" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
-                <svg width="88" height="56" viewBox="0 0 88 56" fill="none" aria-hidden="true">
-                    <path d="M4 52h80" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M12 44l16-6 16 8 16-16 16 4" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
-                    <path d="M12 32l16-4 16 6 16-12 16 2" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <h3 class="t-sub" style="margin-top:8px">資料累積中，預計 9 月起提供</h3>
-                <p class="t-body c-ink2 flow-0" style="max-width:34em">
-                    這一區之後會顯示：網站在 7 天前預估的倍率，和 7 天後市場上的實際價格，兩者差多少。這是驗證這個工具準不準最直接的方式，所以我們會把它放出來，不管數字好不好看。
+            <h2 class="t-sect">原始資料：你可以自己重算</h2>
+            <p class="t-body c-ink2 flow-md" style="max-width:39em">
+                我們每天為每個品項存一筆價格快照。<strong>這份原始資料可以直接下載</strong>，算式也寫在下面——
+                你不需要相信我們算得對，可以自己算一次。
+            </p>
+
+            <div class="grid gap-3 md:grid-cols-3 flow-lg">
+                <div class="card card-compact stat">
+                    <div class="stat-label">已累積天數</div>
+                    <div id="snap-days" class="stat-value stat-value-sm c-ink3">--</div>
+                    <div class="stat-note">每日 00:30 UTC 各存一筆。</div>
+                </div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">品項數</div>
+                    <div id="snap-items" class="stat-value stat-value-sm c-ink3">--</div>
+                    <div class="stat-note">每天每個品項都存。</div>
+                </div>
+                <div class="card card-compact stat">
+                    <div class="stat-label">快照總筆數</div>
+                    <div id="snap-rows" class="stat-value stat-value-sm c-ink3">--</div>
+                    <div class="stat-note">這頁打開時即時查的。</div>
+                </div>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">下載</h3>
+                <p class="t-aux c-ink2 flow-xs">
+                    完整快照，CSV（UTF-8 BOM，Excel 可直接開）。沒有經過任何篩選或加工，就是資料庫裡的原樣。
                 </p>
-                <p class="t-note c-ink3 flow-0">
-                    需要累積至少 30 天的成對資料才有意義，目前還在收集。
+                <div class="flow-md" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <button id="csv-btn" type="button" class="btn btn-primary">下載快照 CSV</button>
+                    <span id="csv-note" class="t-note c-ink3"></span>
+                </div>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">怎麼算「7 天後賣價差多少」</h3>
+                <ol class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
+                    <li>把 CSV 依 <span class="num">name</span>（品項）與 <span class="num">snapshot_date</span>（日期）排好。</li>
+                    <li>對每個品項、每個日期 <span class="num">d</span>，找出 <span class="num">d + 7 天</span> 那一筆。兩筆都存在才算數。</li>
+                    <li>算 <span class="num">steam_price(d+7) ÷ steam_price(d) − 1</span>，這就是那一組的 7 日賣價變動。</li>
+                    <li>把所有組別彙總成分布（平均、中位、百分位、最差值）。</li>
+                </ol>
+                <p class="t-note c-ink3 flow-md">
+                    ⚠️ 兩個算的時候會踩到的地方：<strong>同一品項的相鄰視窗互相重疊</strong>（<span class="num">d</span> 與 <span class="num">d+1</span> 那兩段有 6 天是共用的），
+                    所以樣本數不等於獨立觀察數，直接套信賴區間會高估精確度；另外
+                    <span class="num">steam_price</span> 是<strong>中位成交價</strong>，不是最低掛牌價。
+                </p>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">這份資料量得到什麼、量不到什麼</h3>
+                <p class="t-body c-ink2 flow-xs">
+                    ✅ <strong>量得到：市場報價在七天之內怎麼移動。</strong>這是完全客觀的，任何人拿同一份 CSV 都會算出同樣的數字。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    ❌ <strong>量不到：你掛上去到底賣不賣得掉、賣在什麼價。</strong>
+                    快照預設你能在報價成交，但冷門品項一天可能只成交幾十個——<strong>對那些品項，用快照算出來的結果會比現實好看。</strong>
+                    這一段差距只有實際成交紀錄回答得了，見<a href="risks.html">風險與限制</a>。
+                </p>
+                <p class="t-note c-ink3 flow-md">
+                    我們暫時不在這裡公布自己算出來的結論。目前累積的天數還太少，而且如上所述視窗互相重疊，
+                    <strong>這時候給一個看起來很精確的數字，正是我們在試算頁叫你別信的那種數字</strong>。
+                    資料夠了會放上來，不管數字好不好看。
                 </p>
             </div>
         </section>
@@ -405,8 +465,98 @@ discount       = (1 − 1 ÷ 1.32) × 100%
             }
         }
 
+        /* ════════ 快照原始資料：統計與 CSV 下載 ════════
+           純前端。cases_ratio_history 的 anon SELECT 本來就開著（前端一直都是用
+           同一把 publishable key 唯讀查詢），所以開放下載沒有新增任何暴露面，
+           也不需要新腳本、不需要排程、不會過期。
+
+           ⚠️ 不要改成「定期產生一份靜態 CSV 放進 repo」——那會多一個會過期的東西，
+              而且使用者下載到的就不再是資料庫當下的原樣。這一區的重點是
+              「你拿到的跟我們拿到的是同一份」。 */
+        const SNAPSHOT_TABLE = 'cases_ratio_history';
+        // 固定欄位順序，讓不同時間下載的 CSV 可以直接比對
+        const SNAPSHOT_COLS = ['name','snapshot_date','ratio','steam_price','csfloat_price',
+                               'steam_lowest_price','ratio_lowest','steam_volume','csfloat_inventory','captured_at'];
+        let snapshotRows = null;   // 抓過就留著，按下載時不用再查一次
+
+        async function fetchSnapshots() {
+            if (snapshotRows) return snapshotRows;
+            const { data, error } = await CLIENT
+                .from(SNAPSHOT_TABLE)
+                .select(SNAPSHOT_COLS.join(','))
+                .order('snapshot_date', { ascending: true })
+                .order('name', { ascending: true })
+                .limit(100000);
+            if (error) throw error;
+            snapshotRows = data || [];
+            return snapshotRows;
+        }
+
+        async function loadSnapshotStats() {
+            try {
+                const rows = await fetchSnapshots();
+                const days = new Set(rows.map(r => r.snapshot_date)).size;
+                const items = new Set(rows.map(r => r.name)).size;
+                document.getElementById('snap-days').textContent = `${days} 天`;
+                document.getElementById('snap-items').textContent = `${items} 個`;
+                document.getElementById('snap-rows').textContent = rows.length.toLocaleString('en-US');
+                ['snap-days','snap-items','snap-rows'].forEach(id => {
+                    document.getElementById(id).style.color = 'var(--ink)';
+                });
+                document.getElementById('csv-note').textContent =
+                    `目前 ${rows.length.toLocaleString('en-US')} 筆，涵蓋 ${days} 天。`;
+            } catch (e) {
+                ['snap-days','snap-items','snap-rows'].forEach(id => {
+                    document.getElementById(id).textContent = '--';
+                });
+                document.getElementById('csv-note').textContent = '快照資料讀取失敗，稍後再試。';
+                console.error(e);
+            }
+        }
+
+        // CSV 逸出：值裡有逗號、引號或換行時要包引號，引號本身要變成兩個
+        function csvCell(v) {
+            if (v === null || v === undefined) return '';
+            const s = String(v);
+            return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }
+
+        async function downloadSnapshotCsv() {
+            const btn = document.getElementById('csv-btn');
+            const note = document.getElementById('csv-note');
+            btn.disabled = true;
+            const label = btn.textContent;
+            btn.textContent = '準備中...';
+            try {
+                const rows = await fetchSnapshots();
+                const lines = [SNAPSHOT_COLS.join(',')];
+                rows.forEach(r => lines.push(SNAPSHOT_COLS.map(c => csvCell(r[c])).join(',')));
+                // BOM：沒有它 Excel 開中文品項名會變亂碼
+                const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const today = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `steam-casher-snapshots-${today}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                note.textContent = `已下載 ${rows.length.toLocaleString('en-US')} 筆。`;
+            } catch (e) {
+                note.textContent = '下載失敗，可能是連不上資料庫。稍後再試一次。';
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = label;
+            }
+        }
+
+        document.getElementById('csv-btn').addEventListener('click', downloadSnapshotCsv);
+
         loadRate();
         loadStatus();
+        loadSnapshotStats();
     
     </script>
 </body>
