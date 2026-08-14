@@ -184,6 +184,19 @@
                                 <p class="t-note c-ink3 flow-0">單一品項的到手金額不會超過目標金額的這個比例，避免整筆錢壓在同一個箱子上。上限愈低越分散，實際倍率可能略降。</p>
                             </div>
 
+                            <!-- 保守緩衝：把「7 天後賣價可能低多少」換算成「目標要多抓幾趴」。
+                                 三個檔位對應三組實測落差，數字與註解一起維護在下方的 BUFFER_TIERS。 -->
+                            <div class="calc-field">
+                                <span class="t-aux c-ink2">保守緩衝（多抓一點，避免七天後不夠）</span>
+                                <div id="buffer-group" role="group" aria-label="保守緩衝" style="display:flex;flex-wrap:wrap;gap:8px">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-buffer="none">不留緩衝</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-buffer="normal">一般</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-buffer="safe">保守</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-buffer="safest">最保守</button>
+                                </div>
+                                <p id="buffer-note" class="t-note c-ink3 flow-0"></p>
+                            </div>
+
                             <div class="calc-foot">
                                 <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">重新載入最新資料</button>
                                 <p id="rate-note" class="t-note c-ink3 flow-0">匯率載入中...</p>
@@ -214,11 +227,17 @@
                                     <span>實際倍率／溢出金額</span>
                                     <span id="result-ratio" class="t-sub num">--</span>
                                 </div>
+                                <!-- 只在有開緩衝時顯示：把緩衝的意義講成「保底」而不是「多花錢」 -->
+                                <div class="calc-stat" id="floor-stat" style="display:none">
+                                    <span id="floor-label">最差情況仍有</span>
+                                    <span id="result-floor" class="t-sub num">--</span>
+                                </div>
                                 <div class="calc-stat">
                                     <span>你要買的箱子總數</span>
                                     <span id="result-qty" class="t-sub num">--</span>
                                 </div>
                             </div>
+                            <p id="floor-warn" class="t-aux c-warn flow-0" style="display:none"></p>
                             <p id="shortfall-note" class="t-aux c-warn flow-0" style="display:none"></p>
                         </div>
                     </div>
@@ -263,8 +282,53 @@
                     而<strong>沒有人知道七天後是哪一種</strong>。
                 </p>
                 <p class="t-body c-ink2 flow-md">
-                    <strong>實務上的意思：把上面的試算當成「順利的話」，不是「保證」。</strong>
-                    如果這筆錢有指定用途、少了就不夠，請照 −16% 抓；買的品項種類越少、金額越集中，越可能剛好碰到那個數字。
+                    <strong>所以上面的試算是「順利的話」，不是保證。</strong>
+                    如果這筆錢有指定用途、少了就不夠，用輸入區的<strong>保守緩衝</strong>讓它自動多抓一點：
+                </p>
+                <div class="card card-flush flow-md" style="padding:8px 20px 4px">
+                    <table class="rt">
+                        <thead>
+                            <tr>
+                                <th scope="col">檔位</th>
+                                <th scope="col">依據</th>
+                                <th scope="col">目標要多抓</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">一般</td>
+                                <td class="c-ink2" data-label="依據">最近一批平均少 5.7%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+6.0%</td>
+                            </tr>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">保守</td>
+                                <td class="c-ink2" data-label="依據">2026 年最差的一筆，少 16.0%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+19.1%</td>
+                            </tr>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">最保守</td>
+                                <td class="c-ink2" data-label="依據">51 筆裡最差的一筆，少 22.4%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+28.8%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="t-note c-ink3 flow-md">
+                    <strong>為什麼少 16% 要多抓 19.1% 而不是 16%？</strong>
+                    因為補的是「剩下那 84% 要撐起原本的 100%」：<span class="num">1 ÷ 0.840 = 1.191</span>。
+                    多抓 16% 只能補到 <span class="num">1.16 × 0.84 = 0.974</span>，還是差 2.6%。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    ⚠️ <strong>但多買不是萬靈丹，它有一條數學上的界線。</strong>
+                    保底要成立，你這組合的倍率必須先高過「1 ÷ 剩下的比例」：
+                    <strong>一般檔要 x1.06、保守檔要 x1.19、最保守檔要 x1.29</strong>。
+                    低於這條線的話，跌幅吃掉的比賺到的還多，<strong>多買只是把部位放大，補不回來</strong>。
+                    目前排行前段的倍率大約在 x1.25–x1.30，所以最保守檔本來就貼著界線在跑。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    <strong>真的越線時，試算結果會直接標示「最差情況倒賠」並算給你看。</strong>
+                    看到那行的時候，正確的做法是不要做，<strong>不是換一個比較寬鬆的檔位再算一次</strong>——
+                    換檔位不會讓風險變小，只會讓它從畫面上消失。
                 </p>
                 <p class="t-note c-ink3 flow-md">
                     樣本說明：合計 51 筆（2025–2026），全部來自本站作者自己的交易紀錄，<strong>不是市場統計</strong>。
@@ -350,6 +414,39 @@
         const VERDICT_WORTH_IT = 3000;   // 高於此金額 → 值得做
         const VERDICT_CONSIDER = 1000;   // 高於此金額 → 可考慮；低於 → 不建議
 
+        /* ①-b 保守緩衝檔位
+           ────────────────────────────────────────────────────────────
+           使用者要的是「七天後手上有 NT$X 的餘額」。試算用的是**今天**的價格，
+           而 DECISIONS.md 4.7 實測賣價偏差會分期間換檔，最差看過 −22.35%。
+           所以要保底，就得依今天的價格多抓一點量。
+
+           ⚠️⚠️ 方向：目標 ÷ (1 − 落差)，**不是** 目標 × (1 + 落差)。
+                 −16.03% 要多抓 19.09% 才補得回來，寫成 ×1.1603 會少抓 3 個百分點，
+                 而「少抓」正好是這個功能唯一不能犯的錯——保守緩衝不夠保守，
+                 比沒有緩衝更糟，因為使用者以為自己保過了。
+                 這與 steam_income 的「÷1.15 不是 ×0.85」是同一個坑。
+
+           drop 的三個值全部來自 DECISIONS.md 4.7 的實測表（樣本 n=51，作者本人）：
+             normal 0.0570 → 2026-06~07 那批的平均（n=10，10/10 全負）
+             safe   0.1603 → 2026 年最差的一筆
+             safest 0.2235 → 全部 51 筆裡最差的一筆（2025-09~10）
+           ⚠️ 改這裡的數字時，第②節的文案與 DECISIONS.md 4.7 要一起改。 */
+        const BUFFER_TIERS = [
+            { id: 'none',   label: '不留緩衝', drop: 0,
+              note: '照今天的價格算，不預留。七天後賣價若下跌，實際拿到的會少於目標。' },
+            { id: 'normal', label: '一般',     drop: 0.0570,
+              note: '依最近一批實測（2026 年 6–7 月，10 筆平均少 5.7%）預留。多數情況夠用。' },
+            { id: 'safe',   label: '保守',     drop: 0.1603,
+              note: '依 2026 年最差的一筆（少 16.0%）預留。這筆錢有指定用途、少了就不夠時選這個。' },
+            { id: 'safest', label: '最保守',   drop: 0.2235,
+              note: '依全部 51 筆裡最差的一筆（2025 年 9–10 月，少 22.4%）預留。' }
+        ];
+        const BUFFER_STORAGE_KEY = 'sah-buffer-tier-v1';
+        const BUFFER_DEFAULT = 'none';   // 預設不動既有行為
+
+        // 目標金額的放大倍數。drop=0 時回 1，不影響任何既有計算。
+        function bufferMultiplier(drop) { return 1 / (1 - drop); }
+
         // ② 購買組合表的單列樣板。
         //    row：{ name, costUsd, incomeUsd, ratio, qty, inventory, updatedAt, defIndex }
         //    vals：{ unitCostTwd, subtotalTwd, valueTwd, sharePct, isChecked }
@@ -410,7 +507,8 @@
         }
 
         // ④ 划算度徽章與結果摘要。只負責顯示，不參與任何計算公式。
-        function updateVerdict(targetTwd, costTwd, valueTwd, qty) {
+        //    floorTwd：有開保守緩衝時傳入「最差情況實際拿到的金額」，null 代表沒開。
+        function updateVerdict(targetTwd, costTwd, valueTwd, qty, floorTwd = null) {
             const badge = document.getElementById('worth-badge');
             const reason = document.getElementById('worth-reason');
             const savingsEl = document.getElementById('result-savings');
@@ -428,7 +526,21 @@
                 return;
             }
 
-            savingsEl.textContent = `省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`;
+            /* 有開緩衝時，「省下」是**順利的話**的數字，必須把最差情況一起講。
+               只講前者等於用一個樂觀值去支撐一個標榜保守的功能。 */
+            if (floorTwd !== null) {
+                const worstSavings = floorTwd - costTwd;
+                savingsEl.className = 'num c-pos';
+                savingsEl.innerHTML = `順利的話省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`
+                    + `<br><span class="t-aux ${worstSavings >= 0 ? 'c-ink2' : 'c-warn'}" style="font-weight:400">`
+                    + (worstSavings >= 0
+                        ? `最差情況仍省下 NT$ ${worstSavings.toFixed(0)}`
+                        : `最差情況倒賠 NT$ ${Math.abs(worstSavings).toFixed(0)}`)
+                    + `</span>`;
+            } else {
+                savingsEl.className = 'num c-pos';
+                savingsEl.textContent = `省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`;
+            }
 
             if (targetTwd < VERDICT_CONSIDER) {
                 badge.className = 'badge badge-no';
@@ -466,6 +578,12 @@
         const shortfallNote = document.getElementById('shortfall-note');
         const capGroup = document.getElementById('cap-group');
         const capNote = document.getElementById('cap-note');
+        const bufferGroup = document.getElementById('buffer-group');
+        const bufferNote = document.getElementById('buffer-note');
+        const floorStat = document.getElementById('floor-stat');
+        const floorLabel = document.getElementById('floor-label');
+        const resultFloor = document.getElementById('result-floor');
+        const floorWarn = document.getElementById('floor-warn');
         const comboNote = document.getElementById('combo-note');
         const shoppingProgress = document.getElementById('shopping-progress');
         const shoppingResetBtn = document.getElementById('shopping-reset-btn');
@@ -484,6 +602,30 @@
             const saved = Number(localStorage.getItem(CAP_STORAGE_KEY));
             if (saved > 0 && saved <= 1) capPct = saved;
         } catch (e) { /* 無痕模式等情況忽略 */ }
+
+        // 保守緩衝檔位。選擇記在 localStorage，下次進來沿用（與單箱上限同樣做法）。
+        let bufferTierId = BUFFER_DEFAULT;
+        try {
+            const saved = localStorage.getItem(BUFFER_STORAGE_KEY);
+            if (saved && BUFFER_TIERS.some(t => t.id === saved)) bufferTierId = saved;
+        } catch (e) { /* 無痕模式等情況忽略 */ }
+
+        function currentTier() {
+            return BUFFER_TIERS.find(t => t.id === bufferTierId) || BUFFER_TIERS[0];
+        }
+
+        function syncBufferButtons() {
+            const tier = currentTier();
+            bufferGroup.querySelectorAll('button[data-buffer]').forEach(btn => {
+                const active = btn.dataset.buffer === tier.id;
+                btn.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`;
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            const pct = (bufferMultiplier(tier.drop) - 1) * 100;
+            bufferNote.textContent = tier.drop > 0
+                ? `目標金額會自動多抓 ${pct.toFixed(1)}%（要補回少 ${(tier.drop * 100).toFixed(1)}% 的賣價，得除以 ${(1 - tier.drop).toFixed(4)}，不是加 ${(tier.drop * 100).toFixed(1)}%）。${tier.note}`
+                : tier.note;
+        }
 
         function capLabel(p) { return p >= 1 ? '不限' : `${Math.round(p * 100)}%`; }
 
@@ -514,9 +656,17 @@
                  所以用二分逼近，找出花費不超過預算的最大目標金額。 */
         const TARGET_STEP = 50;
 
+        /* 使用者填的目標 → 實際拿去湊組合的目標。
+           ⚠️ 這個轉換一定要集中在這裡：投入現金反推目標時走的是 costTwdForTarget 的
+              二分逼近，如果只在 runCalculation 裡乘、這裡沒乘，雙向連動會對不起來
+              （填現金算出的目標會偏高一個緩衝的量）。 */
+        function plannedTargetTwd(targetTwd) {
+            return targetTwd * bufferMultiplier(currentTier().drop);
+        }
+
         function costTwdForTarget(targetTwd) {
             if (!(targetTwd > 0) || casesCache.length === 0) return 0;
-            const { totalCostUsd } = buildCombo(targetTwd / usdToTwd, casesCache, capPct);
+            const { totalCostUsd } = buildCombo(plannedTargetTwd(targetTwd) / usdToTwd, casesCache, capPct);
             return totalCostUsd * usdToTwd;
         }
 
@@ -696,11 +846,15 @@
         // source === 'budget' 代表這次是由投入現金欄位觸發的，
         // 這時不要回頭覆寫投入現金欄位，否則使用者打字打到一半會被改掉
         function runCalculation(source) {
-            const targetTwd = Number(targetInput.value) || 0;
-            const targetUsd = targetTwd / usdToTwd;
+            const targetTwd = Number(targetInput.value) || 0;   // 使用者要的餘額＝保底金額
+            const tier = currentTier();
+            const plannedTwd = plannedTargetTwd(targetTwd);      // 實際拿去湊組合的目標（含緩衝）
+            const targetUsd = plannedTwd / usdToTwd;
 
             shortfallNote.style.display = 'none';
             capNote.style.display = 'none';
+            floorStat.style.display = 'none';
+            floorWarn.style.display = 'none';
 
             if (targetUsd <= 0 || casesCache.length === 0) {
                 comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">目前沒有可用的價格資料，或目標金額為 0</td></tr>`;
@@ -731,9 +885,12 @@
             }
 
             const totalCostTwd = totalCostUsd * usdToTwd;
-            const totalValueTwd = totalIncomeUsd * usdToTwd;
-            const overshootTwd = totalValueTwd - targetTwd;
+            const totalValueTwd = totalIncomeUsd * usdToTwd;   // 照今天的價格賣掉能拿到的（＝順利的話）
+            const overshootTwd = totalValueTwd - plannedTwd;   // 溢出要對含緩衝的目標算，緩衝不是溢出
             const effectiveRatio = totalCostTwd > 0 ? totalValueTwd / totalCostTwd : 1;
+            // 七天後若真的跌了這個檔位的幅度，實際還剩多少
+            const floorTwd = totalValueTwd * (1 - tier.drop);
+            const worstRatio = totalCostTwd > 0 ? floorTwd / totalCostTwd : 1;
 
             currentCombo = combo;
             // 重新試算後，把不再出現於本次組合的品項從勾選清單移除，避免殘留無意義的勾選
@@ -778,8 +935,34 @@
             resultValue.innerText = `NT$ ${totalValueTwd.toFixed(0)}`;
             resultRatio.innerText = reached ? `x${effectiveRatio.toFixed(2)}｜溢出 NT$ ${overshootTwd.toFixed(0)}` : `x${effectiveRatio.toFixed(2)}`;
             costOutput.textContent = `NT$ ${totalCostTwd.toFixed(0)}`;
+
+            /* 保守緩衝的兩行顯示。
+               ⚠️ 這裡刻意把「最差情況」講成金額而不是百分比：使用者要決定的是
+                  「這樣夠不夠付我要買的東西」，不是「跌幅是多少」。 */
+            if (tier.drop > 0) {
+                floorLabel.textContent = `最差情況仍有（賣價少 ${(tier.drop * 100).toFixed(1)}%）`;
+                resultFloor.textContent = `NT$ ${floorTwd.toFixed(0)}`;
+                resultFloor.className = `t-sub num ${floorTwd >= targetTwd - 1 ? 'c-pos' : 'c-warn'}`;
+                floorStat.style.display = '';
+
+                /* ⚠️ 這一段是這個功能真正的重點，不要拿掉。
+                   保底要成立，倍率得先高過 1 ÷ (1 − 落差)：
+                     一般   −5.7%  → 需要 x1.06
+                     保守   −16.0% → 需要 x1.19
+                     最保守 −22.4% → 需要 x1.29
+                   而帳本實測倍率是 1.13–1.30、平均 1.18（DECISIONS.md 4.12）。
+                   也就是說在「保守」以上的檔位，多數品項組合在最差情況下是**倒賠**的——
+                   多買並不能把賠的補回來，它只放大部位。這時候正確的答案是不要做，
+                   而不是換一個檔位再算一次。 */
+                if (worstRatio < 1) {
+                    const lossTwd = totalCostTwd - floorTwd;
+                    floorWarn.textContent = `⚠️ 這個檔位下最差情況是倒賠：花 NT$ ${totalCostTwd.toFixed(0)} 只換到 NT$ ${floorTwd.toFixed(0)}，虧 NT$ ${lossTwd.toFixed(0)}（倍率 x${worstRatio.toFixed(2)}）。多買補不回來，只是把部位放大。如果這筆錢真的不能少，直接用官方儲值比較穩。`;
+                    floorWarn.style.display = 'block';
+                }
+            }
+
             updateShoppingProgress();
-            updateVerdict(targetTwd, totalCostTwd, totalValueTwd, combo.reduce((s, i) => s + i.qty, 0)); // 畫面層
+            updateVerdict(targetTwd, totalCostTwd, totalValueTwd, combo.reduce((s, i) => s + i.qty, 0), tier.drop > 0 ? floorTwd : null); // 畫面層
             syncBudgetFromCost(totalCostTwd, source);
 
             if (capRelaxed) {
@@ -872,9 +1055,20 @@
             runCalculation('target');
         });
 
+        bufferGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-buffer]');
+            if (!btn) return;
+            bufferTierId = btn.dataset.buffer;
+            try { localStorage.setItem(BUFFER_STORAGE_KEY, bufferTierId); } catch (err) { /* 無痕模式等情況忽略 */ }
+            syncBufferButtons();
+            // 用 'target' 觸發：目標金額不變，但花費會變，要讓投入現金欄位跟著更新
+            runCalculation('target');
+        });
+
         updateSliderBackground(targetSlider.value);
         paintSlider(budgetSlider, budgetSlider.value);
         syncCapButtons();
+        syncBufferButtons();
         Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
             .then(() => runCalculation('target'));
     
