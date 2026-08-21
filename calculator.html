@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
+    <meta name="description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，省下的錢不夠付你的操作時間時，會直接告訴你不值得做。">
     <title>加值試算｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/calculator.html">
     <meta property="og:title" content="加值試算｜Steam 加值幫手">
-    <meta property="og:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
+    <meta property="og:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，省下的錢不夠付你的操作時間時，會直接告訴你不值得做。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="加值試算｜Steam 加值幫手">
-    <meta name="twitter:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，金額太小會直接告訴你不值得做。">
+    <meta name="twitter:description" content="輸入你想加值的金額，算出最貼合的武器箱購買組合、稅後實拿餘額與實際折扣，省下的錢不夠付你的操作時間時，會直接告訴你不值得做。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -395,15 +395,29 @@
         /* ════════════════════════════════════════════════════════════
            本次改版新增的畫面層程式碼。以下三段之外的邏輯、Supabase 查詢
            與計算公式，與改版前完全相同，沒有改動。
-           ① 划算度門檻常數
+           ① 划算度門檻 → **已移到 assets/site.js 第⑩節**
            ② renderComboRow()：購買組合表的單列樣板（要換樣式改這裡就好）
            ③ saveComboForChecklist()：把組合存進 localStorage 供購物清單頁讀取
-           ④ updateVerdict()：依目標金額與試算結果更新徽章與摘要文字
+           ④ updateVerdict()：依試算結果更新徽章與摘要文字
            ════════════════════════════════════════════════════════════ */
 
-        // ① 划算度門檻（新台幣）。改這兩個數字就能調整三檔判斷。
-        const VERDICT_WORTH_IT = 3000;   // 高於此金額 → 值得做
-        const VERDICT_CONSIDER = 1000;   // 高於此金額 → 可考慮；低於 → 不建議
+        /* ① 划算度門檻
+           ────────────────────────────────────────────────────────────
+           ⚠️ 原本這裡有兩個寫死的常數（VERDICT_WORTH_IT = 3000、
+              VERDICT_CONSIDER = 1000），拿**目標金額**跟它們比大小。
+              那個做法有兩個問題：
+
+              一、比錯東西。決定值不值得的是「省下多少」對「要花多少時間」，
+                  不是「你打算花多少」。同樣 NT$3,000，倍率 1.53 和 1.15
+                  省下的錢差一倍，舊版兩者都判「值得做」。
+
+              二、把只適用於第一次的成本套用在每一次。首次設定
+                  （驗證器、US$5、註冊 CSFloat、綁交易連結、首次入金）
+                  是一次性投資，第二次以後不用再付。
+
+           現在門檻、時間模型與 setup 狀態全部在 assets/site.js 第⑩節：
+             worthVerdict(savingsTwd, qty) / opMinutes(qty) / isSetupDone()
+           ⚠️ **不要在這一頁再立一套門檻。** setup.html 讀的是同一份。 */
 
         /* ①-b 保守緩衝檔位
            ────────────────────────────────────────────────────────────
@@ -538,8 +552,12 @@
             } catch (e) { /* 無痕模式等情況忽略 */ }
         }
 
-        // ④ 划算度徽章與結果摘要。只負責顯示，不參與任何計算公式。
-        //    floorTwd：有開保守緩衝時傳入「最差情況實際拿到的金額」，null 代表沒開。
+        /* ④ 划算度徽章與結果摘要。只負責顯示，不參與任何價格計算公式。
+           floorTwd：有開保守緩衝時傳入「最差情況實際拿到的金額」，null 代表沒開。
+
+           判斷改成「省下的錢 vs 這次要花的時間」，時間依**件數**算
+           （site.js 第⑩節）。targetTwd 只剩下「算不出來」那個分支在用，
+           不再參與值不值得的判斷。 */
         function updateVerdict(targetTwd, costTwd, valueTwd, qty, floorTwd = null) {
             const badge = document.getElementById('worth-badge');
             const reason = document.getElementById('worth-reason');
@@ -574,19 +592,51 @@
                 savingsEl.textContent = `省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`;
             }
 
-            if (targetTwd < VERDICT_CONSIDER) {
-                badge.className = 'badge badge-no';
-                badge.textContent = '不建議';
-                reason.textContent = `這筆省下約 NT$ ${savings.toFixed(0)}，但要花約 1 小時操作、再等 7 天。建議這次直接用官方儲值或信用卡回饋。`;
-            } else if (targetTwd < VERDICT_WORTH_IT) {
-                badge.className = 'badge badge-maybe';
-                badge.textContent = '可考慮';
-                reason.textContent = `這筆省下約 NT$ ${savings.toFixed(0)}。第一次操作約 60–90 分鐘，熟了之後 15–20 分鐘，第二次以後才比較划算。`;
+            /* 判斷用「順利的話省下多少」。有開緩衝而且最差情況會倒賠時
+               強制降到「不建議」——那是這個功能的數學界線，不是程度問題。 */
+            const v = worthVerdict(savings, qty);
+            const worstSavings = floorTwd === null ? null : (floorTwd - costTwd);
+            const brokeFloor = worstSavings !== null && worstSavings < 0;
+
+            const tier = brokeFloor ? 'no' : v.tier;
+            badge.className = 'badge ' + (tier === 'go' ? 'badge-go' : (tier === 'maybe' ? 'badge-maybe' : 'badge-no'));
+            badge.textContent = brokeFloor ? '不建議' : v.label;
+
+            /* 第一句：把「省下多少」和「要花多少時間」擺在一起。
+               件數要講出來——它是時間的來源，也是使用者唯一能調整的變數。 */
+            const timeLine = `這次要買 ${qty} 件，估計花${minutesText(v.roundMin)}`
+                + `（以基本工資時薪 NT$196 計，約 NT$ ${Math.round(v.roundCost)}）`;
+
+            let head;
+            if (brokeFloor) {
+                head = `照你選的緩衝檔位，最差情況會倒賠。該做的是不要做這一筆，不是換一個寬鬆的檔位。`;
+            } else if (tier === 'no') {
+                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省下的錢還不夠付這些時間，`
+                     + `而且要再等 7 天。建議這次直接用官方儲值或信用卡回饋。`;
+            } else if (tier === 'maybe') {
+                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省得比時間多，但沒有多太多——`
+                     + `資金要鎖 7 天，這段期間價格會動。`;
             } else {
-                badge.className = 'badge badge-go';
-                badge.textContent = '值得做';
-                reason.textContent = `這筆省下約 NT$ ${savings.toFixed(0)}，約 1 小時操作換到的折扣高於基本工資時薪。前提是你本來就要在 Steam 花這筆錢。`;
+                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。前提是你本來就要在 Steam 花這筆錢。`;
             }
+
+            /* 第二句：兩段式揭露。首次成本只講給還沒設定過的人聽，
+               而且要誠實講完——把它算進去之後這一筆划不划算，是兩個不同的答案。
+               ⚠️ 沒有 setup 紀錄只代表「這台裝置沒有」，不代表這個人沒做過，
+                  所以這裡是加註不是擋人。 */
+            let tail = '';
+            if (!v.setupDone) {
+                const withSetup = savings >= (v.roundCost + v.setupCost);
+                tail = `<br><span class="t-note ${withSetup ? 'c-ink3' : 'c-warn'}" style="font-weight:400">`
+                     + `第一次還要先做一次性設定，${minutesText(OP_TIME.setupMinutes)}`
+                     + `（約 NT$ ${Math.round(v.setupCost)}）。`
+                     + (withSetup
+                        ? `算進去這一筆仍然划算。`
+                        : `把它算進去的話這一筆還不划算——但設定只做一次，下一次起就不用再算。`)
+                     + ` <a href="setup.html">看初始設定</a></span>`;
+            }
+
+            reason.innerHTML = head + tail;
         }
 
         /* ════════════ 以下為原有邏輯，未改動 ════════════ */

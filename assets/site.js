@@ -14,6 +14,7 @@
      ⑦ 特賣時程 STEAM_SALES / nextSale()
      ⑧ 行事曆 icsCalendar() / downloadIcs()
      ⑨ 持有清單 readHoldings() / holdingsToParam() / paramToHoldings()
+     ⑩ 初始設定與時間成本 isSetupDone() / opMinutes() / worthVerdict()
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -550,6 +551,139 @@ function paramToHoldings(raw, boughtAt) {
       boughtAtIsEstimate: false
     };
   }).filter(function (i) { return i.qty > 0; });
+}
+
+/* ── ⑩ 初始設定狀態與操作時間模型 ─────────────────────────────
+   對應 STRATEGY.md 第二節第 8 項「勸退門檻拆首次／回訪」。
+
+   ⚠️ 這一段取代了原本寫死在兩個地方的門檻數字
+      （calculator.html 的 VERDICT_WORTH_IT/CONSIDER 3000/1000、
+       eligibility.html 的 ELIG_MIN_WORTH/CONSIDER）。
+      同一個「值不值得」的結論全站只有這裡一個來源，不要再各頁另立一套。
+
+   ## 為什麼改
+
+   舊版把「第一次」的成本套用在**每一次**：不管你是第一次來還是第五次，
+   門檻都是 NT$3,000／NT$1,000。但首次成本（啟用驗證器、註冊 CSFloat、
+   綁交易連結、第一次入金）是**一次性投資**，第二次以後不用再付。
+   把它攤在每一筆上，等於系統性地勸退了本來該做的人。
+
+   ## 判定「已經是回訪者」用什麼
+
+   `setup.html` 的五個步驟全部勾完 → `doneAt` 有值 → 之後一律用回訪成本。
+
+   ⚠️ 刻意**不用**到訪次數。來看五次但一次都沒買過的人，操作時間仍然是
+      第一次的那個數字；到訪次數量的是「看過」不是「做過」。
+
+   ⚠️ `localStorage` 不跨裝置：桌機設定完、手機打開會退回首訪。所以
+      `setup.html` 一定要保留一個「我在別的裝置設定過了」的手動開關，
+      那不是便利功能，是這個判定方式的必要補丁。
+
+   ## 時間怎麼算
+
+   舊文件用兩個常數：首次 1.5 小時、回訪 0.3 小時。
+   ⚠️ **0.3 小時這個估計 DECISIONS.md 五節自己標著「很可疑」**——
+      NT$5,000 客單若用 US$0.5 的箱子湊，等於在 CSFloat 買 300 件、
+      七天後在 Steam 掛 300 筆。買 20 件和買 300 件差 10 倍以上，
+      用同一個常數蓋掉就是那個坑。
+
+   所以改成：時間 = 每輪固定 + 每件變動 × 件數。件數試算器本來就知道。
+
+   ⚠️⚠️ **下面三個分鐘數全部是「照操作步驟數推估」的，沒有任何實測。**
+        它們是目前唯一有結構的估計，不是量出來的事實。
+        驗證方式只有一個：**自己完整跑一輪並實際計時**（買進計一次、
+        七天後掛單再計一次），然後回來改這三個數字。
+        DECISIONS.md 五節已把它列為待驗證假設。 */
+var OP_TIME = {
+  setupMinutes:      45,  // 一次性：驗證器設定、確認資格、註冊 CSFloat、綁交易連結、首次入金
+  roundFixedMinutes: 10,  // 每輪固定：查價、決定組合、登入、確認餘額
+  perItemMinutes:    0.4  // 每件約 24 秒＝CSFloat 逐筆買 + 七天後 Steam 逐件上架
+};
+
+/* 2026 年基本工資時薪。門檻的分母只有這一個，不讓使用者自填。
+
+   ⚠️ 護欄 3（DECISIONS.md）：門檻是從時間價值推出來的，不是從營收推出來的。
+      要調這個數字，理由必須寫進 commit message。 */
+var HOURLY_WAGE_TWD = 196;
+
+/* 值得做的安全倍數：省下的錢要大於時間成本的幾倍才算值得做。
+
+   ⚠️ 取 2 不是精算值，是風險補償。打平（1 倍）只是拿時間換等值的錢，
+      但這件事還額外要求你把資金鎖 7 天，而 4.7 實測最差的一筆賣價
+      落差是 −22.35%。1 倍沒有任何餘裕吸收那個風險。 */
+var VERDICT_SAFE_MULTIPLE = 2;
+
+var SETUP_STORAGE_KEY = 'sah-setup-v1';
+
+/* setup.html 的一次性步驟。id 同時是 localStorage 裡的 key，上線後不要改。
+   fromElig：可以從資格快檢（sah-eligibility-v2）的哪一題自動帶入。 */
+var SETUP_STEPS = [
+  { id: 'authenticator', fromElig: { q: 'q2', pass: 'yes' } },
+  { id: 'spend5',        fromElig: { q: 'q1', pass: 'yes' } },
+  { id: 'notrestricted', fromElig: { q: 'q3', pass: 'no'  } },
+  { id: 'csfloat',       fromElig: null },
+  { id: 'funded',        fromElig: null }
+];
+
+function readSetupState() {
+  var s = null;
+  try { s = JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY) || 'null'); } catch (e) { /* 無痕模式 */ }
+  if (!s || typeof s !== 'object') s = {};
+  if (!s.steps || typeof s.steps !== 'object') s.steps = {};
+  if (!s.doneAt) s.doneAt = null;
+  if (!s.source) s.source = null;   // 'checklist'（逐項勾完）｜'manual'（別的裝置設定過）
+  return s;
+}
+function writeSetupState(state) {
+  try { localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* 無痕模式 */ }
+}
+
+/* 這個瀏覽器已經走完初始設定了嗎。
+   ⚠️ 回傳 false 只代表「這台裝置上沒有紀錄」，不代表這個人沒做過。
+      所以首訪的處理方式是**照樣給結論、另外標示首次成本**，
+      不是把人擋在設定頁前面。 */
+function isSetupDone() {
+  return !!readSetupState().doneAt;
+}
+
+/* 這一輪要花多少分鐘。qty 是購買組合的總件數。
+   回傳 { round, setup, total }，單位都是分鐘。 */
+function opMinutes(qty) {
+  var n = Number(qty);
+  if (!(n > 0)) n = 0;
+  var round = OP_TIME.roundFixedMinutes + OP_TIME.perItemMinutes * n;
+  return { round: round, setup: OP_TIME.setupMinutes, total: round + OP_TIME.setupMinutes };
+}
+
+function minutesToTwd(min) {
+  return (Number(min) || 0) / 60 * HOURLY_WAGE_TWD;
+}
+
+/* 給畫面用的分鐘數說法。刻意取整到 5 分鐘——這是估計值，
+   顯示成「87 分鐘」會讓人以為它量過。 */
+function minutesText(min) {
+  var m = Math.round((Number(min) || 0) / 5) * 5;
+  if (m < 60) return '約 ' + Math.max(5, m) + ' 分鐘';
+  var h = Math.floor(m / 60), r = m % 60;
+  return '約 ' + h + (r ? ' 小時 ' + r + ' 分鐘' : ' 小時');
+}
+
+/* 值不值得。savingsTwd 是這一筆省下的錢，qty 是組合總件數。
+   回傳 { tier:'go'|'maybe'|'no', label, roundMin, roundCost, setupCost, setupDone } */
+function worthVerdict(savingsTwd, qty) {
+  var m = opMinutes(qty);
+  var roundCost = minutesToTwd(m.round);
+  var s = Number(savingsTwd) || 0;
+  var tier = s < roundCost ? 'no'
+           : (s < roundCost * VERDICT_SAFE_MULTIPLE ? 'maybe' : 'go');
+  return {
+    tier: tier,
+    label: tier === 'go' ? '值得做' : (tier === 'maybe' ? '可考慮' : '不建議'),
+    roundMin: m.round,
+    roundCost: roundCost,
+    setupCost: minutesToTwd(m.setup),
+    setupDone: isSetupDone()
+  };
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

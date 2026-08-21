@@ -68,6 +68,10 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
            沒有入口，他就沒有路回到後半段流程。 -->
       <li><a id="nav-sell" href="sell.html" class="nav-link text-slate-300 hover:text-cyan-400">賣出</a></li>
       <li><a id="nav-help" href="help.html" class="nav-link text-slate-300 hover:text-cyan-400">指南</a></li>
+      <!-- 設定頁放最後：它只做一次，做完就不需要再進來。但一定要在導覽列裡——
+           換裝置的人需要一條路回來按「我在別的裝置設定過了」，否則試算頁
+           會一直用第一次的成本估算他。 -->
+      <li><a id="nav-setup" href="setup.html" class="nav-link text-slate-300 hover:text-cyan-400">設定</a></li>
     </ul>
   </div>
 
@@ -106,6 +110,7 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
       <li><a class="m-link" data-page="marketlist" href="marketlist.html">市場</a></li>
       <li><a class="m-link" data-page="sell" href="sell.html">賣出</a></li>
       <li><a class="m-link" data-page="help" href="help.html">指南</a></li>
+      <li><a class="m-link" data-page="setup" href="setup.html">初始設定</a></li>
     </ul>
 
     <div style="height:1px;background:#1e293b;margin:20px 0"></div>

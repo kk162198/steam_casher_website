@@ -130,7 +130,7 @@
             <div class="t-note num c-ink3">問題 5 / 5</div>
             <h2 class="t-sect flow-xs">這次打算在 Steam 花多少？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                填你想買的遊戲或物品的價格。金額會影響這件事值不值得做。
+                填你想買的遊戲或物品的價格。金額決定你能省下多少，但值不值得還要看要買幾件——那是試算頁的事。
             </p>
             <div class="flow-md" style="display:flex;align-items:baseline;gap:8px">
                 <label for="elig-amount" class="t-sub c-ink3">NT$</label>
@@ -167,9 +167,18 @@
         // v2：q3 的 data-val 語意在 2026-08 修正過（yes 從「沒有限制」改成「有限制」），
 //     沿用舊 key 會把舊答案讀成相反的意思，所以直接換版本號讓舊狀態自然失效。
         const ELIG_STORAGE_KEY = 'sah-eligibility-v2';
-        const ELIG_MIN_WORTH = 3000;   // 高於此金額：值得做
-        const ELIG_MIN_CONSIDER = 1000; // 低於此金額：不建議
         const ELIG_EST_DISCOUNT = 0.24; // 折扣估算值，僅用於資格頁的粗估
+
+        /* ⚠️ 這裡原本有 ELIG_MIN_WORTH = 3000 / ELIG_MIN_CONSIDER = 1000，
+              照金額直接判「不值得」。已移除，理由是這一頁**算不出來**：
+
+              值不值得＝省下的錢 vs 這一輪要花的時間，而時間跟**件數**走
+              （site.js 第⑩節）。這一頁不知道你會買幾件——那要有價格資料
+              才排得出組合，是試算頁的工作。用一個猜的折扣率 × 金額去下
+              「不值得」的結論，等於拿粗估當判決。
+
+              所以這一頁只做兩件事：**判資格**、把時間成本的事實講出來。
+              結論留給試算頁，全站只有一個地方下這個判斷。 */
 
         const answers = { q1: null, q2: null, q3: null, q4: null, amount: 3000 };
 
@@ -267,38 +276,43 @@
                         以上都是 Steam 平台的規則，不是這個網站設的。細節以
                         <a href="https://help.steampowered.com/zh-TW/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
                     </p>`,
-                    `<a href="help.html" class="btn btn-secondary">看操作指南</a>`);
+                    `<a href="setup.html" class="btn btn-secondary">看初始設定怎麼做</a>
+                     <a href="help.html" class="btn btn-text">看完整操作指南</a>`);
                 return;
             }
 
-            // 資格都過，看金額
+            // 資格都過。金額只用來粗估「省多少」，值不值得交給試算頁。
             const amt = answers.amount;
             const saving = Math.round(amt * ELIG_EST_DISCOUNT);
+            const setupDone = isSetupDone();
+            const setupCost = Math.round(minutesToTwd(OP_TIME.setupMinutes));
 
-            if (amt < ELIG_MIN_CONSIDER) {
-                box.innerHTML = resultCard('no',
-                    `這筆 NT$ ${amt.toLocaleString()} 只省下約 NT$ ${saving.toLocaleString()}，不值得`,
-                    `<p class="flow-0">你的帳號條件都符合，但金額太小。省下的錢大概不到一小時的基本工資，而你要花約 1 小時操作、再等 7 天。</p>
-                     <p class="flow-sm">這次建議直接用官方儲值，或用有回饋的信用卡付款，兩者都不用等。等你哪次要花的金額比較大再回來。</p>`,
-                    `<a href="index.html" class="btn btn-secondary">回首頁看其他選擇</a>`);
-                return;
-            }
-
-            const isWorth = amt >= ELIG_MIN_WORTH;
             box.innerHTML = resultCard('go',
                 `這筆 NT$ ${amt.toLocaleString()} 預估可以省下約 NT$ ${saving.toLocaleString()}`,
-                `<p class="flow-0">你的帳號條件都符合，可以用這個方式加值。${isWorth
-                    ? '金額也在划算的區間。'
-                    : '金額在中間地帶，第一次操作要花 60–90 分鐘，你可以先算一次再決定。'}</p>
+                `<p class="flow-0">你的帳號條件都符合，可以用這個方式加值。</p>
                  <p class="t-aux flow-sm c-ink3">
                     這是用約 ${Math.round(ELIG_EST_DISCOUNT * 100)}% 折扣粗估的。實際數字要看目前的市場價格，試算頁會算給你看。
                  </p>
+                 <div class="step-check flow-md">
+                    <div class="step-check-title">要花你多少時間</div>
+                    <p class="t-aux c-ink2 flow-0">
+                        ${setupDone
+                            ? `你這台裝置已經標記完成初始設定，所以不用再把一次性設定的時間算進去（${minutesText(OP_TIME.setupMinutes)}）。`
+                            : `第一次要先做一次性設定，${minutesText(OP_TIME.setupMinutes)}（以基本工資時薪計約 NT$ ${setupCost}），做完就不用再做。`}
+                        之後每一輪${minutesText(OP_TIME.roundFixedMinutes)}起跳，<strong class="c-ink">再加上每件約 24 秒</strong>——
+                        箱子單價低，金額越大要買的件數越多，賣的時候也要一件一件掛回去。
+                        省下的錢夠不夠付這些時間，試算頁會直接算給你看。
+                    </p>
+                 </div>
                  <div class="risk-bar flow-md">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                     <span>換到的是 Steam 錢包餘額，不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
                  </div>`,
-                `<a href="calculator.html" class="btn btn-primary">試算我的方案</a>
-                 <a href="help.html" class="btn btn-text">先看操作步驟</a>`);
+                setupDone
+                    ? `<a href="calculator.html" class="btn btn-primary">試算我的方案</a>
+                       <a href="help.html" class="btn btn-text">看操作步驟</a>`
+                    : `<a href="setup.html" class="btn btn-primary">先做初始設定</a>
+                       <a href="calculator.html" class="btn btn-text">直接去試算</a>`);
         }
 
         function refresh() { paintAnswers(); updateProgress(); renderResult(); saveState(); }

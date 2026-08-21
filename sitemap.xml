@@ -29,6 +29,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://kk162198.github.io/steam_casher_website/setup.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://kk162198.github.io/steam_casher_website/checklist.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
