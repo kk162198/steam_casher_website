@@ -25,6 +25,20 @@
     <link rel="stylesheet" href="assets/style.css">
     <style>
 /* 本頁專屬樣式（共用設計系統在 assets/style.css）*/
+        /* 買到數量／實付金額的輸入框。與賣出頁的 .fill-in 同一套外觀，
+           因為它們是同一件事的兩端（買入回填 / 賣出回填）。 */
+        .fill-in{
+            width:5.5em;padding:6px 8px;border-radius:6px;
+            border:1px solid var(--line);background:var(--base);color:var(--ink);
+            font:inherit;font-size:13px;font-variant-numeric:tabular-nums;
+        }
+        .fill-in:focus{outline:2px solid var(--brand);outline-offset:1px}
+        .fill-in:disabled{opacity:.3;cursor:not-allowed}
+        /* 買到的比計畫少時的提示。用 warn 而不是 neg——買不到不是錯誤，
+           是市場深度的事實，但使用者需要看到它才知道總額會不一樣。 */
+        .short-note{color:var(--warn);font-size:12px;line-height:1.5}
+        .lot-row > td{border-top:0;padding-top:0}
+        .lot-tag{color:var(--ink3);font-size:12px;white-space:nowrap}
     </style>
 </head>
 <body data-page="calculator">
@@ -36,7 +50,8 @@
             <div>
                 <h1 class="t-page">購物清單</h1>
                 <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
-                    照這份清單到 CSFloat 一項一項買，買到就打勾。進度存在你的瀏覽器裡，關掉再回來還在。
+                    照這份清單到 CSFloat 一項一項買，買到就打勾，順手填上<strong>實際買到幾個、實際付了多少</strong>。
+                    買不到全部是常態，填了之後賣出頁才算得出你到底賺了多少。進度存在你的瀏覽器裡，關掉再回來還在。
                 </p>
             </div>
             <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
@@ -51,7 +66,7 @@
                         <div id="cl-progress" class="stat-value stat-value-md">--</div>
                         <div id="cl-progress-note" class="stat-note">還沒有清單</div>
                     </div>
-                    <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除全部勾選</button>
+                    <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除全部紀錄</button>
                 </div>
                 <div class="flow-md" style="height:8px;border-radius:999px;background:var(--line);overflow:hidden">
                     <div id="cl-bar" style="width:0%;height:8px;border-radius:999px;background:var(--pos);transition:width .2s"></div>
@@ -74,9 +89,9 @@
                         <thead>
                             <tr>
                                 <th scope="col">品項</th>
-                                <th scope="col">數量</th>
-                                <th scope="col">單價</th>
-                                <th scope="col">小計</th>
+                                <th scope="col">計畫</th>
+                                <th scope="col">買到幾個</th>
+                                <th scope="col">實付總額</th>
                                 <th scope="col">已買到</th>
                                 <th scope="col">前往交易</th>
                             </tr>
@@ -105,6 +120,7 @@
                     <li>箱子會進到你的 Steam 庫存，滑鼠移上去會顯示 7 天後的可交易日期。</li>
                     <li><strong>打勾的時間就是冷卻期的起點</strong>，賣出頁會依此倒數，到期提醒也是照這個算的。</li>
                     <li>到期後在 Steam 社群市場逐一上架。賣出頁會告訴你該掛多少、實拿多少。</li>
+                    <li><strong>實付總額填 CSFloat 結帳畫面上的金額，不要填單價</strong>。買 13 個常常是好幾筆不同價格湊起來的，那種情況下「單價」不存在，只有總額是真的。</li>
                 </ol>
                 <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
                     <a href="sell.html" class="btn btn-primary btn-sm">去賣出頁看冷卻期</a>
@@ -125,17 +141,21 @@
            也支援用網址參數覆寫，方便分享：?items=名稱:數量:單價:CSFloat_ID,...
            第四段的 CSFloat_ID 可省略（舊網址相容），省略時該列只會有 Steam 連結。 */
         /* COMBO_STORAGE_KEY / CHECK_STORAGE_KEY 已移到 site.js（賣出頁也要用），
-           這裡不再重複宣告。
+           這裡不再重複宣告。格式與相容性說明也在那裡（第⑨節）。
 
            ⚠️ 2026-08-13：勾選狀態從「名稱陣列」升級成「名稱 → 勾選時間」。
-              勾選的那一刻就是 7 天冷卻期的起點，賣出頁靠它算解鎖日。
-              舊格式（純陣列）仍讀得回來，只是沒有時間，賣出頁會退回用
-              試算時間估算並標示「日期為估算」——不要靜默假裝知道時間，
-              冷卻期算錯會讓人白等或提早去掛單。 */
+           ⚠️ 2026-08-22：再升級成 { lots:[{at,qty,paidTwd}], closed }。
+              勾選只回答「有沒有買到」，但 CSFloat 上一次買 20 個常常
+              買不到 20 個——部分成交是常態。數量沿用計畫值會讓
+              `DECISIONS.md` 4.7 要量的「預期 vs 實際」把一個**數量錯誤**
+              偽裝成**價格缺口**。
+
+              三種格式都讀得回來。舊資料沒有數量就退回用計畫數量，
+              並在畫面上標示「估」——不要靜默假裝知道。 */
 
         let items = [];
         let savedAt = null;
-        let checkedMap = {};                                  // name -> ISO 時間 or null
+        let checkedMap = {};        // name -> { lots:[{at,qty,paidTwd}], closed }
         const checked = { has: n => Object.prototype.hasOwnProperty.call(checkedMap, n) };
 
         function escapeHtml(str) {
@@ -174,27 +194,143 @@
         function setChecked(name, on) {
             if (on) {
                 // 已經勾過就保留原本的時間，不要因為重新渲染而把冷卻期重算
-                if (!checkedMap[name]) checkedMap[name] = new Date().toISOString();
+                if (!checkedMap[name]) {
+                    checkedMap[name] = {
+                        lots: [{ at: new Date().toISOString(), qty: null, paidTwd: null }],
+                        closed: false
+                    };
+                }
             } else {
-                delete checkedMap[name];
+                delete checkedMap[name];      // 取消勾選＝這筆紀錄不存在，實付金額一起消失
             }
             writeChecked();
         }
 
-        // 清單的單列樣板
+        /* 欄位寫入。空字串一律存 null（＝沒填），不要存 0——
+           「買到 0 個」和「還沒填」在統計上是完全不同的兩件事。 */
+        function setLotField(name, idx, field, rawValue) {
+            const e = checkedMap[name];
+            if (!e || !e.lots[idx]) return;
+            const v = String(rawValue).trim();
+            e.lots[idx][field] = (v === '') ? null : Math.max(0, Number(v) || 0);
+            writeChecked();
+        }
+
+        /* 分批：今天買 13、明天補 7，兩批的解鎖日差一天，
+           所以每一批要有自己的時間，不能共用。 */
+        function addLot(name) {
+            const e = checkedMap[name];
+            if (!e) return;
+            e.lots.push({ at: new Date().toISOString(), qty: null, paidTwd: null });
+            e.closed = false;
+            writeChecked();
+        }
+        function removeLot(name, idx) {
+            const e = checkedMap[name];
+            if (!e || e.lots.length <= 1) return;
+            e.lots.splice(idx, 1);
+            writeChecked();
+        }
+        function setClosed(name, on) {
+            const e = checkedMap[name];
+            if (!e) return;
+            e.closed = !!on;
+            writeChecked();
+        }
+
+        /* 買到幾個（沒填就退回計畫數量）＋ 是否為估計值 */
+        function boughtQty(item) {
+            const e = checkedMap[item.name];
+            const t = lotsTotalQty(e);              // site.js：任何一批沒填就回 null
+            return t == null ? { qty: item.qty, est: true } : { qty: t, est: false };
+        }
+
+        /* 主列：品項 / 計畫 / 第一批的輸入 / 勾選 / 交易連結 */
         function renderChecklistRow(item, isChecked) {
-            const subtotal = item.unitCostTwd * item.qty;
+            const e = checkedMap[item.name];
+            const lot = isChecked ? e.lots[0] : null;
+            const planSubtotal = item.unitCostTwd * item.qty;
+            const b = boughtQty(item);
+            const short = isChecked && !b.est && b.qty < item.qty;
+
+            /* 少買了就要講出來，而且要區分「還會再買」跟「買不到了」——
+               只有後者才算得上可買到率的分母。 */
+            let shortHtml = '';
+            if (short) {
+                shortHtml = e.closed
+                    ? `<span class="short-note" style="display:block">差 ${item.qty - b.qty} 個・已收單</span>
+                       <button type="button" class="btn btn-text btn-sm" data-reopen="${escapeHtml(item.name)}" style="padding:0">改成還要再買</button>`
+                    : `<span class="short-note" style="display:block">還差 ${item.qty - b.qty} 個</span>
+                       <button type="button" class="btn btn-text btn-sm" data-close="${escapeHtml(item.name)}" style="padding:0">買不到了，就到這裡</button>
+                       <button type="button" class="btn btn-text btn-sm" data-addlot="${escapeHtml(item.name)}" style="padding:0">再買一批</button>`;
+            }
+
             return `
                 <td class="rt-key" data-label="品項">${escapeHtml(item.name)}</td>
-                <td class="c-brand" data-label="數量" style="font-weight:700">${item.qty} 個</td>
-                <td data-label="單價">NT$ ${item.unitCostTwd.toFixed(0)}</td>
-                <td data-label="小計">NT$ ${subtotal.toFixed(0)}</td>
+                <td data-label="計畫">
+                    <span class="cell-stack">
+                        <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
+                        <span class="t-note c-ink3">估 NT$ ${item.unitCostTwd.toFixed(0)}／個・NT$ ${planSubtotal.toFixed(0)}</span>
+                    </span>
+                </td>
+                <td data-label="買到幾個">
+                    <span class="cell-stack">
+                        <input type="number" inputmode="numeric" min="0" step="1" class="fill-in"
+                               data-qty-for="${escapeHtml(item.name)}" data-lot="0"
+                               value="${lot && lot.qty != null ? lot.qty : ''}"
+                               placeholder="${item.qty}"${isChecked ? '' : ' disabled'}
+                               aria-label="${escapeHtml(item.name)} 實際買到幾個">
+                        ${isChecked && b.est ? '<span class="t-note c-ink3">未填，暫用計畫數量</span>' : ''}
+                        ${shortHtml}
+                    </span>
+                </td>
+                <td data-label="實付總額">
+                    <span class="cell-stack">
+                        <label style="display:inline-flex;align-items:center;gap:6px">
+                            <span class="c-ink3 t-note">NT$</span>
+                            <input type="number" inputmode="decimal" min="0" step="1" class="fill-in"
+                                   data-paid-for="${escapeHtml(item.name)}" data-lot="0"
+                                   value="${lot && lot.paidTwd != null ? lot.paidTwd : ''}"
+                                   placeholder="${planSubtotal.toFixed(0)}"${isChecked ? '' : ' disabled'}
+                                   aria-label="${escapeHtml(item.name)} 這一批實付總額">
+                        </label>
+                        ${isChecked ? '<span class="t-note c-ink3">填結帳畫面的總額，不是單價</span>' : ''}
+                    </span>
+                </td>
                 <td data-label="已買到">
                     <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
                         <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(item.name)} 已買到"${isChecked ? ' checked' : ''}>
                     </label>
                 </td>
                 <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
+        }
+
+        /* 第 2 批以後的附屬列。獨立一列是因為每一批有自己的購買時間，
+           也就是自己的冷卻期——擠在同一格會讓人以為它們同時解鎖。 */
+        function renderLotRow(item, lot, idx) {
+            const when = lot.at ? new Date(lot.at).toLocaleDateString('zh-TW') : '時間不明';
+            return `
+                <td class="rt-key" data-label="品項"><span class="lot-tag">└ 第 ${idx + 1} 批・${escapeHtml(when)} 買</span></td>
+                <td data-label="計畫"></td>
+                <td data-label="買到幾個">
+                    <input type="number" inputmode="numeric" min="0" step="1" class="fill-in"
+                           data-qty-for="${escapeHtml(item.name)}" data-lot="${idx}"
+                           value="${lot.qty != null ? lot.qty : ''}" placeholder="0"
+                           aria-label="${escapeHtml(item.name)} 第 ${idx + 1} 批買到幾個">
+                </td>
+                <td data-label="實付總額">
+                    <label style="display:inline-flex;align-items:center;gap:6px">
+                        <span class="c-ink3 t-note">NT$</span>
+                        <input type="number" inputmode="decimal" min="0" step="1" class="fill-in"
+                               data-paid-for="${escapeHtml(item.name)}" data-lot="${idx}"
+                               value="${lot.paidTwd != null ? lot.paidTwd : ''}" placeholder="0"
+                               aria-label="${escapeHtml(item.name)} 第 ${idx + 1} 批實付總額">
+                    </label>
+                </td>
+                <td data-label="已買到">
+                    <button type="button" class="btn btn-text btn-sm" data-rmlot="${escapeHtml(item.name)}" data-lot="${idx}" style="padding:0">移除這批</button>
+                </td>
+                <td data-label="前往交易"></td>`;
         }
 
         function updateProgress() {
@@ -209,29 +345,49 @@
             }
             const doneItems = items.filter(i => checked.has(i.name));
             const totalQty = items.reduce((s, i) => s + i.qty, 0);
-            const doneQty = doneItems.reduce((s, i) => s + i.qty, 0);
-            const spent = doneItems.reduce((s, i) => s + i.unitCostTwd * i.qty, 0);
+
+            /* ⚠️ 數量與金額都用**實際填的**，沒填才退回計畫值，而且要記下
+               「有沒有退回過」。舊版這裡直接拿計畫值當已花費，計畫 20
+               只買到 13 的時候，畫面上那個總額從頭到尾都是錯的。 */
+            let doneQty = 0, spent = 0, qtyEst = false, paidEst = false;
+            doneItems.forEach(i => {
+                const e = checkedMap[i.name];
+                const q = lotsTotalQty(e);          // site.js
+                const p = lotsTotalPaid(e);
+                if (q == null) { doneQty += i.qty; qtyEst = true; } else { doneQty += q; }
+                if (p == null) { spent += i.unitCostTwd * (q == null ? i.qty : q); paidEst = true; }
+                else { spent += p; }
+            });
+
             prog.textContent = `${doneItems.length} / ${items.length}`;
-            note.textContent = `共 ${doneQty} / ${totalQty} 件・已花約 NT$ ${spent.toFixed(0)}`;
+            note.textContent = `共 ${doneQty}${qtyEst ? '（含估計）' : ''} / ${totalQty} 件・`
+                + (paidEst ? '已花約 NT$ ' : '實付 NT$ ') + spent.toFixed(0);
             bar.style.width = (items.length ? (doneItems.length / items.length) * 100 : 0) + '%';
 
             /* 勾了東西就把冷卻期的終點講出來。使用者在這一刻最需要知道的不是
                「你買了幾件」，是「所以我什麼時候該回來」。 */
             const next = document.getElementById('cl-next-note');
             if (!next) return;
-            const times = doneItems.map(i => checkedMap[i.name]).filter(Boolean).sort();
+            const times = doneItems
+                .reduce((acc, i) => acc.concat((checkedMap[i.name].lots || []).map(l => l.at)), [])
+                .filter(Boolean).sort();
             if (!times.length) {
                 next.textContent = '還沒有打勾的品項。打勾之後這裡會顯示最早可以賣出的日期。';
                 return;
             }
             const firstUnlock = unlockAt(times[0]);
             const lastUnlock = unlockAt(times[times.length - 1]);
-            next.textContent = firstUnlock && lastUnlock
+            /* 還有沒填數量的項目就講一句——賣出頁的「少了多少」靠這個，
+               不填的話那個數字會拿計畫值去比實際，算出來的缺口有一半
+               是估計本身的誤差。 */
+            const unfilled = doneItems.filter(i => lotsTotalQty(checkedMap[i.name]) == null).length;
+            next.textContent = (firstUnlock && lastUnlock
                 ? ('最早 ' + firstUnlock.toLocaleDateString('zh-TW') + ' 可以賣'
                    + (firstUnlock.toDateString() === lastUnlock.toDateString()
-                      ? '。' : '，最晚一項是 ' + lastUnlock.toLocaleDateString('zh-TW') + '。')
+                      ? '。' : '，最晚一批是 ' + lastUnlock.toLocaleDateString('zh-TW') + '。')
                    + '賣出頁可以下載到期提醒，不用自己記。')
-                : '';
+                : '')
+                + (unfilled ? `　還有 ${unfilled} 項沒填實際買到幾個，賣出頁會先用計畫數量代替。` : '');
         }
 
         function renderEmpty() {
@@ -272,24 +428,92 @@
             items.forEach(item => {
                 const isChecked = checked.has(item.name);
                 const tr = document.createElement('tr');
-                tr.style.opacity = isChecked ? '0.45' : '';
+                /* ⚠️ 勾完不要再整列淡出。舊版淡到 0.45 是因為那時勾選就結束了，
+                   現在勾完才要填數量和金額，把待填的欄位變灰等於叫人別填。 */
                 tr.innerHTML = renderChecklistRow(item, isChecked);
                 tr.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
                     setChecked(item.name, e.target.checked);   // 勾選時間就是冷卻期起點
-                    tr.style.opacity = e.target.checked ? '0.45' : '';
-                    updateProgress();
+                    render();                                   // 輸入框要跟著啟用／清空
                 });
                 body.appendChild(tr);
+
+                // 第 2 批以後各自一列
+                if (isChecked) {
+                    checkedMap[item.name].lots.forEach((lot, idx) => {
+                        if (idx === 0) return;
+                        const lr = document.createElement('tr');
+                        lr.className = 'lot-row';
+                        lr.innerHTML = renderLotRow(item, lot, idx);
+                        body.appendChild(lr);
+                    });
+                }
             });
+            bindRowInputs();
             renderTimestamps(document);
             updateProgress();
         }
 
-        document.getElementById('cl-reset').addEventListener('click', () => {
-            checkedMap = {};
-            writeChecked();
-            render();
-        });
+        /* 輸入框與批次按鈕。用 change 而不是 input——每敲一個字就寫一次
+           localStorage 沒有意義，而且數字打到一半（例如「1」還沒打完 13）
+           會被當成真的存進去。 */
+        function bindRowInputs() {
+            document.querySelectorAll('[data-qty-for]').forEach(el => {
+                el.addEventListener('change', () => {
+                    setLotField(el.dataset.qtyFor, Number(el.dataset.lot), 'qty', el.value);
+                    render();     // 「還差幾個」與收單按鈕要跟著變
+                });
+            });
+            document.querySelectorAll('[data-paid-for]').forEach(el => {
+                el.addEventListener('change', () => {
+                    setLotField(el.dataset.paidFor, Number(el.dataset.lot), 'paidTwd', el.value);
+                    updateProgress();
+                });
+            });
+            document.querySelectorAll('[data-close]').forEach(el => {
+                el.addEventListener('click', () => { setClosed(el.dataset.close, true); render(); });
+            });
+            document.querySelectorAll('[data-reopen]').forEach(el => {
+                el.addEventListener('click', () => { setClosed(el.dataset.reopen, false); render(); });
+            });
+            document.querySelectorAll('[data-addlot]').forEach(el => {
+                el.addEventListener('click', () => { addLot(el.dataset.addlot); render(); });
+            });
+            document.querySelectorAll('[data-rmlot]').forEach(el => {
+                el.addEventListener('click', () => {
+                    removeLot(el.dataset.rmlot, Number(el.dataset.lot));
+                    render();
+                });
+            });
+        }
+
+        /* 清除鍵改成兩段式。以前它只丟掉幾個勾勾，現在會連實付金額和
+           購買時間一起丟——那些是使用者一筆一筆敲進去、而且**重建不回來**
+           的東西（CSFloat 的結帳紀錄不會自己回到這裡）。誤觸一次就沒了。
+           用兩段式而不是 confirm()，是為了不擋住畫面。 */
+        (function bindReset() {
+            const btn = document.getElementById('cl-reset');
+            let armed = false, timer = null;
+            btn.addEventListener('click', () => {
+                if (!armed) {
+                    armed = true;
+                    btn.textContent = '再按一次就真的清除';
+                    btn.style.color = 'var(--neg)';
+                    timer = setTimeout(() => {
+                        armed = false;
+                        btn.textContent = '清除全部紀錄';
+                        btn.style.color = '';
+                    }, 4000);
+                    return;
+                }
+                clearTimeout(timer);
+                armed = false;
+                btn.textContent = '清除全部紀錄';
+                btn.style.color = '';
+                checkedMap = {};
+                writeChecked();
+                render();
+            });
+        })();
 
         readCombo();
         readChecked();

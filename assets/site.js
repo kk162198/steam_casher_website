@@ -14,7 +14,9 @@
      ⑦ 特賣時程 STEAM_SALES / nextSale()
      ⑧ 行事曆 icsCalendar() / downloadIcs()
      ⑨ 持有清單 readHoldings() / holdingsToParam() / paramToHoldings()
+        含買到數量與實付金額（lots），見該節開頭的格式說明
      ⑩ 初始設定與時間成本 isSetupDone() / opMinutes() / worthVerdict()
+     ⑪ Steam 手續費換算 steamNetUsd()（毛額 → 淨額，與後端同一套算法）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -481,74 +483,226 @@ function downloadIcs(text, filename) {
 
 /* ── ⑨ 持有清單 ─────────────────────────────────────────────
    資料來源沿用購物清單那一套，不另起一份：
-     sah-combo-v1                買了什麼（試算頁寫入）
-     sah-checklist-checked-v1    哪些已經買到、以及**什麼時候**買到
+     sah-combo-v1                計畫買什麼（試算頁寫入）
+     sah-checklist-checked-v1    實際買到什麼、幾個、多少錢、什麼時候
 
-   ⚠️ 舊版的 checked 是純名稱陣列 ["A","B"]，沒有時間。這裡升級成
-      { "A": "ISO 時間" }，並保留舊格式的讀取相容——舊資料沒有時間，
-      退回用 combo 的 savedAt 當近似值，並在畫面上標示那是估計的。
-      **不要靜默假裝知道時間**，冷卻期算錯會讓人白等或提早去掛單。 */
+   ## 為什麼要記「實際買到幾個」（2026-08-22）
+
+   舊版的勾選是布林值，數量直接沿用試算頁的**計畫值**。但 CSFloat 上
+   一次買 20 個常常買不到 20 個——`csfloat_price_depth` 存在的理由就是
+   「最低價買不到那麼多」，而 `csfloat_depth_count < 10` 直接代表湊不到
+   10 件。**部分成交是常態，不是例外。**
+
+   計畫 20 只買到 13，卻整條算下去當成 20，後果不只是總額錯：
+   `DECISIONS.md` 4.7 要量的「預期 vs 實際」會把一個**數量錯誤**
+   偽裝成**價格缺口**，而那正是 4.7 已經踩過一次的坑。
+
+   ➡️ 這個欄位同時是產品資料：計畫 20 / 買到 13 = 可買到率 65%，
+      是目前唯一能驗證 `csfloat_price_depth` 與 `csfloat_inventory`
+      的東西（schema 註解說 inventory 有 250 截斷問題）。
+      買入側沒有任何替代來源——賣出側至少還有 median 可以對照。
+
+   ## 格式（v3）
+
+     { "品項名": { lots: [ { at, qty, paidTwd } ], closed: bool } }
+
+     at       ISO 字串。**這一批**的購買時間，也就是這一批冷卻期的起點
+     qty      這一批實際買到幾個。null = 沒填，退回用計畫數量並標為估計
+     paidTwd  這一批實付**總額**（NT$）。null = 沒填
+     closed   true = 買不到了，剩下的放棄。與「還沒買完」是兩件事
+
+   ⚠️ **paidTwd 記總額，不記單價。** 部分成交本來就是好幾筆不同價格的
+      掛單湊起來的，「單價」這個東西在那種情況下不存在，只有總額是真的。
+
+   ⚠️ **lots 是陣列，因為分批買一定會發生。** 今天買 13、明天補 7，
+      兩批的解鎖日差一天，冷卻期必須各算各的。這也是為什麼一開始就用
+      陣列而不是單一物件——這個 key 的格式已經改過一次了，不要再改第三次。
+
+   ⚠️ **沒填的數量一律當「不知道」，不要當 0，也不要靜默當成計畫數量。**
+      兩個方向都是替使用者宣稱一件他沒說過的事，跟 `setup.html` 那條
+      「`unknown` / `no` 不自動帶入」是同一個原則。退回計畫數量可以，
+      但一定要帶著 `qtyIsEstimate` 讓畫面標示出來。
+
+   ## 向下相容
+
+     v1  ["A","B"]            純名稱陣列，沒有時間也沒有數量
+     v2  { "A": "ISO" }       有時間，沒有數量
+     v3  { "A": { lots… } }   現行
+
+   舊資料沒有時間就退回用 combo 的 savedAt 當近似值，並在畫面上標示。
+   **不要靜默假裝知道時間**，冷卻期算錯會讓人白等或提早去掛單。 */
 var COMBO_STORAGE_KEY = 'sah-combo-v1';
 var CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
 
+function normalizeLot(raw) {
+  if (!raw || typeof raw !== 'object') raw = { at: (typeof raw === 'string' ? raw : null) };
+  var q = Number(raw.qty);
+  var p = Number(raw.paidTwd);
+  return {
+    at: (typeof raw.at === 'string' && raw.at) ? raw.at : null,
+    qty: (raw.qty != null && raw.qty !== '' && isFinite(q) && q > 0) ? Math.round(q) : null,
+    paidTwd: (raw.paidTwd != null && raw.paidTwd !== '' && isFinite(p) && p >= 0) ? p : null
+  };
+}
+
+/* 把三種歷史格式都收斂成 v3。壞掉的資料當成「勾了但什麼都沒填」，
+   不要 throw——這是在頁面初始化階段跑的，掛掉整頁就白畫了。 */
+function normalizeCheckedEntry(raw) {
+  var lots;
+  if (raw && typeof raw === 'object' && Array.isArray(raw.lots)) {
+    lots = raw.lots.map(normalizeLot);
+  } else if (Array.isArray(raw)) {
+    lots = raw.map(normalizeLot);
+  } else {
+    lots = [normalizeLot(raw)];        // v2 的 ISO 字串，或 v1 升級後的 null
+  }
+  /* 多批時把沒填數量的那幾批丟掉：分批只會由「輸入了數量」這個動作產生，
+     沒有數量的多批一定是手改過的壞資料，留著會讓總數算不出來。 */
+  if (lots.length > 1) lots = lots.filter(function (l) { return l.qty != null; });
+  if (!lots.length) lots = [normalizeLot(null)];
+  return { lots: lots, closed: !!(raw && raw.closed) };
+}
+
 function readCheckedMap() {
+  var out = {};
   try {
     var raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || 'null');
-    if (Array.isArray(raw)) {          // 舊格式：只有名稱，沒有時間
-      var m = {};
-      raw.forEach(function (n) { m[n] = null; });
-      return m;
+    if (Array.isArray(raw)) {                        // v1：純名稱陣列
+      raw.forEach(function (n) { out[n] = normalizeCheckedEntry(null); });
+    } else if (raw && typeof raw === 'object') {     // v2 / v3
+      Object.keys(raw).forEach(function (n) { out[n] = normalizeCheckedEntry(raw[n]); });
     }
-    return (raw && typeof raw === 'object') ? raw : {};
-  } catch (e) { return {}; }
+  } catch (e) { /* 壞資料當成沒有 */ }
+  return out;
 }
 function writeCheckedMap(map) {
   try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
 }
 
-/* 回傳已買到的品項 + 各自的購買時間。
-   { items:[{name,qty,unitCostTwd,defIndex,boughtAt,boughtAtIsEstimate}], savedAt } */
+/* 這個品項一共買到幾個 / 一共付了多少。
+   ⚠️ 任何一批沒填就回 null（= 不知道），不要把沒填的當 0 加進去——
+      少加一批的總額會讓「少了多少」憑空變好看。 */
+function lotsTotalQty(entry) {
+  if (!entry || !entry.lots || !entry.lots.length) return null;
+  var sum = 0;
+  for (var i = 0; i < entry.lots.length; i++) {
+    if (entry.lots[i].qty == null) return null;
+    sum += entry.lots[i].qty;
+  }
+  return sum;
+}
+function lotsTotalPaid(entry) {
+  if (!entry || !entry.lots || !entry.lots.length) return null;
+  var sum = 0;
+  for (var i = 0; i < entry.lots.length; i++) {
+    if (entry.lots[i].paidTwd == null) return null;
+    sum += entry.lots[i].paidTwd;
+  }
+  return sum;
+}
+
+/* 回傳已買到的批次，**一批一列**（不是一個品項一列）。
+   分批買的兩批解鎖日不同，合成一列就一定有一批的冷卻期是錯的。
+
+   每一列：
+     key                 穩定識別字，回填成交價用。單批時就等於 name
+                         （所以舊的 sah-sold-v1 在最常見的情況下不用遷移）
+     name / defIndex     品項
+     plannedQty          試算頁的計畫數量（整個品項的）
+     qty                 這一批實際買到幾個
+     qtyIsEstimate       true = 沒填，qty 是退回用的計畫數量
+     unitCostTwd         試算頁的**估計**單價，不是實付
+     paidTwd             這一批實付總額，null = 沒填
+     boughtAt / boughtAtIsEstimate
+     closed              這個品項是否已標記「買不到了，就到這裡」
+     lotIndex / lotCount */
 function readHoldings() {
   var combo = null;
   try { combo = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null'); } catch (e) { /* 忽略 */ }
   if (!combo || !Array.isArray(combo.items)) return { items: [], savedAt: null };
   var checked = readCheckedMap();
-  var items = combo.items.filter(function (i) {
-    return Object.prototype.hasOwnProperty.call(checked, i.name);
-  }).map(function (i) {
-    var at = checked[i.name];
-    return {
-      name: i.name, qty: i.qty, unitCostTwd: i.unitCostTwd, defIndex: i.defIndex == null ? null : i.defIndex,
-      boughtAt: at || combo.savedAt || null,
-      boughtAtIsEstimate: !at            // 舊資料沒有勾選時間，用試算時間近似
-    };
+  var items = [];
+  combo.items.forEach(function (i) {
+    if (!Object.prototype.hasOwnProperty.call(checked, i.name)) return;
+    var entry = checked[i.name];
+    var lotCount = entry.lots.length;
+    entry.lots.forEach(function (lot, idx) {
+      items.push({
+        key: lotCount > 1 ? (i.name + '#' + (lot.at || ('lot' + idx))) : i.name,
+        name: i.name,
+        defIndex: i.defIndex == null ? null : i.defIndex,
+        plannedQty: i.qty,
+        qty: lot.qty != null ? lot.qty : i.qty,
+        qtyIsEstimate: lot.qty == null,
+        unitCostTwd: i.unitCostTwd,
+        paidTwd: lot.paidTwd,
+        boughtAt: lot.at || combo.savedAt || null,
+        boughtAtIsEstimate: !lot.at,   // 舊資料沒有勾選時間，用試算時間近似
+        closed: entry.closed,
+        lotIndex: idx,
+        lotCount: lotCount
+      });
+    });
   });
   return { items: items, savedAt: combo.savedAt || null };
 }
 
 /* 跨裝置：localStorage 不跨裝置，桌機買、手機收提醒是很常見的組合。
    解法是讓行事曆事件自己攜帶品項清單，點連結時由網址參數還原。
-   格式沿用購物清單頁既有的 `名稱:數量:單價:defIndex`，多一個 bought 參數。
 
-   ⚠️ 網址參數是使用者看得到也改得動的，所以它只攜帶「買了什麼」，
-      **不攜帶任何價格計算結果**——賣價一律在頁面載入時重新查。 */
+     名稱:數量:計畫單價:defIndex:實付總額:旗標
+
+   後兩段是 2026-08-22 新增，舊網址（四段）仍讀得回來。
+   旗標：'q' = 數量是估計的（沒填，用計畫數量），'t' = 購買時間是估計的。
+
+   ⚠️ **旗標不是可有可無的。** 少了它，一個「沒填、用計畫數量頂替」的
+      數字到了手機上會變成看起來很確定的實際數量，而它正是「少了多少」
+      算錯的來源。估計值要一路帶著估計的標記。
+
+   ⚠️ 網址參數是使用者看得到也改得動的，所以它只攜帶「你買了什麼、
+      付了多少」這種**使用者自己的紀錄**，不攜帶任何**市場價格或計算
+      結果**——賣價、實拿、倍率一律在頁面載入時重新查。
+      實付總額屬於前者：它是使用者的支出，不是會過期的市場報價，
+      而且不帶著它，手機那端就完全算不出「到底少了多少」。 */
 function holdingsToParam(items) {
   return items.map(function (i) {
-    return [i.name, i.qty, Math.round(i.unitCostTwd || 0), i.defIndex == null ? '' : i.defIndex]
-      .map(encodeURIComponent).join(':');
+    return [
+      i.name,
+      i.qty,
+      Math.round(i.unitCostTwd || 0),
+      i.defIndex == null ? '' : i.defIndex,
+      i.paidTwd == null ? '' : Math.round(i.paidTwd),
+      (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '')
+    ].map(encodeURIComponent).join(':');
   }).join(',');
 }
 function paramToHoldings(raw, boughtAt) {
   if (!raw) return [];
+  var seen = {};
   return raw.split(',').map(function (part) {
     var seg = part.split(':').map(decodeURIComponent);
+    var name = seg[0] || '未命名';
+    var paid = seg[4];
+    var flags = seg[5] || '';
+    var qty = Number(seg[1]) || 0;
+    /* 同一個網址裡同名品項出現兩次＝兩批，key 不能撞在一起 */
+    var n = (seen[name] = (seen[name] || 0) + 1);
     return {
-      name: seg[0] || '未命名',
-      qty: Number(seg[1]) || 0,
+      key: n > 1 ? (name + '#p' + n) : name,
+      name: name,
+      qty: qty,
+      plannedQty: qty,               // 網址不帶計畫值，只能拿實際值當代表
+      qtyIsEstimate: flags.indexOf('q') >= 0,
       unitCostTwd: Number(seg[2]) || 0,
       defIndex: (seg[3] !== undefined && seg[3] !== '') ? seg[3] : null,
+      paidTwd: (paid !== undefined && paid !== '') ? (Number(paid) || 0) : null,
       boughtAt: boughtAt || null,
-      boughtAtIsEstimate: false
+      /* 舊網址沒有旗標段。沒有旗標時不要假裝時間是確定的——
+         bought 參數本身可能就是從估計值編出來的。 */
+      boughtAtIsEstimate: seg.length < 6 ? !boughtAt : (flags.indexOf('t') >= 0),
+      closed: false,
+      lotIndex: 0,
+      lotCount: 1
     };
   }).filter(function (i) { return i.qty > 0; });
 }
@@ -684,6 +838,41 @@ function worthVerdict(savingsTwd, qty) {
     setupCost: minutesToTwd(m.setup),
     setupDone: isSetupDone()
   };
+}
+
+/* ── ⑪ Steam 手續費換算 ─────────────────────────────────────
+   使用者回填「實際成交價」時填的是 **Steam 頁面上的標價**，也就是
+   **買家付的錢（毛額）**。要跟本站的 `steam_income`（賣家實拿，淨額）
+   相比，必須先扣掉手續費。
+
+   ⚠️⚠️ 這是 `DECISIONS.md` 4.7 已經踩過一次的坑，而且踩的方式是
+      「用毛額去比淨額，憑空生出一個 −13% 的假缺口」，然後差點據此
+      推翻一個本來就正確的結論。**不要讓使用者自己換算，也不要在
+      任何地方把兩者直接相減。**
+
+   ⚠️ 不是 `× 0.85`。5% + 10% 是對**賣家淨額**收的，不是對賣價：
+        買家付的錢 = 賣家淨額 × 1.15
+      寫成乘法會低估約 2.3%。
+
+   ⚠️ 兩個分量**各自**有 US$0.01 最低收費，所以低價品項的實際費率
+      高於 15%。這裡的算法刻意與後端 `update_derived_fields.py` 的
+      `calc_steam_income()` 逐步對齊（含 floor 與下限），**改一邊就要
+      改另一邊**，否則前端算出來的實拿會跟資料庫的 `steam_income` 對不上。
+
+   單位是 USD，因為那兩個下限是美分。台幣要先換成美元再進來。 */
+var STEAM_FEE_RATE = 0.05;
+var STEAM_PUBLISHER_FEE_RATE = 0.10;
+var STEAM_MIN_FEE_COMPONENT_USD = 0.01;
+
+function steamNetUsd(grossUsd) {
+  var g = Number(grossUsd);
+  if (!isFinite(g) || g <= 0) return 0;
+  var grossCents = Math.round(g * 100);
+  var estNetCents = grossCents / (1 + STEAM_FEE_RATE + STEAM_PUBLISHER_FEE_RATE);
+  var minCents = STEAM_MIN_FEE_COMPONENT_USD * 100;
+  var feeCents = Math.max(Math.floor(estNetCents * STEAM_FEE_RATE), minCents);
+  var pubCents = Math.max(Math.floor(estNetCents * STEAM_PUBLISHER_FEE_RATE), minCents);
+  return Math.max(grossCents - feeCents - pubCents, 0) / 100;
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

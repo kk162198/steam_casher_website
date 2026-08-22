@@ -76,9 +76,9 @@
                     <div id="sl-next-note" class="stat-note">還沒有持有紀錄。</div>
                 </div>
                 <div class="card card-compact stat">
-                    <div class="stat-label">可以賣的品項</div>
+                    <div class="stat-label">可以賣的批次</div>
                     <div id="sl-ready" class="stat-value stat-value-md">--</div>
-                    <div class="stat-note">冷卻期已過、現在就能上架的。</div>
+                    <div class="stat-note">冷卻期已過、現在就能上架的。分批買的各算一批。</div>
                 </div>
                 <div class="card card-compact stat">
                     <div class="stat-label">全部賣掉預計實拿</div>
@@ -161,7 +161,7 @@
                     <li>到 Steam 庫存點箱子、按「出售」。</li>
                     <li>價格填成跟目前最低掛牌價一樣，或低 1 元。<strong>本站顯示的是近期中位成交價，跟當下最低掛牌價會有幾個百分點的出入</strong>，以 Steam 畫面上的為準。</li>
                     <li>Steam 會顯示「您將收到」那一行，<strong>那才是扣完手續費你實際拿到的錢</strong>，不要看上面的總價。</li>
-                    <li>成交後餘額直接進錢包。賣完可以回來這裡填實際成交價，對照當初的估算。</li>
+                    <li>成交後餘額直接進錢包。賣完回來這裡填成交價，<strong>填 Steam 上的標價就好（買家付的那個數字），手續費本站幫你扣</strong>——自己先扣一次會讓賺賠算少約 13%。搭配購物清單填的實付總額，這裡就會直接告訴你這一批到底賺了多少。</li>
                 </ol>
                 <a href="help.html" class="btn btn-text btn-sm flow-md">看完整操作指南</a>
             </div>
@@ -178,12 +178,18 @@
            七天的空白裡，回來時得自己決定掛多少錢。這一頁補上後半段。
 
            資料來源刻意沿用購物清單那一套，不另建一份：
-             sah-combo-v1              買了什麼（試算頁寫入）
-             sah-checklist-checked-v1  哪些買到了、什麼時候買到
+             sah-combo-v1              計畫買什麼（試算頁寫入）
+             sah-checklist-checked-v1  實際買到什麼、幾個、多少錢、什麼時候
              sah-sold-v1              （本頁新增）實際成交價，只存本機
 
            ⚠️ 不需要帳號，也**不會**把任何東西上傳。回填的成交價目前
               只留在瀏覽器，之後要不要匿名寫回資料庫是另一個決定。
+
+           ⚠️ 2026-08-22：持有清單改成**一批一列**，數量用購物清單填的
+              實際買到數，不再沿用試算頁的計畫值。部分成交是常態
+              （`csfloat_price_depth` 存在的理由就是最低價買不到那麼多），
+              拿計畫值算下去，會把一個**數量錯誤**偽裝成**價格缺口**——
+              那正是 `DECISIONS.md` 4.7 踩過的坑。
            ════════════════════════════════════════════════════════════ */
 
         const SOLD_STORAGE_KEY = 'sah-sold-v1';
@@ -198,7 +204,14 @@
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        /* ── 實際成交價：只存本機 ───────────────────────────── */
+        /* ── 實際成交價：只存本機 ─────────────────────────────
+           key 用 holding 的 `key` 而不是品項名，因為分批買的同一個品項
+           會有兩列，兩批可能賣在不同價錢。單批時 key 就等於品項名，
+           所以舊資料在最常見的情況下不用遷移。
+
+           ⚠️ 存的是**買家付的錢（毛額）**，也就是使用者在 Steam 畫面上
+              看到的那個數字。要跟 steam_income 比之前一定要先過
+              steamNetUsd()——見 site.js 第⑪節與 DECISIONS.md 4.7。 */
         function readSold() {
             try {
                 const raw = JSON.parse(localStorage.getItem(SOLD_STORAGE_KEY) || '{}');
@@ -224,10 +237,18 @@
             }
             const h = readHoldings();
             holdings = h.items;
-            const est = holdings.some(i => i.boughtAtIsEstimate);
+            const estTime = holdings.some(i => i.boughtAtIsEstimate);
+            const estQty = holdings.some(i => i.qtyIsEstimate);
+            const batches = holdings.length;
+            const names = new Set(holdings.map(i => i.name)).size;
             document.getElementById('sl-source').textContent = holdings.length
-                ? ('來自你的購物清單，' + holdings.length + ' 項已標記買到'
-                   + (est ? '・部分項目沒有勾選時間，冷卻期用試算時間估算' : ''))
+                ? (`來自你的購物清單，${names} 個品項`
+                   + (batches > names ? `／${batches} 批` : '')
+                   + (estTime ? '・部分沒有勾選時間，冷卻期用試算時間估算' : '')
+                   /* 沒填實際數量就講出來。這裡的數字會直接乘進「全部賣掉
+                      預計實拿」，用計畫值頂替卻不說，等於給了一個看起來
+                      很確定的錯數字。 */
+                   + (estQty ? '・部分沒填實際買到幾個，暫用計畫數量' : ''))
                 : '購物清單裡還沒有標記為「已買到」的品項';
         }
 
@@ -278,21 +299,61 @@
                   + (item.qty > 1 ? '／個・共 NT$ ' + totalNet.toFixed(0) : '') + '</span>'
                   + '</span>';
 
-            const soldVal = sold[item.name] != null ? sold[item.name] : '';
+            const soldVal = sold[item.key] != null ? sold[item.key] : '';
+
+            /* 你到底賺了多少：拿**實付總額**去比**實際成交的淨額**。
+               兩邊都必須是實際值，任一邊用估計就只是在量估計的誤差。
+
+               ⚠️ 輸入的是買家付的錢（毛額），一定要先過 steamNetUsd() 換成
+                  賣家實拿再比。直接相減會憑空生出約 −13% 的假缺口，
+                  那就是 DECISIONS.md 4.7 踩過的那一次。 */
+            let gapHtml = '';
+            if (soldVal !== '' && item.paidTwd != null) {
+                const netTwd2 = steamNetUsd(Number(soldVal) / rate) * rate * item.qty;
+                const gap = netTwd2 - item.paidTwd;
+                const pct = item.paidTwd > 0 ? (gap / item.paidTwd) * 100 : null;
+                const cls = gap >= 0 ? 'c-pos' : 'c-neg';
+                gapHtml = '<span class="t-note ' + cls + '" style="display:block">'
+                    + '實拿 NT$ ' + netTwd2.toFixed(0) + '・'
+                    + (gap >= 0 ? '賺 ' : '賠 ') + 'NT$ ' + Math.abs(gap).toFixed(0)
+                    + (pct != null ? '（' + (gap >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%）' : '')
+                    + '</span>';
+            } else if (soldVal !== '' && item.paidTwd == null) {
+                gapHtml = '<span class="t-note c-ink3" style="display:block">回購物清單填實付總額才算得出賺多少</span>';
+            }
+
             /* 回填欄只在解鎖後才給填——還在冷卻期就填成交價，代表填錯了 */
             const soldCell = cd.state === 'locked'
                 ? '<span class="c-ink3 t-note">賣掉後再填</span>'
-                : '<label style="display:inline-flex;align-items:center;gap:6px">'
+                : '<span class="cell-stack">'
+                  + '<label style="display:inline-flex;align-items:center;gap:6px">'
                   + '<span class="c-ink3 t-note">NT$</span>'
                   + '<input type="number" inputmode="decimal" min="0" step="1" class="fill-in" data-sold-for="'
-                  + escapeHtml(item.name) + '" value="' + escapeHtml(soldVal)
-                  + '" aria-label="' + escapeHtml(item.name) + ' 的實際成交價（每個）" placeholder="每個">'
-                  + '</label>';
+                  + escapeHtml(item.key) + '" value="' + escapeHtml(soldVal)
+                  + '" aria-label="' + escapeHtml(item.name) + ' 的實際成交價，每個，填 Steam 上的標價" placeholder="每個">'
+                  + '</label>'
+                  + '<span class="t-note c-ink3">填 Steam 標價（買家付的），手續費由本站扣</span>'
+                  + gapHtml
+                  + '</span>';
+
+            /* 成本那一行用實付總額；沒填才退回試算頁的估計，並標「估」。
+               ⚠️ 不要把估計值和實付值畫成一樣，使用者會拿它當結論。 */
+            const costHtml = item.paidTwd != null
+                ? '<span class="t-note c-ink3" style="display:block;font-weight:400">實付 NT$ ' + item.paidTwd.toFixed(0) + '</span>'
+                : '<span class="t-note c-ink3" style="display:block;font-weight:400">估 NT$ '
+                  + (item.unitCostTwd * item.qty).toFixed(0) + '</span>';
+
+            const qtyHtml = '<span class="t-note c-ink3" style="display:block;font-weight:400">'
+                + item.qty + ' 個'
+                + (item.qtyIsEstimate ? '（未填，用計畫數量）' : '')
+                + (item.lotCount > 1 ? '・第 ' + (item.lotIndex + 1) + ' 批' : '')
+                + '</span>';
 
             return `
                 <td class="rt-key" data-label="品項">
                     <a href="case.html?name=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
-                    <span class="t-note c-ink3" style="display:block;font-weight:400">${item.qty} 個</span>
+                    ${qtyHtml}
+                    ${costHtml}
                 </td>
                 <td data-label="冷卻期">
                     <span class="cell-stack">
@@ -354,17 +415,33 @@
             }
 
             // 全部賣掉預計實拿
-            let total = 0, missing = 0;
+            let total = 0, missing = 0, cost = 0, costComplete = true, qtyEst = false;
             holdings.forEach(i => {
                 const p = priceMap[i.name];
                 if (p && p.steam_income) total += Number(p.steam_income) * rate * i.qty;
                 else missing++;
+                if (i.paidTwd != null) cost += i.paidTwd;
+                else { cost += i.unitCostTwd * i.qty; costComplete = false; }
+                if (i.qtyIsEstimate) qtyEst = true;
             });
             document.getElementById('sl-total').textContent =
                 holdings.length ? ('NT$ ' + total.toFixed(0)) : '--';
-            if (missing) {
-                document.querySelector('#sl-total').nextElementSibling.textContent =
-                    '有 ' + missing + ' 項查不到價格，沒有算進去。';
+
+            /* 這張卡的註腳把成本一起講出來。只有實拿沒有成本，使用者看到
+               一個大數字卻不知道自己投了多少，那個數字沒有意義。
+               ⚠️ 成本不完整（有項目沒填實付）就要說是估算，不要混在一起
+                  講得像是實際損益——這正是 4.7 那種「拿估計比實際」的錯法。 */
+            const totalNote = document.querySelector('#sl-total').nextElementSibling;
+            if (holdings.length) {
+                const gap = total - cost;
+                const exact = costComplete && !qtyEst && !missing;
+                totalNote.textContent =
+                    '已扣 Steam 手續費。成本 NT$ ' + cost.toFixed(0)
+                    + (exact ? '' : '（估）')
+                    + '，帳面 ' + (gap >= 0 ? '+' : '−') + 'NT$ ' + Math.abs(gap).toFixed(0)
+                    + (missing ? '・有 ' + missing + ' 批查不到價格，沒算進去' : '')
+                    + (qtyEst ? '・部分數量用計畫值代替' : '')
+                    + (!costComplete ? '・部分成本用試算估計值代替' : '');
             }
 
             // 下一檔特賣
@@ -456,6 +533,7 @@
                     if (v === '') delete map[el.dataset.soldFor];
                     else map[el.dataset.soldFor] = Number(v);
                     writeSold(map);
+                    renderRows();   // 賺賠那一行要跟著算出來
                 });
             });
         }
@@ -475,7 +553,7 @@
         async function main() {
             loadHoldings();
             if (!holdings.length) {
-                renderEmpty('先到試算頁算出組合，再到購物清單把買到的品項打勾。打勾的時間就是 7 天冷卻期的起點。');
+                renderEmpty('先到試算頁算出組合，再到購物清單把買到的品項打勾、填上實際買到幾個。打勾的時間就是 7 天冷卻期的起點。');
                 renderSummary();
                 return;
             }
@@ -486,6 +564,14 @@
                 console.error(e);
                 document.getElementById('sl-source').textContent += '・價格讀取失敗，只顯示冷卻期';
             }
+            renderRows();
+            renderSummary();
+            renderTimestamps(document);
+        }
+
+        /* 抽成函式是因為回填成交價之後要重畫（賺賠那一行才算得出來）。
+           整表重畫在這個規模（幾列到十幾列）比局部更新可靠。 */
+        function renderRows() {
             const sold = readSold();
             const body = document.getElementById('sl-body');
             body.innerHTML = '';
@@ -501,8 +587,6 @@
                 tr.innerHTML = renderSellRow(item, sold);
                 body.appendChild(tr);
             });
-            renderSummary();
-            renderTimestamps(document);
             bindSoldInputs();
         }
         main();
