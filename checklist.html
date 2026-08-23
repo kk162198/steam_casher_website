@@ -104,6 +104,32 @@
             </div>
         </section>
 
+        <!-- 換裝置：追蹤網址 -->
+        <section class="flow-md">
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+                    <div>
+                        <h2 class="t-sub">換一台裝置看</h2>
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:38em">
+                            這份清單只存在<strong>這台裝置的瀏覽器</strong>裡，手機打開網站是看不到的。
+                            複製下面這條連結貼到你自己的行事曆事件、記事本、或傳給自己，
+                            在手機上打開就會看到同一份清單。<strong>不需要註冊。</strong>
+                        </p>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                        <button type="button" id="cl-copy-url" class="btn btn-primary btn-sm" disabled>複製追蹤網址</button>
+                    </div>
+                </div>
+                <!-- 複製失敗時的退路：把網址攤開讓人自己選取 -->
+                <input type="text" id="cl-url-out" class="fill-in flow-md" readonly hidden
+                       style="width:100%;font-size:12px" aria-label="追蹤網址">
+                <p class="t-note c-ink3 flow-md" id="cl-copy-note">
+                    ⚠️ 連結是<strong>當下的快照</strong>，之後在這裡改的東西它不會知道，改完要重複製一次。
+                    連結內容包含你買了什麼、花了多少，<strong>貼到共用行事曆或群組等於給別人看</strong>。
+                </p>
+            </div>
+        </section>
+
         <!-- 風險提示條 -->
         <section class="flow-lg">
             <div class="risk-bar">
@@ -451,6 +477,7 @@
             bindRowInputs();
             renderTimestamps(document);
             updateProgress();
+            updateCopyButton();
         }
 
         /* 輸入框與批次按鈕。用 change 而不是 input——每敲一個字就寫一次
@@ -485,6 +512,51 @@
                 });
             });
         }
+
+        /* ── 追蹤網址 ───────────────────────────────────────
+           連結指向賣出頁，因為買完之後下一步就是等冷卻期。
+           只有已勾選的品項會進去——還沒買到的東西沒有冷卻期，
+           帶過去只會在賣出頁變成看起來已經持有的假資料。 */
+        /* ⚠️ 用本頁的 items 而不是 readHoldings()。清單可能來自網址參數
+           （分享用的 ?items=），那種情況下 sah-combo-v1 是空的，
+           readHoldings() 會回空陣列，按鈕就會莫名其妙一直是灰的。 */
+        function currentHoldings() {
+            return holdingsFromPlan(items, checkedMap, savedAt);   // site.js
+        }
+
+        function updateCopyButton() {
+            const btn = document.getElementById('cl-copy-url');
+            const h = currentHoldings();
+            btn.disabled = !h.length;
+            btn.textContent = h.length
+                ? `複製追蹤網址（${h.length} 批）`
+                : '複製追蹤網址';
+        }
+
+        document.getElementById('cl-copy-url').addEventListener('click', () => {
+            const h = currentHoldings();
+            const note = document.getElementById('cl-copy-note');
+            const out = document.getElementById('cl-url-out');
+            if (!h.length) return;
+            /* 指到賣出頁。用 URL() 而不是字串取代，因為路徑不一定以
+               checklist.html 結尾（本機開資料夾、或之後改成無副檔名的網址）。 */
+            const base = new URL('sell.html', location.href.split('?')[0]).href;
+            const url = holdingsTrackUrl(h, base);         // site.js
+            copyText(url).then(ok => {
+                out.value = url;
+                out.hidden = false;
+                if (ok) {
+                    note.innerHTML = '已複製。貼到手機打開就會看到同一份清單，'
+                        + '它會問你要不要存在那台裝置上。'
+                        + '<strong>之後在這裡改了東西要重複製一次</strong>——連結是當下的快照。';
+                } else {
+                    /* 複製失敗不要只說「失敗」，要把網址給他 */
+                    out.select();
+                    note.innerHTML = '瀏覽器擋掉了自動複製，上面那一格是網址，'
+                        + '<strong>手動選取複製</strong>即可（已幫你選好）。';
+                }
+            });
+        });
 
         /* 清除鍵改成兩段式。以前它只丟掉幾個勾勾，現在會連實付金額和
            購買時間一起丟——那些是使用者一筆一筆敲進去、而且**重建不回來**

@@ -131,6 +131,36 @@ async function boot() {
   reset.click();
   eq('清除鍵第二下才真的清', Object.keys(read()).length, 0);
 
+  /* ── 追蹤網址 ────────────────────────────────────────── */
+  const copyBtn = document.getElementById('cl-copy-url');
+  eq('沒有勾任何東西時複製鍵是關的', copyBtn.disabled, true);
+
+  const cb4 = rows()[0].querySelector('input[type="checkbox"]');
+  cb4.checked = true; cb4.dispatchEvent(new dom.window.Event('change'));
+  const q4 = rows()[0].querySelector('[data-qty-for]');
+  q4.value = '13'; q4.dispatchEvent(new dom.window.Event('change'));
+  const p4 = rows()[0].querySelector('[data-paid-for]');
+  p4.value = '280'; p4.dispatchEvent(new dom.window.Event('change'));
+  eq('勾了就打開，並顯示批數',
+    document.getElementById('cl-copy-url').textContent.includes('1 批'), true);
+
+  // jsdom 沒有 navigator.clipboard → 走退路，把網址攤在輸入框裡
+  document.getElementById('cl-copy-url').click();
+  await new Promise(r => setTimeout(r, 10));
+  const out = document.getElementById('cl-url-out');
+  eq('複製失敗時把網址攤出來', out.hidden, false);
+  eq('網址指向賣出頁', out.value.includes('/sell.html?items='), true);
+  eq('網址帶產生時間', /[?&]at=\d+/.test(out.value), true);
+  eq('退路有講怎麼手動複製',
+    document.getElementById('cl-copy-note').textContent.includes('手動選取'), true);
+
+  const carried = dom.window.paramToHoldings(
+    decodeURIComponent(out.value.match(/items=([^&]+)/)[1]), null);
+  eq('網址帶得回實際數量', carried[0].qty, 13);
+  eq('網址帶得回計畫數量', carried[0].plannedQty, 20);
+  eq('網址帶得回實付', carried[0].paidTwd, 280);
+  eq('只帶已勾選的（沒買到的不該出現在賣出頁）', carried.length, 1);
+
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);
 })();

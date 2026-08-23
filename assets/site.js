@@ -15,6 +15,7 @@
      ⑧ 行事曆 icsCalendar() / downloadIcs()
      ⑨ 持有清單 readHoldings() / holdingsToParam() / paramToHoldings()
         含買到數量與實付金額（lots），見該節開頭的格式說明
+        追蹤網址 holdingsTrackUrl() / copyText() / saveHoldingsToDevice()
      ⑩ 初始設定與時間成本 isSetupDone() / opMinutes() / worthVerdict()
      ⑪ Steam 手續費換算 steamNetUsd()（毛額 → 淨額，與後端同一套算法）
 
@@ -620,9 +621,18 @@ function readHoldings() {
   var combo = null;
   try { combo = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null'); } catch (e) { /* 忽略 */ }
   if (!combo || !Array.isArray(combo.items)) return { items: [], savedAt: null };
-  var checked = readCheckedMap();
+  return {
+    items: holdingsFromPlan(combo.items, readCheckedMap(), combo.savedAt),
+    savedAt: combo.savedAt || null
+  };
+}
+
+/* readHoldings() 的內臟。獨立出來是因為購物清單頁的清單可能來自**網址參數**
+   而不是 localStorage（分享用的 `?items=`），那種情況下 `sah-combo-v1` 是空的，
+   直接呼叫 readHoldings() 會拿到空陣列——按鈕就會莫名其妙一直是灰的。 */
+function holdingsFromPlan(planItems, checked, savedAt) {
   var items = [];
-  combo.items.forEach(function (i) {
+  (planItems || []).forEach(function (i) {
     if (!Object.prototype.hasOwnProperty.call(checked, i.name)) return;
     var entry = checked[i.name];
     var lotCount = entry.lots.length;
@@ -636,7 +646,7 @@ function readHoldings() {
         qtyIsEstimate: lot.qty == null,
         unitCostTwd: i.unitCostTwd,
         paidTwd: lot.paidTwd,
-        boughtAt: lot.at || combo.savedAt || null,
+        boughtAt: lot.at || savedAt || null,
         boughtAtIsEstimate: !lot.at,   // 舊資料沒有勾選時間，用試算時間近似
         closed: entry.closed,
         lotIndex: idx,
@@ -644,35 +654,57 @@ function readHoldings() {
       });
     });
   });
-  return { items: items, savedAt: combo.savedAt || null };
+  return items;
 }
 
 /* 跨裝置：localStorage 不跨裝置，桌機買、手機收提醒是很常見的組合。
    解法是讓行事曆事件自己攜帶品項清單，點連結時由網址參數還原。
 
-     名稱:數量:計畫單價:defIndex:實付總額:旗標
+     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進時間
 
-   後兩段是 2026-08-22 新增，舊網址（四段）仍讀得回來。
-   旗標：'q' = 數量是估計的（沒填，用計畫數量），'t' = 購買時間是估計的。
+   第 1–4 段是原本就有的，第 5–8 段 2026-08-22 新增，舊的四段網址仍讀得回來。
+
+   | 段 | 內容 | 空的時候 |
+   |---|---|---|
+   | 5 | 實付總額（整數 NT$） | 沒填 |
+   | 6 | 旗標 | 見下 |
+   | 7 | 計畫數量 | 與實際數量相同 |
+   | 8 | 這一批的買進時間（epoch 秒） | 退回用網址的 `bought` 參數 |
+
+   旗標：`q` = 數量是估計的（沒填，用計畫數量頂替）
+         `t` = 購買時間是估計的
+         `c` = 這個品項已標記「買不到了，就到這裡」
 
    ⚠️ **旗標不是可有可無的。** 少了它，一個「沒填、用計畫數量頂替」的
       數字到了手機上會變成看起來很確定的實際數量，而它正是「少了多少」
       算錯的來源。估計值要一路帶著估計的標記。
 
+   ⚠️ **第 7、8 段是為了「存到另一台裝置」才加的。** 只給行事曆提醒看時
+      不需要它們（事件本來就按解鎖日分好組，一則事件裡的批次同一天）。
+      但追蹤網址是整份清單一起搬，所以：
+        - 沒有計畫數量，「還差幾個」與可買到率在另一台裝置上就消失了；
+        - 沒有各批自己的時間，分批買的兩批會被壓成同一個 `bought`，
+          其中一批的冷卻期一定是錯的。
+      時間用 epoch 秒而不是 ISO 字串，是因為 ISO 編進網址要 24 個字元
+      還會被百分號編碼撐得更長。
+
    ⚠️ 網址參數是使用者看得到也改得動的，所以它只攜帶「你買了什麼、
       付了多少」這種**使用者自己的紀錄**，不攜帶任何**市場價格或計算
       結果**——賣價、實拿、倍率一律在頁面載入時重新查。
       實付總額屬於前者：它是使用者的支出，不是會過期的市場報價，
-      而且不帶著它，手機那端就完全算不出「到底少了多少」。 */
+      而且不帶著它，另一台裝置就完全算不出「到底少了多少」。 */
 function holdingsToParam(items) {
   return items.map(function (i) {
+    var at = i.boughtAt ? Math.floor(Date.parse(i.boughtAt) / 1000) : '';
     return [
       i.name,
       i.qty,
       Math.round(i.unitCostTwd || 0),
       i.defIndex == null ? '' : i.defIndex,
       i.paidTwd == null ? '' : Math.round(i.paidTwd),
-      (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '')
+      (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '') + (i.closed ? 'c' : ''),
+      (i.plannedQty != null && i.plannedQty !== i.qty) ? i.plannedQty : '',
+      isFinite(at) ? at : ''
     ].map(encodeURIComponent).join(':');
   }).join(',');
 }
@@ -684,27 +716,118 @@ function paramToHoldings(raw, boughtAt) {
     var name = seg[0] || '未命名';
     var paid = seg[4];
     var flags = seg[5] || '';
+    var planned = seg[6];
+    var atSec = Number(seg[7]);
     var qty = Number(seg[1]) || 0;
     /* 同一個網址裡同名品項出現兩次＝兩批，key 不能撞在一起 */
     var n = (seen[name] = (seen[name] || 0) + 1);
+    var at = (seg[7] && isFinite(atSec) && atSec > 0)
+      ? new Date(atSec * 1000).toISOString()
+      : (boughtAt || null);
     return {
       key: n > 1 ? (name + '#p' + n) : name,
       name: name,
       qty: qty,
-      plannedQty: qty,               // 網址不帶計畫值，只能拿實際值當代表
+      /* 第 7 段空的時候代表「計畫數量＝實際數量」，不是「不知道」 */
+      plannedQty: (planned !== undefined && planned !== '') ? (Number(planned) || qty) : qty,
       qtyIsEstimate: flags.indexOf('q') >= 0,
       unitCostTwd: Number(seg[2]) || 0,
       defIndex: (seg[3] !== undefined && seg[3] !== '') ? seg[3] : null,
       paidTwd: (paid !== undefined && paid !== '') ? (Number(paid) || 0) : null,
-      boughtAt: boughtAt || null,
+      boughtAt: at,
       /* 舊網址沒有旗標段。沒有旗標時不要假裝時間是確定的——
          bought 參數本身可能就是從估計值編出來的。 */
-      boughtAtIsEstimate: seg.length < 6 ? !boughtAt : (flags.indexOf('t') >= 0),
-      closed: false,
-      lotIndex: 0,
+      boughtAtIsEstimate: seg.length < 6 ? !at : (flags.indexOf('t') >= 0),
+      closed: flags.indexOf('c') >= 0,
+      lotIndex: n - 1,
       lotCount: 1
     };
   }).filter(function (i) { return i.qty > 0; });
+}
+
+/* ── 追蹤網址：把整份清單變成一條可以貼的連結 ──────────────
+   `.ics` 要下載、要匯入，在手機上是一道真實的摩擦。同一份資料本來就
+   編得進網址，那就讓使用者直接複製一條連結，貼到自己的行事曆事件、
+   記事本、傳給自己的訊息裡——愛貼哪就貼哪。
+
+   ⚠️ **這是快照，不是連線。** 複製完之後你在購物清單上改的任何東西，
+      那條已經貼出去的連結都不知道。所以網址帶 `at`（複製當下的時間），
+      另一端要把它顯示出來，讓人看得到自己在看多舊的資料。
+
+   ⚠️ **連結內容 = 你買了什麼、花了多少。** 貼進共用行事曆或群組聊天
+      等於把消費紀錄給別人看。介面上要講這一句。 */
+function holdingsTrackUrl(items, baseUrl) {
+  var base = (baseUrl || '').split('?')[0];
+  return base + '?items=' + encodeURIComponent(holdingsToParam(items))
+    + '&at=' + Math.floor(Date.now() / 1000);
+}
+
+/* 複製到剪貼簿。clipboard API 需要 HTTPS 與使用者手勢，兩個條件在
+   GitHub Pages 上都成立，但使用者可能擋掉權限，所以一定要有退路。
+   回傳 Promise<boolean>：false = 沒複製成功，呼叫端要自己把網址秀出來。 */
+function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; },
+        function () { return false; });
+    }
+  } catch (e) { /* 掉到下面的退路 */ }
+  return Promise.resolve(false);
+}
+
+/* 把網址還原出來的清單存進**這台裝置**。
+   給的是 paramToHoldings() 的輸出，寫回 combo + checked 兩個 key。
+
+   ⚠️ **這是取代，不是合併。** 同名品項要合併就得處理「兩邊數量不一樣
+      該聽誰的」，那個問題沒有正確答案，猜錯就是默默改掉使用者的紀錄。
+      所以取代，並且**由呼叫端在存之前先問過**——`countStoredHoldings()`
+      就是用來告訴使用者「這台裝置上原本有幾筆會被蓋掉」。 */
+function countStoredHoldings() {
+  try {
+    var checked = readCheckedMap();
+    return Object.keys(checked).length;
+  } catch (e) { return 0; }
+}
+
+function saveHoldingsToDevice(items) {
+  if (!items || !items.length) return false;
+  var comboItems = [];
+  var checked = {};
+  items.forEach(function (i) {
+    if (!checked[i.name]) {
+      checked[i.name] = { lots: [], closed: !!i.closed };
+      comboItems.push({
+        name: i.name,
+        qty: i.plannedQty != null ? i.plannedQty : i.qty,
+        unitCostTwd: i.unitCostTwd,
+        defIndex: i.defIndex
+      });
+    } else {
+      /* 同名的第二段＝同一個品項的第二批。
+         ⚠️ 計畫數量是**品項層級**的，每一批都帶著同一個值，所以這裡要取
+            最大值，**不能相加**——相加會讓計畫 20 的品項在新裝置上變成 40，
+            「還差幾個」跟著全錯。（每批各帶一份是因為網址是平的，
+            沒有品項這一層。） */
+      var c = comboItems.filter(function (x) { return x.name === i.name; })[0];
+      var p = (i.plannedQty != null ? i.plannedQty : i.qty);
+      if (c && p > c.qty) c.qty = p;
+      if (i.closed) checked[i.name].closed = true;
+    }
+    checked[i.name].lots.push({
+      at: i.boughtAt,
+      /* 數量是估計的就存 null，讓它在新裝置上**繼續**是估計的。
+         存成確定值等於在搬家過程中把「不知道」洗成「知道」。 */
+      qty: i.qtyIsEstimate ? null : i.qty,
+      paidTwd: i.paidTwd
+    });
+  });
+  try {
+    localStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify({
+      savedAt: new Date().toISOString(), items: comboItems
+    }));
+  } catch (e) { return false; }
+  writeCheckedMap(checked);
+  return true;
 }
 
 /* ── ⑩ 初始設定狀態與操作時間模型 ─────────────────────────────

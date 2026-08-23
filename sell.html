@@ -65,6 +65,22 @@
             <a href="checklist.html" class="btn btn-secondary btn-sm">回購物清單</a>
         </header>
 
+        <!-- ⓪ 從追蹤網址進來時：要不要存到這台裝置 -->
+        <section class="flow-lg" id="sl-adopt" hidden>
+            <div class="card" style="border-color:rgba(34,211,238,.35)">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+                    <div>
+                        <h2 class="t-sub">要把這份清單存在這台裝置上嗎？</h2>
+                        <p class="t-aux c-ink2 flow-xs" id="sl-adopt-note" style="max-width:38em"></p>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                        <button type="button" id="sl-adopt-yes" class="btn btn-primary btn-sm">存起來</button>
+                        <button type="button" id="sl-adopt-no" class="btn btn-text btn-sm">這次先不要</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ① 冷卻期總覽 -->
         <section class="flow-lg">
             <!-- ⚠️ .stat-grid 本身不是 grid，版面靠的是後面那幾個 Tailwind class。
@@ -111,6 +127,7 @@
                 </div>
                 <p class="t-note c-ink3 flow-md" id="sl-ics-note">
                     特賣倒數是整年時程，一次匯入就好；提醒設在特賣開始前 10 天——冷卻期要 7 天，看到特賣才開始買一定來不及。
+                    不想下載檔案的話，<a href="checklist.html">購物清單頁</a>可以複製一條追蹤網址，貼進你自己的行事曆事件裡效果一樣。
                 </p>
             </div>
         </section>
@@ -231,8 +248,17 @@
             if (raw) {
                 holdings = paramToHoldings(raw, params.get('bought'));
                 fromParam = true;
+                /* `at` 是複製／產生連結的時間。要講出來，因為連結是快照——
+                   對面那台裝置後來改了什麼，這條連結完全不知道。 */
+                const atSec = Number(params.get('at'));
+                const copiedAt = (params.get('at') && isFinite(atSec) && atSec > 0)
+                    ? new Date(atSec * 1000) : null;
                 document.getElementById('sl-source').textContent =
-                    '這份清單來自行事曆提醒的連結（' + holdings.length + ' 項）';
+                    '這份清單來自連結（' + holdings.length + ' 批）'
+                    + (copiedAt
+                        ? '・' + copiedAt.toLocaleString('zh-TW') + ' 產生，之後在原本那台裝置上改的東西不會反映在這裡'
+                        : '');
+                offerAdopt();
                 return;
             }
             const h = readHoldings();
@@ -251,6 +277,49 @@
                    + (estQty ? '・部分沒填實際買到幾個，暫用計畫數量' : ''))
                 : '購物清單裡還沒有標記為「已買到」的品項';
         }
+
+        /* ── 存到這台裝置 ───────────────────────────────────
+           從連結進來時，資料只活在網址列裡：關掉分頁就沒了，在這一頁填的
+           成交價也留不住（回填是存 localStorage 的）。所以問一句要不要存。
+
+           ⚠️ **一定要問，不要自動存。** 這台裝置上可能已經有另一份清單，
+              而 saveHoldingsToDevice() 是**取代**不是合併——合併要處理
+              「同一個品項兩邊數量不一樣該聽誰的」，那沒有正確答案，
+              猜錯就是默默改掉使用者自己敲進去的紀錄。
+              所以把「原本有幾筆會被蓋掉」直接寫在問句裡。 */
+        function offerAdopt() {
+            const box = document.getElementById('sl-adopt');
+            const note = document.getElementById('sl-adopt-note');
+            if (!holdings.length) return;
+            const existing = countStoredHoldings();        // site.js
+            note.innerHTML = '存起來之後，這台裝置直接打開網站就看得到；'
+                + '不存的話，你在這一頁填的成交價下次回來會找不到，因為清單本身不在這台裝置上。'
+                + '<strong>不會上傳到任何地方。</strong>'
+                + (existing
+                    ? '<br>⚠️ 這台裝置上已經有 <strong>' + existing + ' 個品項</strong>的紀錄，'
+                      + '存進去會<strong>整份取代掉</strong>，取代掉的拿不回來。'
+                    : '');
+            box.hidden = false;
+        }
+
+        document.getElementById('sl-adopt-yes').addEventListener('click', () => {
+            const ok = saveHoldingsToDevice(holdings);     // site.js
+            const box = document.getElementById('sl-adopt');
+            if (!ok) {
+                document.getElementById('sl-adopt-note').textContent =
+                    '存不進去——瀏覽器可能在無痕模式，或擋掉了網站儲存。這一頁還是可以看，只是關掉就沒了。';
+                document.getElementById('sl-adopt-yes').disabled = true;
+                return;
+            }
+            /* 存完就把網址參數拿掉，之後重整讀的是 localStorage。
+               留著參數的話，使用者在這台裝置改完東西、重整，
+               又會被網址裡的舊快照蓋回去。 */
+            location.replace(location.href.split('?')[0]);
+        });
+
+        document.getElementById('sl-adopt-no').addEventListener('click', () => {
+            document.getElementById('sl-adopt').hidden = true;
+        });
 
         /* ── 查目前價格 ─────────────────────────────────────
            只查持有的那幾項，不整表撈。 */

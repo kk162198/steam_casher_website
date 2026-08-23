@@ -131,6 +131,64 @@ eq('舊四段網址 → 不謊稱數量是實填的', old[0].qtyIsEstimate, fals
 const dup = ctx.paramToHoldings('A:3:10:::,A:4:10:::', null);
 eq('同名兩批 key 不撞', dup[0].key !== dup[1].key, true);
 
+/* ── 7b. 追蹤網址：整份清單搬到另一台裝置 ─────────────────
+   跟行事曆提醒不同，追蹤網址是**整份**一起搬，所以計畫數量與各批
+   自己的時間都要帶得過去，不然「還差幾個」與冷卻期會在新裝置上算錯。 */
+reset({
+  'Kilowatt Case': {
+    lots: [
+      { at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 },
+      { at: '2026-08-17T09:30:00.000Z', qty: 4,  paidTwd: 95 },
+    ],
+    closed: true,
+  },
+  'Clutch Case': { lots: [{ at: '2026-08-16T00:00:00.000Z', qty: 5, paidTwd: 210 }], closed: false },
+});
+const src = ctx.readHoldings().items;
+const url = ctx.holdingsTrackUrl(src, 'https://x.test/sell.html?old=1');
+eq('追蹤網址指向乾淨的 base', url.indexOf('https://x.test/sell.html?items=') === 0, true);
+eq('追蹤網址帶產生時間', /[?&]at=\d+/.test(url), true);
+
+const moved = ctx.paramToHoldings(
+  decodeURIComponent(url.match(/items=([^&]+)/)[1]), null);
+eq('搬過去：批數', moved.length, 3);
+eq('搬過去：各批數量', moved.map(i => i.qty), [13, 4, 5]);
+eq('搬過去：計畫數量沒有被實際數量取代', moved.map(i => i.plannedQty), [20, 20, 5]);
+eq('搬過去：closed 旗標', moved.map(i => i.closed), [true, true, false]);
+eq('搬過去：各批保有自己的時間（分批的冷卻期不同）',
+  moved.slice(0, 2).map(i => i.boughtAt), ['2026-08-15T02:00:00.000Z', '2026-08-17T09:30:00.000Z']);
+eq('搬過去：實付', moved.map(i => i.paidTwd), [280, 95, 210]);
+
+/* 存進新裝置之後，readHoldings() 要讀出一模一樣的東西 */
+Object.keys(store).forEach(k => delete store[k]);       // 模擬一台全新的裝置
+eq('新裝置原本是空的', ctx.countStoredHoldings(), 0);
+eq('存進去成功', ctx.saveHoldingsToDevice(moved), true);
+const after = ctx.readHoldings().items;
+eq('存完：批數一樣', after.length, 3);
+eq('存完：數量一樣', after.map(i => i.qty), [13, 4, 5]);
+eq('存完：計畫數量還在（品項層級，取最大值不是加總）',
+  after.map(i => i.plannedQty), [20, 20, 5]);
+eq('存完：實付一樣', after.map(i => i.paidTwd), [280, 95, 210]);
+eq('存完：時間一樣', after.map(i => i.boughtAt),
+  ['2026-08-15T02:00:00.000Z', '2026-08-17T09:30:00.000Z', '2026-08-16T00:00:00.000Z']);
+eq('存完：closed 還在', ctx.readCheckedMap()['Kilowatt Case'].closed, true);
+eq('存完：品項數', ctx.countStoredHoldings(), 2);
+
+/* ⚠️ 估計值不可以在搬家過程中被洗成確定值 */
+Object.keys(store).forEach(k => delete store[k]);
+ctx.saveHoldingsToDevice(ctx.paramToHoldings(
+  ctx.holdingsToParam([{
+    name: 'A', qty: 7, plannedQty: 7, unitCostTwd: 10, defIndex: null, paidTwd: null,
+    qtyIsEstimate: true, boughtAtIsEstimate: true, boughtAt: '2026-08-15T02:00:00.000Z', closed: false,
+  }]), null));
+eq('搬家不會把「沒填數量」洗成確定值', ctx.readCheckedMap()['A'].lots[0].qty, null);
+eq('搬家後仍標為估計', ctx.readHoldings().items[0].qtyIsEstimate, true);
+
+/* 沒東西可存時不要寫出一個空的 combo 蓋掉現有資料 */
+reset({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } });
+eq('空清單不寫入', ctx.saveHoldingsToDevice([]), false);
+eq('空清單不會蓋掉原本的紀錄', ctx.countStoredHoldings(), 1);
+
 /* ── 8. 毛額 → 淨額：必須與後端 calc_steam_income 逐分對齊 ──
    右邊的期望值是直接跑 update_derived_fields.py 的 calc_steam_income
    取得的，不是手算的。改動任一邊時這幾條會先紅。 */

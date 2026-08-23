@@ -33,7 +33,10 @@ const CHECKED = {
 
 const ROW = { name: 'Kilowatt Case', steam_price: 0.60, steam_income: 0.52, steam_volume: 90000, steam_updated_at: new Date().toISOString() };
 
-async function boot(sold) {
+/* opts.url    覆寫網址（測從追蹤網址進來的情況）
+   opts.empty  把 localStorage 清空（模擬一台沒看過這個網站的手機） */
+async function boot(sold, opts) {
+  opts = opts || {};
   /* site.js 與 supabase 都是外部檔，jsdom 不抓。把 site.js 原地內嵌，
      讓載入順序跟瀏覽器上一模一樣（先 site.js 再頁面自己的 script）。 */
   const html = fs.readFileSync(__dirname + '/../sell.html', 'utf8')
@@ -47,11 +50,13 @@ async function boot(sold) {
         .replace(/<\/script/gi, '<\\/script') + '</script>');
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
-    url: 'https://example.test/sell.html',
+    url: opts.url || 'https://example.test/sell.html',
     beforeParse(w) {
       w.fetch = () => Promise.resolve({ json: () => Promise.resolve({ rates: { TWD: RATE } }) });
-      w.localStorage.setItem('sah-combo-v1', JSON.stringify(COMBO));
-      w.localStorage.setItem('sah-checklist-checked-v1', JSON.stringify(CHECKED));
+      if (!opts.empty) {
+        w.localStorage.setItem('sah-combo-v1', JSON.stringify(COMBO));
+        w.localStorage.setItem('sah-checklist-checked-v1', JSON.stringify(CHECKED));
+      }
       if (sold) w.localStorage.setItem('sah-sold-v1', JSON.stringify(sold));
       // Supabase client 的最小替身：只支援本頁用到的那條鏈
       w.supabase = {
@@ -136,6 +141,57 @@ async function boot(sold) {
     decodeURIComponent(ics.match(/items=([^&\s]+)/)[1]), BOUGHT);
   eq('從 ics 連結還原：數量', carried[0].qty, 13);
   eq('從 ics 連結還原：實付', carried[0].paidTwd, 280);
+
+  /* ── 從追蹤網址進來：要不要存到這台裝置 ─────────────────
+     用第一台裝置產生的網址，開在一台空的「手機」上。 */
+  CHECKED['Kilowatt Case'].lots[0] = { at: BOUGHT, qty: 13, paidTwd: 280 };
+  const src = await boot(null);
+  const trackUrl = src.window.holdingsTrackUrl(
+    src.window.readHoldings().items, 'https://example.test/sell.html');
+
+  // 空手機
+  const phone = await boot(null, { url: trackUrl, empty: true });
+  const pdoc = phone.window.document;
+  eq('空裝置：跳出「要不要存」', pdoc.getElementById('sl-adopt').hidden, false);
+  eq('空裝置：不提取代警告', pdoc.getElementById('sl-adopt-note').textContent.includes('取代'), false);
+  eq('空裝置：清單還是看得到', pdoc.querySelectorAll('#sl-body tr').length, 1);
+  eq('空裝置：數量是實際的 13', pdoc.querySelector('#sl-body tr').textContent.includes('13 個'), true);
+  eq('講出連結是什麼時候產生的',
+    pdoc.getElementById('sl-source').textContent.includes('產生'), true);
+  eq('講出連結是快照',
+    pdoc.getElementById('sl-source').textContent.includes('不會反映'), true);
+
+  /* 按「存起來」→ 真的寫進 localStorage。
+     jsdom 會印一行 "Not implemented: navigation to another Document"，
+     那是存完之後的 location.replace()（把網址參數拿掉）——瀏覽器上會重整，
+     jsdom 不支援導航所以只是印一行，不影響已經寫進去的資料。 */
+  eq('存之前是空的', phone.window.countStoredHoldings(), 0);
+  pdoc.getElementById('sl-adopt-yes').click();
+  eq('存之後讀得到', phone.window.countStoredHoldings(), 1);
+  const saved = phone.window.readHoldings().items;
+  eq('存進去的是實際數量', saved[0].qty, 13);
+  eq('存進去的計畫數量還在', saved[0].plannedQty, 20);
+  eq('存進去的實付還在', saved[0].paidTwd, 280);
+  eq('存進去的 closed 還在', saved[0].closed, true);
+
+  // 手機上已經有另一份紀錄 → 一定要先警告會被取代
+  const phone2 = await boot(null, { url: trackUrl });
+  eq('已有紀錄：警告會被整份取代',
+    phone2.window.document.getElementById('sl-adopt-note').textContent.includes('整份取代'), true);
+  eq('已有紀錄：講出原本有幾筆',
+    /已經有 <strong>1 個品項<\/strong>/.test(
+      phone2.window.document.getElementById('sl-adopt-note').innerHTML), true);
+
+  // 「這次先不要」只關掉提示，不寫任何東西
+  const phone3 = await boot(null, { url: trackUrl, empty: true });
+  phone3.window.document.getElementById('sl-adopt-no').click();
+  eq('先不要：提示關掉', phone3.window.document.getElementById('sl-adopt').hidden, true);
+  eq('先不要：什麼都沒寫進去', phone3.window.countStoredHoldings(), 0);
+
+  // 正常（非連結）進來時不該跳這個提示
+  const normal = await boot(null);
+  eq('不是從連結進來就不跳提示',
+    normal.window.document.getElementById('sl-adopt').hidden, true);
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);
