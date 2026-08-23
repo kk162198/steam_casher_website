@@ -52,7 +52,7 @@
         <header style="padding-top:48px">
             <h1 class="t-page">資格快檢</h1>
             <p class="t-body c-ink2 flow-sm" style="max-width:34em">
-                30 秒確認你現在能不能用，不用註冊。答案只留在你自己的瀏覽器裡，我們收不到。
+                30 秒確認你現在能不能用。答案只留在你的瀏覽器裡。
             </p>
         </header>
 
@@ -73,7 +73,7 @@
             <div class="t-note num c-ink3">問題 1 / 5</div>
             <h2 class="t-sect flow-xs">你的 Steam 帳號累積消費有超過 US$ 5 嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                買遊戲或儲值錢包都算。沒滿這個門檻的帳號是 Limited 帳號，不能用社群市場，這一步沒有例外。
+                買遊戲或儲值都算。沒滿的話帳號是 Limited，不能用社群市場。
             </p>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <button type="button" class="opt" data-q="q1" data-val="yes" aria-pressed="false">有</button>
@@ -87,7 +87,7 @@
             <div class="t-note num c-ink3">問題 2 / 5</div>
             <h2 class="t-sect flow-xs">Steam 手機驗證器啟用超過 7 天了嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                沒啟用就完全不能在市場上架。今天才啟用的話，要再等 7 天。
+                沒啟用就不能在市場上架。今天才啟用要再等 7 天。
             </p>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <button type="button" class="opt" data-q="q2" data-val="yes" aria-pressed="false">超過 7 天</button>
@@ -101,7 +101,7 @@
             <div class="t-note num c-ink3">問題 3 / 5</div>
             <h2 class="t-sect flow-xs">帳號有交易限制或 VAC 停權嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                有的話不能掛售，這條路直接走不通，而且沒有繞道的方法。
+                有的話不能掛售，沒有繞道的方法。
             </p>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <!-- 注意：這題問的是「有沒有限制」，所以 no＝沒有限制（可用）、yes＝有限制（被擋）。
@@ -117,7 +117,7 @@
             <div class="t-note num c-ink3">問題 4 / 5</div>
             <h2 class="t-sect flow-xs">你能接受買完之後等 7 天嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                這 7 天不能縮短、不能取消。要送禮或趕特價末班車的話，時間會來不及。
+                這 7 天不能縮短也不能取消，要送禮或趕特價會來不及。
             </p>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <button type="button" class="opt" data-q="q4" data-val="yes" aria-pressed="false">可以</button>
@@ -130,7 +130,7 @@
             <div class="t-note num c-ink3">問題 5 / 5</div>
             <h2 class="t-sect flow-xs">這次打算在 Steam 花多少？</h2>
             <p class="t-aux c-ink2 flow-xs">
-                填你想買的遊戲或物品的價格。金額決定你能省下多少，但值不值得還要看要買幾件——那是試算頁的事。
+                填你想買的遊戲價格。金額決定能省多少，值不值得要看件數，交給試算頁。
             </p>
             <div class="flow-md" style="display:flex;align-items:baseline;gap:8px">
                 <label for="elig-amount" class="t-sub c-ink3">NT$</label>
@@ -149,7 +149,7 @@
         <!-- 結果 -->
         <section class="flow-lg" id="elig-result" aria-live="polite">
             <div class="card card-roomy" style="text-align:center">
-                <p class="t-body c-ink3 flow-0">五題都答完之後，這裡會告訴你結果。</p>
+                <p class="t-body c-ink3 flow-0">五題答完後，這裡會告訴你結果。</p>
             </div>
         </section>
 
@@ -229,7 +229,7 @@
             });
             document.getElementById('elig-progressbar').setAttribute('aria-valuenow', done);
             const text = document.getElementById('elig-progress-text');
-            text.textContent = done >= 5 ? '五題都答完了，結果在下面' : `已回答 ${done} / 5 題`;
+            text.textContent = done >= 5 ? '答完了，結果在下面' : `已回答 ${done} / 5 題`;
         }
 
         function resultCard(tone, title, body, actions) {
@@ -250,20 +250,20 @@
             const unanswered = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] === null);
             if (unanswered.length) {
                 box.innerHTML = `<div class="card card-roomy" style="text-align:center">
-                    <p class="t-body c-ink3 flow-0">還有 ${unanswered.length} 題沒答。答完之後這裡會告訴你結果。</p>
+                    <p class="t-body c-ink3 flow-0">還有 ${unanswered.length} 題沒答。</p>
                 </div>`;
                 return;
             }
 
             // 硬性條件不符：暫時不行
             const blockers = [];
-            if (answers.q1 === 'no') blockers.push('帳號累積消費還沒滿 US$5。在 Steam 買一款便宜的遊戲或儲值滿 US$5，帳號會立刻解除 Limited 狀態。');
-            if (answers.q1 === 'unknown') blockers.push('不確定有沒有滿 US$5。到 Steam 的帳戶明細頁可以看到歷史消費紀錄。');
-            if (answers.q2 === 'no') blockers.push('手機驗證器還沒啟用。用 Steam 手機 App 開啟，之後還要再等 7 天才能上架。');
-            if (answers.q2 === 'recent') blockers.push('手機驗證器啟用未滿 7 天。等滿 7 天就可以，這段時間不用做任何事。');
-            if (answers.q3 === 'yes') blockers.push('帳號目前有交易限制或 VAC 停權。這個狀態下不能在市場掛售，也沒有替代做法，只能等限制解除。');
-            if (answers.q3 === 'unknown') blockers.push('不確定有沒有交易限制。打開任一市場物品頁，如果看得到「出售」按鈕就是沒問題。');
-            if (answers.q4 === 'no') blockers.push('你不能等 7 天。冷卻期不能縮短，這次請直接用官方儲值。');
+            if (answers.q1 === 'no') blockers.push('累積消費沒滿 US$5。買一款便宜的遊戲或儲值滿 US$5 就會立刻解除 Limited。');
+            if (answers.q1 === 'unknown') blockers.push('不確定有沒有滿 US$5。到 Steam 帳戶明細頁可以查。');
+            if (answers.q2 === 'no') blockers.push('手機驗證器還沒啟用。用 Steam 手機 App 開啟，再等 7 天才能上架。');
+            if (answers.q2 === 'recent') blockers.push('手機驗證器啟用未滿 7 天。等滿就可以，不用做任何事。');
+            if (answers.q3 === 'yes') blockers.push('帳號有交易限制或 VAC 停權，不能掛售，只能等限制解除。');
+            if (answers.q3 === 'unknown') blockers.push('不確定有沒有交易限制。打開任一市場物品頁，看得到「出售」就是沒問題。');
+            if (answers.q4 === 'no') blockers.push('你不能等 7 天。冷卻期不能縮短，這次請用官方儲值。');
 
             if (blockers.length) {
                 const eta = (answers.q2 === 'recent' || answers.q2 === 'no') ? '最快 7 天後可以再回來' : '處理完就可以回來';
@@ -273,7 +273,7 @@
                         ${blockers.map(b => `<li>${b}</li>`).join('')}
                     </ul>
                     <p class="t-aux c-ink3 flow-md">
-                        以上都是 Steam 平台的規則，不是這個網站設的。細節以
+                        以上都是 Steam 的規則，不是本站設的。細節以
                         <a href="https://help.steampowered.com/zh-TW/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
                     </p>`,
                     `<a href="setup.html" class="btn btn-secondary">看初始設定怎麼做</a>
@@ -291,22 +291,21 @@
                 `這筆 NT$ ${amt.toLocaleString()} 預估可以省下約 NT$ ${saving.toLocaleString()}`,
                 `<p class="flow-0">你的帳號條件都符合，可以用這個方式加值。</p>
                  <p class="t-aux flow-sm c-ink3">
-                    這是用約 ${Math.round(ELIG_EST_DISCOUNT * 100)}% 折扣粗估的。實際數字要看目前的市場價格，試算頁會算給你看。
+                    以 ${Math.round(ELIG_EST_DISCOUNT * 100)}% 折扣粗估，實際要看市場價格，試算頁會算給你看。
                  </p>
                  <div class="step-check flow-md">
                     <div class="step-check-title">要花你多少時間</div>
                     <p class="t-aux c-ink2 flow-0">
                         ${setupDone
-                            ? `你這台裝置已經標記完成初始設定，所以不用再把一次性設定的時間算進去（${minutesText(OP_TIME.setupMinutes)}）。`
-                            : `第一次要先做一次性設定，${minutesText(OP_TIME.setupMinutes)}（以基本工資時薪計約 NT$ ${setupCost}），做完就不用再做。`}
-                        之後每一輪${minutesText(OP_TIME.roundFixedMinutes)}起跳，<strong class="c-ink">再加上每件約 24 秒</strong>——
-                        箱子單價低，金額越大要買的件數越多，賣的時候也要一件一件掛回去。
-                        省下的錢夠不夠付這些時間，試算頁會直接算給你看。
+                            ? `這台裝置已完成初始設定，不用再算那${minutesText(OP_TIME.setupMinutes)}。`
+                            : `首次要先做一次性設定${minutesText(OP_TIME.setupMinutes)}（時薪計約 NT$ ${setupCost}），只做一次。`}
+                        之後每輪${minutesText(OP_TIME.roundFixedMinutes)}起跳，<strong class="c-ink">每件再加約 24 秒</strong>——金額越大件數越多，賣的時候也要一件一件掛。
+                        划不划得來，試算頁會算給你看。
                     </p>
                  </div>
                  <div class="risk-bar flow-md">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                    <span>換到的是 Steam 錢包餘額，不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+                    <span>換到的是 Steam 錢包餘額，不可提領，只能在 Steam 內消費。<a href="risks.html">看完整風險說明</a></span>
                  </div>`,
                 setupDone
                     ? `<a href="calculator.html" class="btn btn-primary">試算我的方案</a>

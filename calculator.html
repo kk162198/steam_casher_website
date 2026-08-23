@@ -130,7 +130,7 @@
         <header style="padding-top:48px">
             <h1 class="t-page">加值試算</h1>
             <p class="t-body c-ink2 flow-sm" style="max-width:36em">
-                輸入你這次想花的金額，會依目前資料庫裡的價格與庫存上限，算出花費最少、溢出最小的購買組合，並告訴你這次值不值得做。
+                輸入金額，算出最省的購買組合，並告訴你值不值得做。
             </p>
         </header>
 
@@ -140,7 +140,7 @@
                 <div>
                     <h2 class="t-sect">你想買的東西大概多少錢？</h2>
                     <p class="t-aux c-ink2 flow-xs">
-                        兩個欄位任填一個，另一個會自動算出來。上面填你打算在 Steam 花掉的金額，下面填你手上要投入的現金。
+                        兩欄任填一個，另一個自動算。
                     </p>
 
                     <div class="calc-grid">
@@ -181,13 +181,13 @@
                                     <button type="button" class="btn btn-sm btn-secondary" data-cap="0.3333">33%</button>
                                     <button type="button" class="btn btn-sm btn-secondary" data-cap="1">不限</button>
                                 </div>
-                                <p class="t-note c-ink3 flow-0">單一品項的到手金額不會超過目標金額的這個比例，避免整筆錢壓在同一個箱子上。上限愈低越分散，實際倍率可能略降。</p>
+                                <p class="t-note c-ink3 flow-0">避免整筆錢壓在同一個箱子上。上限愈低愈分散，倍率可能略降。</p>
                             </div>
 
                             <!-- 保守緩衝：把「7 天後賣價可能低多少」換算成「目標要多抓幾趴」。
                                  三個檔位對應三組實測落差，數字與註解一起維護在下方的 BUFFER_TIERS。 -->
                             <div class="calc-field">
-                                <span class="t-aux c-ink2">保守緩衝（多抓一點，避免七天後不夠）</span>
+                                <span class="t-aux c-ink2">保守緩衝（避免七天後不夠）</span>
                                 <div id="buffer-group" role="group" aria-label="保守緩衝" style="display:flex;flex-wrap:wrap;gap:8px">
                                     <button type="button" class="btn btn-sm btn-secondary" data-buffer="none">不留緩衝</button>
                                     <button type="button" class="btn btn-sm btn-secondary" data-buffer="normal">一般</button>
@@ -227,7 +227,7 @@
 
                             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
                                 <span id="worth-badge" class="badge badge-maybe">試算中</span>
-                                <span id="worth-reason" class="t-aux c-ink2" style="flex:1;min-width:200px">正在讀取目前的市場價格。</span>
+                                <span id="worth-reason" class="t-aux c-ink2" style="flex:1;min-width:200px">讀取市場價格中。</span>
                             </div>
 
                             <div class="calc-stats">
@@ -270,15 +270,11 @@
             <div class="card">
                 <h2 class="t-sub">上面的數字會變，請自己留緩衝</h2>
                 <p id="range-note" class="t-body c-ink2 flow-xs">
-                    這是<strong>目前</strong>的價格快照。你實際賣出的是 7 天後的價格，可能高於也可能低於現在。
+                    這是<strong>今天</strong>的價格快照，你賣的是 7 天後的價格。
+                    我們自己的 51 筆交易對照下來：<strong>最好多了 21.8%，最差少了 22.4%</strong>。
                 </p>
                 <p class="t-body c-ink2 flow-md">
-                    差多少？我們拿自己的 51 筆交易對照過當初的預估：<strong>最好的一批多了 21.8%，最差的一筆少了 22.4%</strong>，
-                    而<strong>沒有人知道七天後是哪一種</strong>。
-                </p>
-                <p class="t-body c-ink2 flow-md">
-                    <strong>所以上面的試算是「順利的話」，不是保證。</strong>
-                    如果這筆錢有指定用途、少了就不夠，用輸入區的<strong>保守緩衝</strong>讓它自動多抓一點：
+                    <strong>所以試算是「順利的話」，不是保證。</strong>這筆錢少了就不夠的話，用輸入區的<strong>保守緩衝</strong>自動多抓：
                 </p>
                 <div class="card card-flush flow-md" style="padding:8px 20px 4px">
                     <table class="rt">
@@ -309,15 +305,14 @@
                     </table>
                 </div>
                 <p class="t-note c-ink3 flow-md">
-                    少 16% 要多抓的是 19.1% 不是 16%——補的是「剩下那 84% 要撐起原本的 100%」：<span class="num">1 ÷ 0.840 = 1.191</span>。
+                    少 16% 要多抓 19.1%，因為剩下的 84% 要撐起原本的 100%：<span class="num">1 ÷ 0.840 = 1.191</span>。
                 </p>
                 <p class="t-body c-ink2 flow-md">
-                    ⚠️ <strong>但多買不是萬靈丹。</strong>保底要成立，你這組合的倍率得先高過「1 ÷ 剩下的比例」——
-                    <strong>保守檔要 x1.19、最保守檔要 x1.29</strong>。低於這條線，跌幅吃掉的比賺到的還多，<strong>多買只是把部位放大</strong>。
-                    真的越線時試算會直接標示「最差情況倒賠」，<strong>那時候正確的做法是不要做，不是換一個寬鬆的檔位再算一次</strong>。
+                    ⚠️ <strong>多買不是萬靈丹。</strong>組合倍率要先高過 <strong>x1.19（保守）／x1.29（最保守）</strong>，
+                    否則跌幅吃掉的比賺到的多。試算標示「最差情況倒賠」時，<strong>該做的是不做，不是換寬鬆檔位</strong>。
                 </p>
                 <p class="t-note c-ink3 flow-md">
-                    上面 51 筆全部來自本站作者自己的交易紀錄，<strong>不是市場統計</strong>，也不保證對你成立。
+                    這 51 筆都來自本站作者自己的交易，<strong>不是市場統計</strong>，也不保證對你成立。
                     <a href="transparency.html">看我們怎麼算的</a>
                 </p>
             </div>
@@ -327,7 +322,7 @@
         <section class="sec">
             <h2 class="t-page">你要買什麼</h2>
             <p id="combo-note" class="t-aux c-ink2 flow-xs">
-                已依各武器箱目前的庫存上限限制數量，超過上限的部分會改用次高倍率的品項補足。
+                數量已受庫存上限限制，不夠的用次高倍率品項補足。
             </p>
             <p id="cap-note" class="t-aux c-warn flow-xs" style="display:none"></p>
             <!-- 篩選的代價：篩掉品項會讓倍率下降，這一行把差多少直接算出來 -->
@@ -337,7 +332,7 @@
 
             <div class="card card-flush flow-lg">
                 <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-                    <span id="shopping-progress" class="t-aux c-ink2">購物清單：勾選已買到的品項，方便邊買邊對照</span>
+                    <span id="shopping-progress" class="t-aux c-ink2">邊買邊勾，方便對照</span>
                     <button id="shopping-reset-btn" type="button" class="btn btn-text btn-sm">清除全部勾選</button>
                 </div>
                 <div style="padding:8px 20px 20px">
@@ -373,7 +368,7 @@
         <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                <span>買到的箱子要等 7 天才能賣，Steam 餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+                <span>箱子要等 7 天才能賣；餘額不可提領，只能在 Steam 內消費。<a href="risks.html">看完整風險說明</a></span>
             </div>
         </section>
 
@@ -382,7 +377,7 @@
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">把這份組合變成購物清單</h2>
-                    <p class="t-aux c-ink2 flow-xs">一頁列出要買什麼、買幾個，可以邊買邊勾。</p>
+                    <p class="t-aux c-ink2 flow-xs">列出要買什麼、買幾個，可以邊買邊勾。</p>
                 </div>
                 <a href="checklist.html" class="btn btn-primary">產生購物清單</a>
             </div>
@@ -466,7 +461,7 @@
               「沒資料」不等於「流動性夠」，放行等於用未知冒充合格。 */
         const LIQ_FILTERS = [
             { id: 'all',        label: '不限',         minVolume: null,
-              note: '所有品項都納入，包含一天只成交幾十個的。' },
+              note: '全部納入，包含一天只成交幾十個的。' },
             { id: 'no-verylow', label: '排除極低流動', minVolume: 100,
               note: '排除一天成交不到 100 個的品項。' },
             { id: 'mid-up',     label: '中流動以上',   minVolume: 1000,
@@ -579,7 +574,7 @@
                 savingsEl.textContent = '省下 --';
                 badge.className = 'badge badge-maybe';
                 badge.textContent = '算不出來';
-                reason.textContent = '目前沒有可用的價格資料，或目標金額太低。可以按上面的「重新載入最新資料」再試一次。';
+                reason.textContent = '沒有可用的價格資料，或目標金額太低。可按上面重新載入再試。';
                 return;
             }
 
@@ -611,20 +606,20 @@
 
             /* 第一句：把「省下多少」和「要花多少時間」擺在一起。
                件數要講出來——它是時間的來源，也是使用者唯一能調整的變數。 */
-            const timeLine = `這次要買 ${qty} 件，估計花${minutesText(v.roundMin)}`
-                + `（以基本工資時薪 NT$196 計，約 NT$ ${Math.round(v.roundCost)}）`;
+            const timeLine = `要買 ${qty} 件，約花${minutesText(v.roundMin)}`
+                + `（時薪 NT$196 計 ≈ NT$ ${Math.round(v.roundCost)}）`;
 
             let head;
             if (brokeFloor) {
-                head = `照你選的緩衝檔位，最差情況會倒賠。該做的是不要做這一筆，不是換一個寬鬆的檔位。`;
+                head = `這個緩衝檔位下最差情況會倒賠。該做的是不做，不是換一個寬鬆的檔位。`;
             } else if (tier === 'no') {
-                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省下的錢還不夠付這些時間，`
-                     + `而且要再等 7 天。建議這次直接用官方儲值或信用卡回饋。`;
+                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省的不夠付時間，還要等 7 天。`
+                     + `建議直接用官方儲值或信用卡回饋。`;
             } else if (tier === 'maybe') {
-                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省得比時間多，但沒有多太多——`
-                     + `資金要鎖 7 天，這段期間價格會動。`;
+                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省得比時間多，但沒多太多，`
+                     + `而且資金要鎖 7 天。`;
             } else {
-                head = `這筆省下約 NT$ ${savings.toFixed(0)}，${timeLine}。前提是你本來就要在 Steam 花這筆錢。`;
+                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。前提是你本來就要在 Steam 花這筆錢。`;
             }
 
             /* 第二句：兩段式揭露。首次成本只講給還沒設定過的人聽，
@@ -635,11 +630,11 @@
             if (!v.setupDone) {
                 const withSetup = savings >= (v.roundCost + v.setupCost);
                 tail = `<br><span class="t-note ${withSetup ? 'c-ink3' : 'c-warn'}" style="font-weight:400">`
-                     + `第一次還要先做一次性設定，${minutesText(OP_TIME.setupMinutes)}`
-                     + `（約 NT$ ${Math.round(v.setupCost)}）。`
+                     + `首次還要一次性設定${minutesText(OP_TIME.setupMinutes)}`
+                     + `（≈ NT$ ${Math.round(v.setupCost)}）。`
                      + (withSetup
-                        ? `算進去這一筆仍然划算。`
-                        : `把它算進去的話這一筆還不划算——但設定只做一次，下一次起就不用再算。`)
+                        ? `算進去仍然划算。`
+                        : `算進去就不划算了，但設定只做一次。`)
                      + ` <a href="setup.html">看初始設定</a></span>`;
             }
 
@@ -718,7 +713,7 @@
             // ⚠️ 這行在手機上只有約 386px 寬，講太長會變 4 行。
             //    「為什麼是除不是加」的算式放在第②節，不在這裡重複。
             bufferNote.textContent = tier.drop > 0
-                ? `目標自動多抓 ${pct.toFixed(1)}%，補回「賣價少 ${(tier.drop * 100).toFixed(1)}%」的落差。${tier.note}`
+                ? `目標多抓 ${pct.toFixed(1)}%，補回賣價少 ${(tier.drop * 100).toFixed(1)}% 的落差。${tier.note}`
                 : tier.note;
         }
 
@@ -753,7 +748,7 @@
             const kept = usableCases().length, total = casesCache.length;
             liqNote.textContent = total === 0
                 ? f.note
-                : `${f.note}目前 ${total} 個品項中有 ${kept} 個符合。`;
+                : `${f.note}${total} 個品項中 ${kept} 個符合。`;
         }
 
         function capLabel(p) { return p >= 1 ? '不限' : `${Math.round(p * 100)}%`; }
@@ -765,8 +760,8 @@
                 btn.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
             comboNote.textContent = capPct >= 1
-                ? '已依各武器箱目前的庫存上限限制數量，超過上限的部分會改用次高倍率的品項補足。'
-                : `已依各武器箱目前的庫存上限限制數量，並讓單一品項的到手金額不超過目標金額的 ${capLabel(capPct)}，其餘用次高倍率的品項補足。`;
+                ? '數量已受庫存上限限制，不夠的用次高倍率品項補足。'
+                : `數量已受庫存上限限制，且單一品項到手金額不超過目標的 ${capLabel(capPct)}，其餘用次高倍率品項補足。`;
         }
 
         // 滑桿背景漸層比照 Slider.js 的 updateSliderBackground
@@ -837,7 +832,7 @@
             const typed = Number(budgetInput.value) || 0;
             const diff = typed - rounded;
             budgetNote.textContent = diff > 0
-                ? `實際會花 NT$ ${rounded}，比你填的少 NT$ ${diff}（武器箱只能整件買，湊不到剛好）。`
+                ? `實際會花 NT$ ${rounded}，比你填的少 NT$ ${diff}（只能整件買）。`
                 : '';
         }
 
@@ -846,10 +841,10 @@
                 const response = await fetch('https://open.er-api.com/v6/latest/USD');
                 const data = await response.json();
                 usdToTwd = data.rates.TWD;
-                rateNote.innerText = `目前參考匯率：1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
+                rateNote.innerText = `匯率 1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
             } catch (error) {
                 usdToTwd = 32.5;
-                rateNote.innerText = `匯率抓取失敗，暫用預設值：1 USD ≈ 32.5 TWD`;
+                rateNote.innerText = `匯率抓取失敗，暫用 1 USD ≈ 32.5 TWD`;
             }
         }
 
@@ -994,7 +989,7 @@
             if (targetUsd <= 0 || pool.length === 0) {
                 // 分開講：「沒資料」與「你自己把品項篩光了」是兩個不同的問題，解法也不同
                 const emptyMsg = (pool.length === 0 && casesCache.length > 0)
-                    ? `目前沒有品項符合「${escapeHtml(currentLiqFilter().label)}」這個流動性條件。可以放寬篩選再試一次。`
+                    ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
                     : '目前沒有可用的價格資料，或目標金額為 0';
                 comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
@@ -1113,7 +1108,7 @@
                    而不是換一個檔位再算一次。 */
                 if (worstRatio < 1) {
                     const lossTwd = totalCostTwd - floorTwd;
-                    floorWarn.textContent = `⚠️ 這個檔位下最差情況是倒賠：花 NT$ ${totalCostTwd.toFixed(0)} 只換到 NT$ ${floorTwd.toFixed(0)}，虧 NT$ ${lossTwd.toFixed(0)}（倍率 x${worstRatio.toFixed(2)}）。多買補不回來，只是把部位放大。如果這筆錢真的不能少，直接用官方儲值比較穩。`;
+                    floorWarn.textContent = `⚠️ 這個檔位最差情況是倒賠：花 NT$ ${totalCostTwd.toFixed(0)} 只換到 NT$ ${floorTwd.toFixed(0)}，虧 NT$ ${lossTwd.toFixed(0)}（x${worstRatio.toFixed(2)}）。多買補不回來。真的不能少就用官方儲值。`;
                     floorWarn.style.display = 'block';
                 }
             }
@@ -1131,8 +1126,8 @@
                 const extraTwd = totalCostTwd - baseCostTwd;
                 if (base.combo.length > 0 && Math.abs(extraTwd) >= 1) {
                     liqCost.textContent = extraTwd > 0
-                        ? `篩選的代價：同樣拿到 NT$ ${totalValueTwd.toFixed(0)}，不篩選只要花 NT$ ${baseCostTwd.toFixed(0)}，你多付了 NT$ ${extraTwd.toFixed(0)}（約 ${(extraTwd / baseCostTwd * 100).toFixed(1)}%）換賣得掉。`
-                        : `篩選後反而更便宜 NT$ ${Math.abs(extraTwd).toFixed(0)}——被篩掉的品項本來就不划算。`;
+                        ? `篩選的代價：同樣拿到 NT$ ${totalValueTwd.toFixed(0)}，不篩只要 NT$ ${baseCostTwd.toFixed(0)}，你多付 NT$ ${extraTwd.toFixed(0)}（約 ${(extraTwd / baseCostTwd * 100).toFixed(1)}%）換賣得掉。`
+                        : `篩選後反而便宜 NT$ ${Math.abs(extraTwd).toFixed(0)}——被篩掉的本來就不划算。`;
                     liqCost.style.display = 'block';
                 }
             }
@@ -1145,27 +1140,27 @@
                 const worst = thinRows.slice().sort((a, b) => b.share - a.share)[0];
                 const others = thinRows.length - 1;
                 msgs.push(
-                    `有 ${thinRows.length} 個品項你要買的量相對成交量偏高`
-                    + `——最極端的是「${worst.name}」：你要賣 ${worst.qty} 個，而它一天只成交 ${worst.volume.toLocaleString('en-US')} 個`
+                    `有 ${thinRows.length} 個品項的買量相對成交量偏高`
+                    + `，最極端的是「${worst.name}」：要賣 ${worst.qty} 個，它一天只成交 ${worst.volume.toLocaleString('en-US')} 個`
                     + `（相當於 ${(worst.share * 100).toFixed(0)}%）。`
-                    + (others > 0 ? `另外還有 ${others} 個也在同樣情況。` : ''));
+                    + (others > 0 ? `另有 ${others} 個同樣情況。` : ''));
             }
             if (thinValueShare >= THIN_VALUE_WARN) {
-                msgs.push(`你有 ${(thinValueShare * 100).toFixed(0)}% 的金額（約 NT$ ${thinValueTwd.toFixed(0)}）壓在「極低流動」的品項上，也就是一天成交不到 100 個的那些。`);
+                msgs.push(`有 ${(thinValueShare * 100).toFixed(0)}% 的金額（約 NT$ ${thinValueTwd.toFixed(0)}）壓在極低流動品項上，也就是一天成交不到 100 個的那些。`);
             }
             if (msgs.length > 0) {
                 thinNote.textContent = '⚠️ ' + msgs.join(' ')
-                    + ' 這類品項掛上去不一定當天賣得掉，資金會被鎖得比 7 天冷卻期更久。想避開就把上面的流動性篩選調嚴，或調低單一武器箱佔比上限讓部位分散。';
+                    + ' 這類品項不一定當天賣得掉，資金會鎖更久。想避開就調嚴流動性篩選，或調低單箱佔比上限。';
                 thinNote.style.display = 'block';
             }
 
             if (capRelaxed) {
-                capNote.textContent = `在單箱 ${capLabel(capPct)} 的上限下湊不滿目標金額（可買的品項種類或庫存不夠），剩下的缺口已改為在各品項間平均分配，最高單箱佔 ${(maxShare * 100).toFixed(0)}%。可調高上限或調降目標金額。`;
+                capNote.textContent = `單箱 ${capLabel(capPct)} 的上限下湊不滿目標（品項種類或庫存不夠），缺口已平均分配，最高單箱佔 ${(maxShare * 100).toFixed(0)}%。可調高上限或調低目標。`;
                 capNote.style.display = 'block';
             }
 
             if (!reached) {
-                shortfallNote.textContent = `目前所有符合條件的武器箱庫存合計不足以達成此目標金額，已用完可用庫存，實際只能取得約 NT$ ${totalValueTwd.toFixed(0)}。可調降目標金額，或等待庫存與資料更新後再試算一次。`;
+                shortfallNote.textContent = `庫存不足以達成這個目標，全部用完也只有約 NT$ ${totalValueTwd.toFixed(0)}。可調低目標，或等資料更新後再試。`;
                 shortfallNote.style.display = 'block';
             }
         }
@@ -1180,7 +1175,7 @@
 
         function updateShoppingProgress() {
             if (!currentCombo.length) {
-                shoppingProgress.textContent = '購物清單：勾選已買到的品項，方便邊買邊對照';
+                shoppingProgress.textContent = '邊買邊勾，方便對照';
                 return;
             }
             const totalItems = currentCombo.length;
@@ -1190,7 +1185,7 @@
             const doneValueTwd = currentCombo
                 .filter(i => checkedNames.has(i.name))
                 .reduce((s, i) => s + i.incomeUsd * i.qty, 0) * usdToTwd;
-            shoppingProgress.textContent = `購物清單：已勾選 ${doneItems}/${totalItems} 項（共 ${doneQty}/${totalQty} 件）・已買到手金額約 NT$ ${doneValueTwd.toFixed(0)}`;
+            shoppingProgress.textContent = `已勾 ${doneItems}/${totalItems} 項・${doneQty}/${totalQty} 件・到手約 NT$ ${doneValueTwd.toFixed(0)}`;
         }
 
         shoppingResetBtn.addEventListener('click', () => {
