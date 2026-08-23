@@ -1,0 +1,72 @@
+name: Daily Ratio Snapshot
+
+# ⚠️ 這支排程為什麼住在「網站」repo 而不是 code repo（2026-08-23 搬移）：
+#
+#   公開 repo 的標準 GitHub-hosted runner 是無限免費的，不吃帳號那 2,000 分/月。
+#   2026-08 額度在 8/23 用完，三支排程一起停到 9/01——價格停更只是不方便
+#   （下一輪會補上），但每日快照停掉是**永久性的資料缺口**：
+#   cases_ratio_history 少掉的那幾天補不回來，而 analyze_7day_drift.py
+#   要靠這條連續序列。code/common/snapshot_ratio_history.py 自己的註解就寫著
+#   「歷史資料補不回來」。
+#
+#   所以把「不能斷」的那一支，放到「不會斷」的地方。見 DECISIONS.md 4.16。
+#
+# ⚠️ 公開 repo 放 secrets 安全嗎——是，但條件要看清楚：
+#   1. 這支只有 schedule + workflow_dispatch 兩個觸發條件。
+#      **絕對不要加 pull_request_target**，也不要加任何會被外人觸發的事件——
+#      fork 送來的 pull_request 拿不到 secrets，但 pull_request_target 拿得到。
+#   2. workflow_dispatch 需要 repo 寫入權限，外人按不到。
+#   3. 公開 repo 的 Actions log 任何人都看得到。腳本只印品項名稱與價格
+#      （網站上本來就公開），不印金鑰。改動這支時要維持這個性質。
+#   4. SUPABASE_URL 就算出現在錯誤訊息裡也不算外洩——前端靜態頁本來就帶著它。
+#      真正要保護的是 SUPABASE_KEY（service key），而 GitHub 不會把 secret 印出來。
+
+on:
+  schedule:
+    # ⏰ 每天 03:37 UTC（台北 11:37）。
+    #
+    # 為什麼是 03:37 而不是原本的 00:30：
+    #   (a) 避開整點。*/N 與 :00 是全平台 cron 最壅塞的時刻，官方文件明說
+    #       高負載會延遲、甚至丟掉 job。原本排 00:30，實測 captured_at
+    #       落在 02:28–04:06（DECISIONS.md 4.15），延遲 2～3.5 小時。
+    #   (b) 排在上游後面。Steam 01:17、CSFloat 01:43 跑完（各約 11 / 4 分鐘），
+    #       03:37 抓到的是剛更新過的資料，而且離下一次 CSFloat（04:43）
+    #       還有一小時餘裕可以吸收延遲。這才是原本排 00:30 想達成、
+    #       卻因為上游也在延遲而沒達成的效果。
+    #   (c) 仍在 UTC 日的前段。腳本彙總的是「前一日」的 tick，
+    #       所以必須確定跑的時候前一日已經結束；同時也不能太晚，
+    #       否則一旦延遲跨過 UTC 午夜，snapshot_date 會落到錯的那一天。
+    - cron: '37 3 * * *'
+  workflow_dispatch: # 可在 GitHub 網頁手動觸發（例如補跑漏掉的那一天）
+
+# 最小權限：這支只讀 repo、其餘都打 Supabase，不需要任何寫入權限。
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. 複製程式碼到雲端電腦
+      uses: actions/checkout@v4
+
+    - name: 2. 初始化 Python 環境
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: 3. 安裝需要的 Python 套件
+      # 這支不打任何 HTTP API，所以不需要 requests（supabase 自己帶 httpx）
+      run: |
+        python -m pip install --upgrade pip
+        pip install python-dotenv supabase
+
+    - name: 4. 📸 存入每日 ratio 快照 + 前一日 tick 彙總
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      # 前置需求：Supabase 需先建立 cases_ratio_history 與 cases_price_ticks，
+      # DDL 見（私有 repo）code/db/schema.sql。
+      # 腳本用 (name, snapshot_date) upsert，手動重跑同一天不會產生重複快照。
+      run: python .github/scripts/snapshot_ratio_history.py
