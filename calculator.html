@@ -93,10 +93,16 @@
             .calc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 32px; }
             /* 左欄有三組輸入＋頁尾，天生比右邊的結果面板高。原本兩欄等高、
                再用 margin-top:auto 把摘要壓到底，結果面板中間會空出約 160px 的洞。
-               改成高度隨內容、並在捲動時貼齊導覽列下方：洞不見了，
+               改成高度隨內容、並在捲動時黏在畫面上：洞不見了，
                而且往下捲看清單時結果還留在畫面上，改參數馬上看得到變化。
-               88px = 導覽列 64px + 24px 呼吸空間。 */
-            .calc-result { align-self: start; position: sticky; top: 88px; }
+
+               2026-08-23：黏著點從「導覽列下方」改成「視窗垂直中央」。
+               往下捲看購買組合表時，結果面板落在視線高度而不是縮在右上角。
+               ⚠️ --sticky-top 由下方 ⑤ 那段 ResizeObserver 算出來——CSS 讀不到
+                  元素自己的高度（sticky 的 top 用百分比是拿**容器**高度算的）。
+                  沒有 JS、或面板比視窗高時退回 88px＝導覽列 64 + 24 呼吸空間，
+                  也就是這次改動之前的行為。 */
+            .calc-result { align-self: start; position: sticky; top: var(--sticky-top, 88px); }
         }
         .calc-inputs { display: flex; flex-direction: column; gap: 24px; }
         .calc-field { display: flex; flex-direction: column; gap: 8px; }
@@ -1262,6 +1268,32 @@
             syncLiqButtons();
             runCalculation('target');
         });
+
+        /* ⑤ 結果面板垂直置中
+           ────────────────────────────────────────────────────────────
+           只在 ≥900px 有作用——窄螢幕的 .calc-result 不是 sticky，top 會被忽略。
+
+           要置中就得知道面板多高，而 CSS 算不出來：sticky 的 top 寫百分比是拿
+           **容器**高度去算，不是元素自己的。所以用 ResizeObserver 把高度餵進
+           --sticky-top。
+
+           ⚠️ 一定要 clamp 到 88px 以上。面板比視窗高時 (視窗 − 面板) / 2 是負數，
+              頂部會被推出視窗**而且捲不回來**——sticky 元素不會隨頁面往回捲。
+              夾住之後，高面板退回原本「貼齊導覽列下方」的行為。
+           ⚠️ 監看面板本身，不是只在載入時算一次：勸退徽章、最差情況倒賠、庫存不足
+              這幾段提示是動態出現的，面板高度會跟著變。 */
+        (function centerResultPanel() {
+            const panel = document.querySelector('.calc-result');
+            if (!panel) return;
+            const MIN_TOP = 88;   // 導覽列 64 + 24 呼吸空間，與 CSS 的 fallback 同一個數字
+            function syncStickyTop() {
+                const top = Math.max(MIN_TOP, (window.innerHeight - panel.offsetHeight) / 2);
+                panel.style.setProperty('--sticky-top', Math.round(top) + 'px');
+            }
+            if (window.ResizeObserver) new ResizeObserver(syncStickyTop).observe(panel);
+            window.addEventListener('resize', syncStickyTop);
+            syncStickyTop();
+        })();
 
         updateSliderBackground(targetSlider.value);
         paintSlider(budgetSlider, budgetSlider.value);
