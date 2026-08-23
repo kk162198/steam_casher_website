@@ -151,7 +151,7 @@
                                 <th scope="col">建議掛價／你實拿</th>
                                 <th scope="col">流動性</th>
                                 <th scope="col">實際成交價</th>
-                                <th scope="col">前往交易</th>
+                                <th scope="col">前往 Steam</th>
                             </tr>
                         </thead>
                         <tbody id="sl-body">
@@ -433,7 +433,7 @@
                 <td data-label="建議掛價／你實拿">${priceCell}</td>
                 <td data-label="流動性">${p ? liquidityChipHtml(p.steam_volume) : '<span class="c-ink3 t-note">--</span>'}</td>
                 <td data-label="實際成交價">${soldCell}</td>
-                <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
+                <td data-label="前往 Steam">${tradeLinksHtml(item.defIndex, item.name, 'sell')}</td>`;
         }
 
         function renderEmpty(message) {

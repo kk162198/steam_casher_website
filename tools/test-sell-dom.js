@@ -91,6 +91,10 @@ async function boot(sold, opts) {
   // 回填成交價：填 Steam 標價（毛額），本站扣手續費
   const input = row.querySelector('[data-sold-for]');
   eq('回填欄的 key 用 holding key（單批時＝品項名）', input.dataset.soldFor, 'Kilowatt Case');
+  /* ⚠️ 賣出頁只出 Steam。這裡的箱子已經在庫存裡，再去 CSFloat 買一次
+     是完全不同的動作——那顆按鈕不該存在。 */
+  eq('賣出頁有 Steam 連結', row.textContent.includes('Steam 賣'), true);
+  eq('賣出頁沒有 CSFloat 連結', row.textContent.includes('CSFloat 買'), false);
   eq('回填欄講明填的是毛額', row.textContent.includes('買家付的'), true);
   input.value = '25';
   input.dispatchEvent(new dom.window.Event('change'));

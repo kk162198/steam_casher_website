@@ -189,6 +189,45 @@ reset({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, pai
 eq('空清單不寫入', ctx.saveHoldingsToDevice([]), false);
 eq('空清單不會蓋掉原本的紀錄', ctx.countStoredHoldings(), 1);
 
+/* ── 7c. 試算頁那張表的整批同步 ────────────────────────────
+   ⚠️ 試算頁看不到買到數量與實付金額，但那些資料就在同一個 key 裡。
+      在試算頁勾／取消別的品項，不可以把已經填好的那幾筆洗掉。 */
+reset({
+  'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: true },
+});
+ctx.syncCheckedNames(['Kilowatt Case', 'Clutch Case']);   // 在試算頁多勾一個
+let m = ctx.readCheckedMap();
+eq('同步後：既有的買到數量沒被洗掉', m['Kilowatt Case'].lots[0].qty, 13);
+eq('同步後：既有的實付沒被洗掉', m['Kilowatt Case'].lots[0].paidTwd, 280);
+eq('同步後：既有的購買時間沒被重設', m['Kilowatt Case'].lots[0].at, '2026-08-15T02:00:00.000Z');
+eq('同步後：既有的 closed 沒被洗掉', m['Kilowatt Case'].closed, true);
+eq('同步後：新勾的建了一筆空的', m['Clutch Case'].lots[0].qty, null);
+eq('同步後：新勾的有記時間', typeof m['Clutch Case'].lots[0].at, 'string');
+eq('同步後：新勾的不是裸 ISO 字串（不要留混格式）', Array.isArray(m['Clutch Case'].lots), true);
+ctx.syncCheckedNames(['Kilowatt Case']);                  // 取消勾 Clutch
+m = ctx.readCheckedMap();
+eq('取消勾選 → 那筆消失', m['Clutch Case'], undefined);
+eq('取消勾選 → 別人的資料還在', m['Kilowatt Case'].lots[0].paidTwd, 280);
+
+/* ── 7d. 交易連結：哪一頁出哪幾顆 ──────────────────────────
+   ⚠️ 這不是版面精簡。在試算頁擺 Steam 按鈕、在賣出頁擺 CSFloat 按鈕，
+      等於在使用者正要動手的那一刻遞給他一個會做錯事的出口。 */
+const both = ctx.tradeLinksHtml(4001, 'Kilowatt Case');
+eq('預設兩顆都出（比較型頁面）', /CSFloat 買/.test(both) && /Steam 賣/.test(both), true);
+const buyOnly = ctx.tradeLinksHtml(4001, 'Kilowatt Case', 'buy');
+eq('buy：有 CSFloat', /CSFloat 買/.test(buyOnly), true);
+eq('buy：沒有 Steam', /Steam 賣/.test(buyOnly), false);
+const sellOnly = ctx.tradeLinksHtml(4001, 'Kilowatt Case', 'sell');
+eq('sell：有 Steam', /Steam 賣/.test(sellOnly), true);
+eq('sell：沒有 CSFloat', /CSFloat 買/.test(sellOnly), false);
+eq('sell：不需要 defIndex 也出得來', /Steam 賣/.test(ctx.tradeLinksHtml(null, 'Kilowatt Case', 'sell')), true);
+eq('buy：沒有 defIndex 就出停用狀態，不亂猜網址',
+  /trade-off/.test(ctx.tradeLinksHtml(null, 'Kilowatt Case', 'buy')), true);
+eq('外部連結一律 noopener noreferrer',
+  (both.match(/rel="noopener noreferrer"/g) || []).length, 2);
+eq('品項名裡的引號不會撐破 HTML',
+  ctx.tradeLinksHtml(1, 'A" onerror="x', 'sell').indexOf('onerror="x"') < 0, true);
+
 /* ── 8. 毛額 → 淨額：必須與後端 calc_steam_income 逐分對齊 ──
    右邊的期望值是直接跑 update_derived_fields.py 的 calc_steam_income
    取得的，不是手算的。改動任一邊時這幾條會先紅。 */

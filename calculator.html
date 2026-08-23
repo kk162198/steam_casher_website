@@ -353,7 +353,10 @@
                                      每一列都顯示相同文字的欄位，資訊量是零。 -->
                                 <th scope="col">賣出流動性</th>
                                 <th scope="col">已買到</th>
-                                <th scope="col">前往交易</th>
+                                <!-- 只出 CSFloat。這一頁你還沒有東西可以賣，
+                                     擺 Steam 按鈕等於在使用者正要下單的那一刻
+                                     遞給他一個會做錯事的出口。見 site.js 第④節。 -->
+                                <th scope="col">前往 CSFloat</th>
                             </tr>
                         </thead>
                         <tbody id="combo-body">
@@ -515,7 +518,7 @@
                         <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(row.name)} 已買到"${vals.isChecked ? ' checked' : ''}>
                     </label>
                 </td>
-                <td data-label="前往交易">${tradeLinksHtml(row.defIndex, row.name)}</td>
+                <td data-label="前往 CSFloat">${tradeLinksHtml(row.defIndex, row.name, 'buy')}</td>
             `;
         }
 
@@ -525,17 +528,21 @@
 
            ⚠️ 2026-08-13：勾選狀態的格式從「名稱陣列」改成「名稱 → 勾選時間」，
               因為勾選的那一刻就是 7 天冷卻期的起點，賣出頁靠它算解鎖日。
+           ⚠️ 2026-08-22：再改成 { lots:[{at,qty,paidTwd}], closed }，
+              因為部分成交是常態（見 site.js 第⑨節）。
+
               這裡的讀寫一律走 site.js 的 readCheckedMap()／writeCheckedMap()，
               它們含舊格式相容，**不要在這一頁再自己 JSON.parse 一次**——
               寫成陣列會把所有購買時間清掉。 */
         function loadCheckedNames() {
             return new Set(Object.keys(readCheckedMap()));
         }
+        /* ⚠️ 既有的那一筆要原樣保留：它可能帶著使用者在購物清單頁敲進去的
+           買到數量與實付金額，而這一頁根本看不到那些欄位——**看不到不等於
+           可以覆蓋掉**。這個保留邏輯已經抽到 site.js 的 syncCheckedNames()，
+           不要在這裡重寫一份。 */
         function saveCheckedNames(set) {
-            const prev = readCheckedMap();
-            const next = {};
-            set.forEach(n => { next[n] = prev[n] || new Date().toISOString(); });  // 保留既有時間
-            writeCheckedMap(next);
+            syncCheckedNames(set);
         }
 
         function saveComboForChecklist(combo, rate) {

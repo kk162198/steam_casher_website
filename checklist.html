@@ -220,12 +220,7 @@
         function setChecked(name, on) {
             if (on) {
                 // 已經勾過就保留原本的時間，不要因為重新渲染而把冷卻期重算
-                if (!checkedMap[name]) {
-                    checkedMap[name] = {
-                        lots: [{ at: new Date().toISOString(), qty: null, paidTwd: null }],
-                        closed: false
-                    };
-                }
+                if (!checkedMap[name]) checkedMap[name] = newCheckedEntry();   // site.js
             } else {
                 delete checkedMap[name];      // 取消勾選＝這筆紀錄不存在，實付金額一起消失
             }

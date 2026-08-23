@@ -8,7 +8,7 @@
      ① 資料時間戳章 renderTimestamps()
      ② 導覽列狀態點 setNavStatus()
      ③ nav / footer 片段載入 loadNav() / loadFooter()
-     ④ 交易連結 csfloatBuyUrl() / steamMarketUrl() / tradeLinksHtml()
+     ④ 交易連結 csfloatBuyUrl() / steamMarketUrl() / tradeLinksHtml(…, sides)
      ⑤ 流動性分級 liquidityTier() / liquidityChipHtml()
      ⑥ 冷卻期 COOLDOWN_DAYS / unlockAt() / cooldownText()
      ⑦ 特賣時程 STEAM_SALES / nextSale()
@@ -175,21 +175,39 @@ function tradeEscape(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/* 表格用的「買 / 賣」雙連結。外部連結一律 rel="noopener noreferrer"，
-   避免新分頁透過 window.opener 反向操作本站頁面。 */
-function tradeLinksHtml(defIndex, name) {
-  var buy = csfloatBuyUrl(defIndex);
-  var sell = steamMarketUrl(name);
+/* 表格用的交易連結。外部連結一律 rel="noopener noreferrer"，
+   避免新分頁透過 window.opener 反向操作本站頁面。
+
+   第三個參數 `sides` 決定要出哪幾顆（2026-08-22 新增）：
+
+     'both'（預設）  買 + 賣。**比較型頁面**用——marketlist 是 ROI 排行、
+                     checklist 下單前要自己核對，這兩頁使用者是在「看兩邊」。
+     'buy'           只出 CSFloat 買。試算頁用。
+     'sell'          只出 Steam 賣。賣出頁用。
+
+   ⚠️ **這不是版面精簡，是不要給錯的出口。** 試算頁上你還沒有東西可以賣，
+      賣出頁上箱子已經在你的庫存裡、再去 CSFloat 買一次是完全不同的動作。
+      在那兩頁擺另一邊的按鈕，等於在使用者正要動手的那一刻遞給他一個
+      會做錯事的連結——尤其 Steam 那顆點過去是市集掛單頁，長得跟
+      「可以在這裡賣」很像，但實際上要從庫存點「出售」才對。 */
+function tradeLinksHtml(defIndex, name, sides) {
+  var want = sides || 'both';
   var safeName = tradeEscape(name);
   var out = '<span class="trade-links">';
-  out += buy
-    ? '<a class="trade-link trade-buy" href="' + tradeEscape(buy) + '" target="_blank" rel="noopener noreferrer"'
-      + ' aria-label="到 CSFloat 買 ' + safeName + '（另開分頁）">CSFloat 買</a>'
-    : '<span class="trade-link trade-off" title="資料庫還沒有這個品項的 CSFloat ID">CSFloat 買</span>';
-  out += sell
-    ? '<a class="trade-link trade-sell" href="' + tradeEscape(sell) + '" target="_blank" rel="noopener noreferrer"'
-      + ' aria-label="到 Steam 市場看 ' + safeName + '（另開分頁）">Steam 賣</a>'
-    : '<span class="trade-link trade-off">Steam 賣</span>';
+  if (want !== 'sell') {
+    var buy = csfloatBuyUrl(defIndex);
+    out += buy
+      ? '<a class="trade-link trade-buy" href="' + tradeEscape(buy) + '" target="_blank" rel="noopener noreferrer"'
+        + ' aria-label="到 CSFloat 買 ' + safeName + '（另開分頁）">CSFloat 買</a>'
+      : '<span class="trade-link trade-off" title="資料庫還沒有這個品項的 CSFloat ID">CSFloat 買</span>';
+  }
+  if (want !== 'buy') {
+    var sell = steamMarketUrl(name);
+    out += sell
+      ? '<a class="trade-link trade-sell" href="' + tradeEscape(sell) + '" target="_blank" rel="noopener noreferrer"'
+        + ' aria-label="到 Steam 市場看 ' + safeName + '（另開分頁）">Steam 賣</a>'
+      : '<span class="trade-link trade-off">Steam 賣</span>';
+  }
   return out + '</span>';
 }
 
@@ -578,6 +596,29 @@ function readCheckedMap() {
 }
 function writeCheckedMap(map) {
   try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
+}
+
+/* 剛勾起來、什麼都還沒填的一筆。試算頁與購物清單頁都用這個，
+   不要各自手寫一份 —— 之前試算頁寫的是裸 ISO 字串（v2），
+   雖然讀得回來，但會在同一份資料裡留下混格式的紀錄。 */
+function newCheckedEntry() {
+  return { lots: [{ at: new Date().toISOString(), qty: null, paidTwd: null }], closed: false };
+}
+
+/* 用一組「已勾選的品項名」去同步整張表：名單裡有的保留原樣、沒有的丟掉、
+   新出現的建一筆空的。試算頁那張表用得到（它一次處理整個組合）。
+
+   ⚠️ **保留原樣是重點。** 既有那筆可能帶著使用者在購物清單頁敲進去的
+      買到數量與實付金額，而試算頁根本看不到那些欄位——**看不到不等於
+      可以覆蓋掉**。重建一筆新的等於把人家填的東西清掉。 */
+function syncCheckedNames(names) {
+  var prev = readCheckedMap();
+  var next = {};
+  (names && names.forEach ? names : []).forEach(function (n) {
+    next[n] = prev[n] || newCheckedEntry();
+  });
+  writeCheckedMap(next);
+  return next;
 }
 
 /* 這個品項一共買到幾個 / 一共付了多少。
