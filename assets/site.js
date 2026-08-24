@@ -1039,6 +1039,54 @@ function steamNetUsd(grossUsd) {
   return Math.max(grossCents - feeCents - pubCents, 0) / 100;
 }
 
+/* ── ⑫ 資格快檢狀態 ─────────────────────────────────────────
+   `eligibility.html` 的答案。三個頁面在讀它（eligibility / setup /
+   2026-08-24 起加上 index），key 字串原本各寫一份，集中到這裡。
+
+   ⚠️ v2：q3 的 data-val 語意在 2026-08 修正過（yes 從「沒有限制」改成
+      「有限制」）。沿用舊 key 會把舊答案讀成相反的意思，所以當時直接
+      換版本號讓舊狀態自然失效。**不要改回 v1。**
+
+   ⚠️ 判定條件必須與 `eligibility.html` 的 `isBlocking()` 一致。那一頁改了
+      擋人的條件、這裡沒跟著改，首頁就會把一個資格頁明說「暫時還不行」
+      的人直接送進試算頁。
+
+   ⚠️ `passed` 為 false 有兩種完全不同的原因：**沒答過**，和**答了但被擋住**。
+      所以回傳的是兩個旗標不是一個布林——把「沒答過」當成「不符合資格」，
+      等於替一個什麼都還沒說的人宣告他不能用。 */
+var ELIG_STORAGE_KEY = 'sah-eligibility-v2';
+
+function readEligibility() {
+  var s = null;
+  try { s = JSON.parse(localStorage.getItem(ELIG_STORAGE_KEY) || 'null'); } catch (e) { /* 無痕模式 */ }
+  if (!s || typeof s !== 'object') s = {};
+  return s;
+}
+
+/* 這一題的答案會不會擋住使用。與 eligibility.html 的 isBlocking() 同一份判斷。 */
+function eligIsBlocking(key, val) {
+  if (key === 'q1') return val === 'no';
+  if (key === 'q2') return val === 'no' || val === 'recent';
+  if (key === 'q3') return val === 'yes';   // q3 問「有沒有限制」，有限制才是擋住
+  if (key === 'q4') return val === 'no';
+  return false;
+}
+
+/* 回傳 { answered, passed }。
+   answered = 四題都答了（「不確定」也算答了）
+   passed   = 四題都答了、沒有任何一題擋住，**而且沒有任何一題是「不確定」**
+              ——不確定在資格頁本來就會列進待釐清清單，不能當成通過。 */
+function eligibilityState() {
+  var s = readEligibility();
+  var answered = true, passed = true;
+  ['q1', 'q2', 'q3', 'q4'].forEach(function (k) {
+    var v = s[k];
+    if (!v) { answered = false; passed = false; return; }
+    if (v === 'unknown' || eligIsBlocking(k, v)) passed = false;
+  });
+  return { answered: answered, passed: passed };
+}
+
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。
    （仍然可以手動呼叫 loadNav()，重複呼叫只會多一次 fetch，不會出錯。） */
 document.addEventListener('DOMContentLoaded', function () {

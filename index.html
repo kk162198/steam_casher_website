@@ -54,10 +54,19 @@
             <div class="flow-sm">
                 <span id="chip-hero" class="ts-chip" data-source="csfloat"><span class="ts-dot"></span><span>資料讀取中</span></span>
             </div>
+            <!-- ⚠️ 2026-08-24：主按鈕改指資格快檢，不是試算頁。
+                 試算頁會直接下「值得做／不建議」的結論，但那個結論對一個帳號還沒滿
+                 US$5、或手機驗證器沒啟用的人來說一點意義都沒有——他照著算完、興沖沖
+                 去買，會卡在第一步，而且錢已經付出去了。**資格是先決條件，不是補充說明。**
+
+                 ⚠️ 但這不是一道牆：旁邊永遠留一條直接進試算頁的路，
+                    而且已經答完並通過（或已完成初始設定）的人，
+                    下方 routeEntryCta() 會把主按鈕換回試算，不要每次都再問一遍。 -->
             <div class="flow-xl" style="display:flex;flex-wrap:wrap;gap:12px">
-                <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
-                <a href="eligibility.html" class="btn btn-text">先確認我能不能用</a>
+                <a id="cta-primary" href="eligibility.html" class="btn btn-primary">先確認我能不能用（30 秒）</a>
+                <a id="cta-secondary" href="calculator.html" class="btn btn-text">直接去試算</a>
             </div>
+            <p id="cta-note" class="t-note c-ink3 flow-sm">五個問題，不用註冊，答案只留在你的瀏覽器裡。</p>
         </section>
 
         <!-- ② 誠實比較表 -->
@@ -303,10 +312,10 @@
         <section class="sec">
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
-                    <h2 class="t-sect">算一次要 30 秒，不用登入</h2>
-                    <p class="t-aux c-ink2 flow-xs">輸入金額，直接告訴你值不值得。</p>
+                    <h2 id="cta-foot-title" class="t-sect">先花 30 秒確認你能不能用</h2>
+                    <p id="cta-foot-note" class="t-aux c-ink2 flow-xs">帳號條件不符的話，試算出來的數字對你沒有意義。不用登入。</p>
                 </div>
-                <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
+                <a id="cta-foot-btn" href="eligibility.html" class="btn btn-primary">資格快檢</a>
             </div>
         </section>
 
@@ -424,9 +433,60 @@
             console.error(error);
         }
     }
+    /* ⚠️ 這個分號不可以拿掉。下面接的是 (function ...)()，少了分號 ASI 不會補，
+       整段會被解析成「呼叫 .then() 的回傳值」，跑出來是
+       `max_ratio(...).then(...) is not a function`，而且後面的程式碼一行都不會執行。 */
     max_ratio()
-        .then(()=>slider.setAttribute('ratio',ratio))
-    
+        .then(()=>slider.setAttribute('ratio',ratio));
+
+    /* 入口動線：預設把人送進資格快檢，答完再視結果換掉按鈕。
+       ────────────────────────────────────────────────────────────
+       ⚠️ 預設值寫在 HTML 裡（資格快檢），這一段只做「已經答過的人」的例外。
+          反過來寫（HTML 預設試算、JS 改成資格）的話，localStorage 讀不到、
+          JS 出錯、或無痕模式下，新來的人就會直接掉進試算頁——**失效的方向
+          要指向比較安全的那一邊。**
+
+       三種狀態：
+         已通過 / 已完成初始設定 → 主按鈕換成試算，資格快檢退成次要
+         答過但被擋住            → 主按鈕仍是資格快檢，但講明是「回去看還差什麼」
+         沒答過                  → 原樣，不動
+
+       ⚠️ 已完成初始設定也算通過：setup.html 那五步的前三項就是資格的前三題，
+          勾完了還把人送回去重答一次是白費力氣。 */
+    (function routeEntryCta() {
+        const primary = document.getElementById('cta-primary');
+        const secondary = document.getElementById('cta-secondary');
+        const note = document.getElementById('cta-note');
+        const footTitle = document.getElementById('cta-foot-title');
+        const footNote = document.getElementById('cta-foot-note');
+        const footBtn = document.getElementById('cta-foot-btn');
+        if (!primary || !secondary) return;
+
+        let e;
+        try { e = eligibilityState(); } catch (err) { return; }   // 讀不到就維持 HTML 的預設
+        const ready = e.passed || isSetupDone();
+
+        if (ready) {
+            primary.href = 'calculator.html';
+            primary.textContent = '試算我的方案';
+            secondary.href = 'eligibility.html';
+            secondary.textContent = '重看資格快檢';
+            if (note) note.textContent = '你的資格已經確認過，這一步可以跳過。';
+            if (footTitle) footTitle.textContent = '算一次要 30 秒，不用登入';
+            if (footNote) footNote.textContent = '輸入金額，直接告訴你值不值得。';
+            if (footBtn) { footBtn.href = 'calculator.html'; footBtn.textContent = '試算我的方案'; }
+            return;
+        }
+
+        if (e.answered) {
+            // 答完但沒過。不要假裝沒事，也不要擋住試算——把還差什麼講出來就好。
+            primary.textContent = '回去看還差什麼';
+            if (note) note.textContent = '上次的資格快檢還有沒解決的項目，答案存在這台裝置上。';
+            if (footTitle) footTitle.textContent = '你的資格還有沒解決的項目';
+            if (footBtn) footBtn.textContent = '回資格快檢';
+        }
+    })();
+
     </script>
 </body>
 </html>

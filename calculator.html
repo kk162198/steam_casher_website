@@ -324,7 +324,39 @@
             </div>
         </section>
 
-        <!-- ⑤ 購買組合表 -->
+        <!-- ⑤-0 下一步：出口放在表**之前**
+             ────────────────────────────────────────────────────────────
+             ⚠️ 2026-08-24：這一段原本在頁尾（風險提示條之後）。實測回饋是
+                「看完組合表就不知道下一步了」——出口擺在一整張表之後，
+                捲不到就等於不存在。
+
+             同一天確立的分工：**這一頁決定要不要做、要買哪些；購物清單頁負責買。**
+             所以出口要先出現，讓人知道等一下要去哪裡，再往下看要買什麼。 -->
+        <section class="sec">
+            <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
+                <div>
+                    <h2 class="t-sect">要動手買，去購物清單</h2>
+                    <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                        下面那張表只是給你看組合。<strong>打勾、填實際買到幾個與實付多少、前往 CSFloat</strong>，全部在購物清單頁。
+                    </p>
+                </div>
+                <a href="checklist.html" class="btn btn-primary">產生購物清單</a>
+            </div>
+        </section>
+
+        <!-- ⑤ 購買組合表
+             ⚠️ 2026-08-24：這張表改成**唯讀**。原本有「已買到」勾選欄、上方的
+                進度列與「清除全部勾選」、以及每列的「前往 CSFloat」。
+
+                拿掉的理由不是版面：勾選會寫進 `sah-checklist-checked-v1`，
+                而那份資料同時是購買時間（冷卻期起點）、實際買到幾個與實付總額的容器，
+                **試算頁看得到的只有勾選框**。一個看不到九成欄位的頁面不該是那份資料的
+                寫入端——PROJECT_OVERVIEW〈勾選狀態有三個頁面在寫〉那一節寫的
+                「看不到不等於可以覆蓋掉」，最乾淨的解法是這一頁根本不要寫。
+
+                ⚠️ 連帶拿掉的還有「重新試算就把不在組合裡的勾選刪掉」那段。它會在
+                   使用者只是回來拉一下滑桿時，靜默刪掉他在購物清單頁一筆一筆敲進去
+                   的實付金額——而那些東西重建不回來。現在改由購物清單頁標示，不刪。 -->
         <section class="sec">
             <h2 class="t-page">你要買什麼</h2>
             <p id="combo-note" class="t-aux c-ink2 flow-xs">
@@ -337,10 +369,6 @@
             <p id="thin-note" class="t-aux c-warn flow-xs" style="display:none"></p>
 
             <div class="card card-flush flow-lg">
-                <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-                    <span id="shopping-progress" class="t-aux c-ink2">邊買邊勾，方便對照</span>
-                    <button id="shopping-reset-btn" type="button" class="btn btn-text btn-sm">清除全部勾選</button>
-                </div>
                 <div style="padding:8px 20px 20px">
                     <table class="rt">
                         <thead>
@@ -353,16 +381,11 @@
                                      空出來的欄位給流動性。沿用 marketlist.html 8→6 欄那次的判斷：
                                      每一列都顯示相同文字的欄位，資訊量是零。 -->
                                 <th scope="col">賣出流動性</th>
-                                <th scope="col">已買到</th>
-                                <!-- 只出 CSFloat。這一頁你還沒有東西可以賣，
-                                     擺 Steam 按鈕等於在使用者正要下單的那一刻
-                                     遞給他一個會做錯事的出口。見 site.js 第④節。 -->
-                                <th scope="col">前往 CSFloat</th>
                             </tr>
                         </thead>
                         <tbody id="combo-body">
                             <tr>
-                                <td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">資料載入中...</td>
+                                <td class="c-ink3" colspan="5" style="padding:32px 0;text-align:center">資料載入中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -378,12 +401,14 @@
             </div>
         </section>
 
-        <!-- ⑦ 下一步 -->
+        <!-- ⑦ 表看完了，再給一次同一個出口。
+             上面那顆是「看之前先知道」，這顆是「看完了現在就去」——同一個目的地，
+             不同時機，不是重複按鈕。 -->
         <section class="sec">
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
-                    <h2 class="t-sect">把這份組合變成購物清單</h2>
-                    <p class="t-aux c-ink2 flow-xs">列出要買什麼、買幾個，可以邊買邊勾。</p>
+                    <h2 class="t-sect">照這份組合去買</h2>
+                    <p class="t-aux c-ink2 flow-xs">購物清單頁會列出要買什麼、買幾個，並記下你實際買到多少。</p>
                 </div>
                 <a href="checklist.html" class="btn btn-primary">產生購物清單</a>
             </div>
@@ -489,9 +514,9 @@
         // 目標金額的放大倍數。drop=0 時回 1，不影響任何既有計算。
         function bufferMultiplier(drop) { return 1 / (1 - drop); }
 
-        // ② 購買組合表的單列樣板。
-        //    row：{ name, costUsd, incomeUsd, ratio, qty, inventory, updatedAt, defIndex }
-        //    vals：{ unitCostTwd, subtotalTwd, valueTwd, sharePct, isChecked }
+        // ② 購買組合表的單列樣板。**唯讀**：沒有勾選框、沒有交易連結。
+        //    row：{ name, costUsd, incomeUsd, ratio, qty, inventory, volume, updatedAt }
+        //    vals：{ unitCostTwd, subtotalTwd, valueTwd, sharePct, qtyShare }
         function renderComboRow(row, vals) {
             const chip = row.updatedAt
                 ? '<span class="ts-chip" data-source="csfloat" data-updated="' + escapeHtml(row.updatedAt) + '"></span>'
@@ -514,38 +539,25 @@
                 </td>
                 <td class="c-ink2" data-label="庫存">${row.inventory}</td>
                 <td data-label="賣出流動性">${liquidityChipHtml(row.volume)}</td>
-                <td data-label="已買到">
-                    <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
-                        <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(row.name)} 已買到"${vals.isChecked ? ' checked' : ''}>
-                    </label>
-                </td>
-                <td data-label="前往 CSFloat">${tradeLinksHtml(row.defIndex, row.name, 'buy')}</td>
             `;
         }
 
-        // ③ 把本次組合存起來，供購物清單頁（checklist.html）讀取。只讀不算。
-        //    勾選狀態與購物清單頁共用同一個 key，兩頁互跳時不會掉。
-        /* COMBO_STORAGE_KEY / CHECK_STORAGE_KEY 已移到 site.js（購物清單與賣出頁共用）。
+        /* ③ 把本次組合存起來，供購物清單頁（checklist.html）讀取。只寫計畫，不寫進度。
 
-           ⚠️ 2026-08-13：勾選狀態的格式從「名稱陣列」改成「名稱 → 勾選時間」，
-              因為勾選的那一刻就是 7 天冷卻期的起點，賣出頁靠它算解鎖日。
-           ⚠️ 2026-08-22：再改成 { lots:[{at,qty,paidTwd}], closed }，
-              因為部分成交是常態（見 site.js 第⑨節）。
+           ⚠️ 2026-08-24：這一頁對 `sah-checklist-checked-v1`（買到幾個／實付多少／
+              購買時間）**完全不再讀寫**。原本這裡有 loadCheckedNames()／
+              saveCheckedNames()，以及 runCalculation 裡「把不在本次組合的勾選刪掉」
+              那一段。刪掉的理由：
 
-              這裡的讀寫一律走 site.js 的 readCheckedMap()／writeCheckedMap()，
-              它們含舊格式相容，**不要在這一頁再自己 JSON.parse 一次**——
-              寫成陣列會把所有購買時間清掉。 */
-        function loadCheckedNames() {
-            return new Set(Object.keys(readCheckedMap()));
-        }
-        /* ⚠️ 既有的那一筆要原樣保留：它可能帶著使用者在購物清單頁敲進去的
-           買到數量與實付金額，而這一頁根本看不到那些欄位——**看不到不等於
-           可以覆蓋掉**。這個保留邏輯已經抽到 site.js 的 syncCheckedNames()，
-           不要在這裡重寫一份。 */
-        function saveCheckedNames(set) {
-            syncCheckedNames(set);
-        }
+              一、這一頁看不到那份資料的九成欄位（只有一個勾選框），卻是它的寫入端之一。
+                  PROJECT_OVERVIEW〈勾選狀態有三個頁面在寫〉那條「看不到不等於可以
+                  覆蓋掉」，最乾淨的解法是這一頁根本不要寫。
+              二、那段刪除是在 runCalculation 裡跑的，而 runCalculation 每拉一次滑桿、
+                  每次頁面載入都會跑。使用者只是回來看一下數字，價格更新導致組合微幅
+                  變動，他在購物清單頁一筆一筆敲進去的實付金額就靜默消失了——而
+                  CSFloat 的結帳紀錄不會自己回到這裡，那是重建不回來的東西。
 
+              現在改由購物清單頁在渲染時標示「這筆是上一份清單留下的」，讓使用者自己決定。 */
         function saveComboForChecklist(combo, rate) {
             try {
                 localStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify({
@@ -679,14 +691,9 @@
         const resultFloor = document.getElementById('result-floor');
         const floorWarn = document.getElementById('floor-warn');
         const comboNote = document.getElementById('combo-note');
-        const shoppingProgress = document.getElementById('shopping-progress');
-        const shoppingResetBtn = document.getElementById('shopping-reset-btn');
 
         let usdToTwd = 32.5;
         let casesCache = [];
-        let currentCombo = [];
-        // 購物清單勾選狀態（依武器箱名稱記錄）。從 localStorage 讀回，與購物清單頁共用。
-        const checkedNames = loadCheckedNames();
 
         // 單箱佔比上限。1 代表不限；選擇會記在 localStorage，下次進來沿用。
         const CAP_STORAGE_KEY = 'sah-cap-pct-v1';
@@ -997,13 +1004,11 @@
                 const emptyMsg = (pool.length === 0 && casesCache.length > 0)
                     ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
                     : '目前沒有可用的價格資料，或目標金額為 0';
-                comboBody.innerHTML = `<tr><td class="c-ink3" colspan="7" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
+                comboBody.innerHTML = `<tr><td class="c-ink3" colspan="5" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';
                 resultRatio.innerText = '--';
                 costOutput.textContent = '--';
-                currentCombo = [];
-                updateShoppingProgress();
                 updateVerdict(targetTwd, 0, 0, 0); // 畫面層
                 syncBudgetFromCost(0, source);
                 return;
@@ -1012,13 +1017,11 @@
             const { combo, totalCostUsd, totalIncomeUsd, reached, capRelaxed, maxShare } = buildCombo(targetUsd, pool, capPct);
 
             if (combo.length === 0) {
-                comboBody.innerHTML = `<tr><td class="c-warn" colspan="7" style="padding:32px 0;text-align:center">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
+                comboBody.innerHTML = `<tr><td class="c-warn" colspan="5" style="padding:32px 0;text-align:center">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
                 resultCost.innerText = `NT$ 0`;
                 resultValue.innerText = `NT$ 0`;
                 resultRatio.innerText = `--`;
                 costOutput.textContent = '--';
-                currentCombo = [];
-                updateShoppingProgress();
                 updateVerdict(targetTwd, 0, 0, 0); // 畫面層
                 syncBudgetFromCost(0, source);
                 return;
@@ -1032,13 +1035,10 @@
             const floorTwd = totalValueTwd * (1 - tier.drop);
             const worstRatio = totalCostTwd > 0 ? floorTwd / totalCostTwd : 1;
 
-            currentCombo = combo;
-            // 重新試算後，把不再出現於本次組合的品項從勾選清單移除，避免殘留無意義的勾選
-            const comboNames = new Set(combo.map(i => i.name));
-            for (const name of [...checkedNames]) {
-                if (!comboNames.has(name)) checkedNames.delete(name);
-            }
-            saveCheckedNames(checkedNames);
+            /* ⚠️ 這裡原本有一段「把不在本次組合裡的勾選刪掉」。2026-08-24 移除。
+               它跑在 runCalculation 裡，也就是每拉一次滑桿、每次頁面載入都跑一遍，
+               而它刪掉的是使用者在購物清單頁敲進去的實付金額與購買時間——
+               重建不回來的東西。殘留的舊勾選改由購物清單頁標示，不在這裡刪。 */
 
             comboBody.innerHTML = '';
             /* 兩種不同的流動性風險，不要混為一談：
@@ -1054,7 +1054,6 @@
                 const subtotalTwd = unitCostTwd * row.qty;
                 const valueTwd = row.incomeUsd * usdToTwd * row.qty;
                 const sharePct = totalIncomeUsd > 0 ? (row.incomeUsd * row.qty / totalIncomeUsd) * 100 : 0;
-                const isChecked = checkedNames.has(row.name);
                 // 你要賣的數量 ÷ 這個品項一天的成交量。沒有成交量資料就是 null。
                 const qtyShare = (row.volume === null || !(row.volume > 0)) ? null : row.qty / row.volume;
                 if (qtyShare !== null && qtyShare >= QTY_SHARE_WARN) thinRows.push({ name: row.name, qty: row.qty, volume: row.volume, share: qtyShare });
@@ -1062,23 +1061,7 @@
                 if (isThinLiquidity(row.volume)) thinValueTwd += valueTwd;
 
                 const tr = document.createElement('tr');
-                tr.style.opacity = isChecked ? '0.45' : '';
-                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, sharePct, qtyShare, isChecked });
-
-                const checkbox = tr.querySelector('input[type="checkbox"]');
-                // 用 property 而非 innerHTML 屬性字串塞名稱，避免武器箱名稱裡有特殊字元造成問題
-                checkbox.dataset.name = row.name;
-                checkbox.addEventListener('change', () => {
-                    if (checkbox.checked) {
-                        checkedNames.add(row.name);
-                        tr.style.opacity = '0.45';
-                    } else {
-                        checkedNames.delete(row.name);
-                        tr.style.opacity = '';
-                    }
-                    saveCheckedNames(checkedNames);
-                    updateShoppingProgress();
-                });
+                tr.innerHTML = renderComboRow(row, { unitCostTwd, subtotalTwd, valueTwd, sharePct, qtyShare });
                 comboBody.appendChild(tr);
             });
             renderTimestamps(comboBody);              // 畫面層：換算每一列的資料時間
@@ -1119,7 +1102,6 @@
                 }
             }
 
-            updateShoppingProgress();
             updateVerdict(targetTwd, totalCostTwd, totalValueTwd, combo.reduce((s, i) => s + i.qty, 0), tier.drop > 0 ? floorTwd : null); // 畫面層
             syncBudgetFromCost(totalCostTwd, source);
 
@@ -1179,26 +1161,9 @@
                 .replace(/"/g, '&quot;');
         }
 
-        function updateShoppingProgress() {
-            if (!currentCombo.length) {
-                shoppingProgress.textContent = '邊買邊勾，方便對照';
-                return;
-            }
-            const totalItems = currentCombo.length;
-            const doneItems = currentCombo.filter(i => checkedNames.has(i.name)).length;
-            const totalQty = currentCombo.reduce((s, i) => s + i.qty, 0);
-            const doneQty = currentCombo.filter(i => checkedNames.has(i.name)).reduce((s, i) => s + i.qty, 0);
-            const doneValueTwd = currentCombo
-                .filter(i => checkedNames.has(i.name))
-                .reduce((s, i) => s + i.incomeUsd * i.qty, 0) * usdToTwd;
-            shoppingProgress.textContent = `已勾 ${doneItems}/${totalItems} 項・${doneQty}/${totalQty} 件・到手約 NT$ ${doneValueTwd.toFixed(0)}`;
-        }
-
-        shoppingResetBtn.addEventListener('click', () => {
-            checkedNames.clear();
-            saveCheckedNames(checkedNames);
-            runCalculation('target');
-        });
+        /* ⚠️ updateShoppingProgress()（已勾幾項／幾件／到手多少）與「清除全部勾選」
+           在 2026-08-24 一併移除。它們讀寫的是購買進度，而進度現在只由購物清單頁
+           持有——那一頁看得到買到幾個與實付多少，這一頁看不到。 */
 
         targetSlider.addEventListener('input', (e) => {
             targetInput.value = e.target.value;

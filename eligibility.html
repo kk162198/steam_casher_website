@@ -41,7 +41,25 @@
         .opt:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
         .prog-seg { flex: 1; height: 4px; border-radius: 999px; background: #1e293b; transition: background-color .2s; }
         .prog-seg.is-done { background: #22d3ee; }
-    
+
+        /* 到官網自己確認的連結（2026-08-24）。
+           ⚠️ 這一頁問的每一題，答案只有 Steam 自己知道——本站沒有登入、沒有任何
+              辦法替你查。所以「不確定」不能只是一個選項，要有一條當場查得到的路，
+              否則使用者只能猜，而猜錯的代價是買完才發現賣不掉。
+           ⚠️ 全部是外站連結：一律 target="_blank" + rel="noopener noreferrer"，
+              並用 ↗ 標示離站。不要讓它看起來像本站的功能。
+           ⚠️ 不含任何推薦碼或追蹤參數，與 CSFloat／Steam 交易連結同一條規矩。
+           ⚠️ 44px 高是觸控尺寸，與交易連結同一個標準，不要為了版面縮掉。 */
+        .chk-links { display: flex; flex-wrap: wrap; gap: 0 16px; margin-top: 4px; }
+        .chk-link {
+            display: inline-flex; align-items: center; gap: 5px;
+            min-height: 44px; font-size: 14px; line-height: 1.5;
+            color: #22d3ee; text-decoration: none;
+        }
+        .chk-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+        .chk-link:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 4px; }
+        .chk-link .ext { font-size: 12px; color: #64748b; }
+
     </style>
 </head>
 <body data-page="eligibility">
@@ -53,6 +71,12 @@
             <h1 class="t-page">資格快檢</h1>
             <p class="t-body c-ink2 flow-sm" style="max-width:34em">
                 30 秒確認你現在能不能用。答案只留在你的瀏覽器裡。
+            </p>
+            <!-- ⚠️ 這句要在最上面。本站沒有登入、查不到你的帳號狀態，
+                 每一題都得你自己去 Steam 看——不講清楚的話，使用者會以為
+                 這一頁在替他檢查，然後照著一個他猜出來的答案去買箱子。 -->
+            <p class="t-note c-ink3 flow-sm" style="max-width:34em">
+                本站查不到你的帳號狀態。每一題底下都有 Steam 官網的連結，不確定就點進去自己看。
             </p>
         </header>
 
@@ -75,6 +99,12 @@
             <p class="t-aux c-ink2 flow-xs">
                 買遊戲或儲值都算。沒滿的話帳號是 Limited，不能用社群市場。
             </p>
+            <div class="chk-links">
+                <a class="chk-link" href="https://store.steampowered.com/account/" target="_blank" rel="noopener noreferrer">
+                    帳戶明細：看你的消費與儲值紀錄<span class="ext">↗</span></a>
+                <a class="chk-link" href="https://help.steampowered.com/zh-TW/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener noreferrer">
+                    官方說明：受限帳戶<span class="ext">↗</span></a>
+            </div>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <button type="button" class="opt" data-q="q1" data-val="yes" aria-pressed="false">有</button>
                 <button type="button" class="opt" data-q="q1" data-val="no" aria-pressed="false">沒有</button>
@@ -88,6 +118,18 @@
             <h2 class="t-sect flow-xs">Steam 手機驗證器啟用超過 7 天了嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 沒啟用就不能在市場上架。今天才啟用要再等 7 天。
+            </p>
+            <!-- ⚠️ 「啟用日期」網頁端看不到準確的那一天，只有 Steam 手機 App 裡的
+                 Steam 守護頁面才有。這裡照實講，不要給一個看起來查得到、
+                 點進去卻查不到的連結。 -->
+            <div class="chk-links">
+                <a class="chk-link" href="https://store.steampowered.com/account/" target="_blank" rel="noopener noreferrer">
+                    帳戶明細：看 Steam 守護是否已啟用<span class="ext">↗</span></a>
+                <a class="chk-link" href="https://help.steampowered.com/zh-TW/faqs/view/06B0-26E6-2CF8-254C" target="_blank" rel="noopener noreferrer">
+                    官方說明：Steam 守護行動版驗證器<span class="ext">↗</span></a>
+            </div>
+            <p class="t-note c-ink3" style="margin:0">
+                滿不滿 7 天要看 Steam 手機 App：<strong class="c-ink2">選單 → Steam 守護</strong>，網頁端沒有這個日期。
             </p>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <button type="button" class="opt" data-q="q2" data-val="yes" aria-pressed="false">超過 7 天</button>
@@ -103,6 +145,17 @@
             <p class="t-aux c-ink2 flow-xs">
                 有的話不能掛售，沒有繞道的方法。
             </p>
+            <!-- 三條路各查一件事，不要合成一條：
+                 交易精靈＝有沒有交易限制／個人資訊頁＝有沒有 VAC 或封鎖標記／
+                 社群市場＝實際上架得了嗎（被擋時那一頁會直接寫原因，最準）。 -->
+            <div class="chk-links">
+                <a class="chk-link" href="https://help.steampowered.com/zh-TW/wizard/HelpWithEconTrading" target="_blank" rel="noopener noreferrer">
+                    Steam 客服：我的帳號有沒有交易限制<span class="ext">↗</span></a>
+                <a class="chk-link" href="https://steamcommunity.com/my/" target="_blank" rel="noopener noreferrer">
+                    我的個人資訊頁：看有沒有 VAC 標記<span class="ext">↗</span></a>
+                <a class="chk-link" href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer">
+                    社群市場：被擋的話這一頁會寫原因<span class="ext">↗</span></a>
+            </div>
             <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
                 <!-- 注意：這題問的是「有沒有限制」，所以 no＝沒有限制（可用）、yes＝有限制（被擋）。
                      舊版把值寫反成 yes=沒有／no=有，行為雖然正確但語意會誤導後續維護。 -->
@@ -164,10 +217,17 @@
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
     <script src="assets/site.js"></script>
     <script>
-        // v2：q3 的 data-val 語意在 2026-08 修正過（yes 從「沒有限制」改成「有限制」），
-//     沿用舊 key 會把舊答案讀成相反的意思，所以直接換版本號讓舊狀態自然失效。
-        const ELIG_STORAGE_KEY = 'sah-eligibility-v2';
+        /* ⚠️ ELIG_STORAGE_KEY 已移到 site.js 第⑫節（2026-08-24）。首頁要靠它決定
+           主按鈕指向哪裡，所以三個頁面在讀同一個 key，字串不能各寫一份。
+           **不要在這裡重新宣告**——site.js 是 `var`，這裡再寫一次 `const`
+           會在全域撞名，整頁的 script 直接 SyntaxError。 */
         const ELIG_EST_DISCOUNT = 0.24; // 折扣估算值，僅用於資格頁的粗估
+
+        /* 外站連結。⚠️ blockers 是用 innerHTML 塞進去的，所以這裡就是最後一道
+           跳脫關卡——文字全部由本檔案寫死，沒有使用者輸入會進來。 */
+        function extLink(url, text) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text} ↗</a>`;
+        }
 
         /* ⚠️ 這裡原本有 ELIG_MIN_WORTH = 3000 / ELIG_MIN_CONSIDER = 1000，
               照金額直接判「不值得」。已移除，理由是這一頁**算不出來**：
@@ -257,12 +317,20 @@
 
             // 硬性條件不符：暫時不行
             const blockers = [];
+            /* ⚠️ 每一條「不確定」都要附上查得到的連結。只寫「到某某頁可以查」而不給連結，
+               等於把查證的成本丟回給一個已經表示自己不知道的人。 */
             if (answers.q1 === 'no') blockers.push('累積消費沒滿 US$5。買一款便宜的遊戲或儲值滿 US$5 就會立刻解除 Limited。');
-            if (answers.q1 === 'unknown') blockers.push('不確定有沒有滿 US$5。到 Steam 帳戶明細頁可以查。');
+            if (answers.q1 === 'unknown') blockers.push('不確定有沒有滿 US$5。'
+                + extLink('https://store.steampowered.com/account/', '打開 Steam 帳戶明細') + ' 就看得到消費與儲值紀錄。');
             if (answers.q2 === 'no') blockers.push('手機驗證器還沒啟用。用 Steam 手機 App 開啟，再等 7 天才能上架。');
-            if (answers.q2 === 'recent') blockers.push('手機驗證器啟用未滿 7 天。等滿就可以，不用做任何事。');
-            if (answers.q3 === 'yes') blockers.push('帳號有交易限制或 VAC 停權，不能掛售，只能等限制解除。');
-            if (answers.q3 === 'unknown') blockers.push('不確定有沒有交易限制。打開任一市場物品頁，看得到「出售」就是沒問題。');
+            if (answers.q2 === 'recent') blockers.push('手機驗證器啟用未滿 7 天。等滿就可以，不用做任何事。'
+                + '確切日期在 Steam 手機 App 的「選單 → Steam 守護」。');
+            if (answers.q3 === 'yes') blockers.push('帳號有交易限制或 VAC 停權，不能掛售，只能等限制解除。'
+                + extLink('https://help.steampowered.com/zh-TW/wizard/HelpWithEconTrading', '到 Steam 客服查目前的限制'));
+            if (answers.q3 === 'unknown') blockers.push('不確定有沒有交易限制。'
+                + extLink('https://steamcommunity.com/market/', '打開社群市場')
+                + '，被擋的話那一頁會直接寫原因；'
+                + extLink('https://steamcommunity.com/my/', '個人資訊頁') + ' 則看得到 VAC 標記。');
             if (answers.q4 === 'no') blockers.push('你不能等 7 天。冷卻期不能縮短，這次請用官方儲值。');
 
             if (blockers.length) {

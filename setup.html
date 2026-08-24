@@ -302,7 +302,8 @@
            門檻常數、時間模型、狀態讀寫全部在 site.js 第⑩節，
            **不要在這裡另立一套**——試算頁讀的是同一份。 */
 
-        const ELIG_KEY = 'sah-eligibility-v2';   // 資格快檢的答案，用來預先帶入前三項
+        /* 資格快檢的 key 已移到 site.js 第⑫節（ELIG_STORAGE_KEY），
+           三個頁面共用同一個字串，不要在這裡再寫一份。 */
         const STEP_IDS = SETUP_STEPS.map(s => s.id);
 
         /* 從資格快檢帶入：使用者已經在那一頁回答過同樣的問題，
@@ -310,9 +311,7 @@
            ⚠️ 只帶入「通過」的答案。unknown／no 一律不帶——
               「不確定」不等於「有」，自動勾起來等於替他宣稱一件他沒說過的事。 */
         function eligPrefill() {
-            let elig = null;
-            try { elig = JSON.parse(localStorage.getItem(ELIG_KEY) || 'null'); } catch (e) { /* 忽略 */ }
-            if (!elig) return {};
+            const elig = readEligibility();   // site.js 第⑫節，讀不到會回 {}
             const out = {};
             SETUP_STEPS.forEach(s => {
                 if (s.fromElig && elig[s.fromElig.q] === s.fromElig.pass) out[s.id] = true;

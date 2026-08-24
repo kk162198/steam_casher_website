@@ -7,7 +7,11 @@
 nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
 #nav a,#nav button{font-family:inherit}
 #nav a:focus-visible,#nav button:focus-visible{outline:2px solid #22d3ee;outline-offset:2px;border-radius:6px}
-#nav .nav-link{display:flex;align-items:center;min-height:44px;padding:0 16px;border-radius:6px;font-size:16px;line-height:1.4}
+/* ⚠️ 左右 padding 從 16 縮到 12（2026-08-24）：桌機清單多了第 7 顆「清單」，
+   維持 16px 的話在 768px（md 斷點最窄處）會擠出橫向溢出。縮 4px 之後
+   7 顆的總寬與原本 6 顆幾乎一樣（416 vs 404px）。
+   ⚠️ min-height 44px 是觸控尺寸，不可以跟著縮。 */
+#nav .nav-link{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;font-size:16px;line-height:1.4}
 #nav .nav-link:hover{background:rgba(30,41,59,.6)}
 
 /* 資料狀態指示點：頁面自行設定 data-state="fresh|aging|stale" 與內文
@@ -62,6 +66,12 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <ul class="hidden md:flex items-center gap-1">
       <li><a id="nav-main" href="index.html" class="nav-link text-slate-300 hover:text-cyan-400">首頁</a></li>
       <li><a id="nav-calculator" href="calculator.html" class="nav-link text-slate-300 hover:text-cyan-400">試算</a></li>
+      <!-- 購物清單必須在導覽列裡（2026-08-24 加）。試算頁不再有勾選框，
+           買到幾個、實付多少、什麼時候買的全部只在這一頁；而買東西常常
+           跨兩天，第二天回來補填時他手上不會有那條連結。少了這個入口，
+           唯一的路是「先去試算頁再按產生清單」——而重新試算出來的組合
+           不一定跟昨天那份一樣。 -->
+      <li><a id="nav-checklist" href="checklist.html" class="nav-link text-slate-300 hover:text-cyan-400">清單</a></li>
       <li><a id="nav-marketlist" href="marketlist.html" class="nav-link text-slate-300 hover:text-cyan-400">市場</a></li>
       <!-- 賣出頁必須在導覽列裡。使用者是七天後才回來的，那時候行事曆連結
            可能已經找不到、localStorage 也可能在另一台裝置——如果導覽列
@@ -107,6 +117,7 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <ul class="flex flex-col gap-2">
       <li><a class="m-link" data-page="main" href="index.html">首頁</a></li>
       <li><a class="m-link" data-page="calculator" href="calculator.html">試算</a></li>
+      <li><a class="m-link" data-page="checklist" href="checklist.html">購物清單</a></li>
       <li><a class="m-link" data-page="marketlist" href="marketlist.html">市場</a></li>
       <li><a class="m-link" data-page="sell" href="sell.html">賣出</a></li>
       <li><a class="m-link" data-page="help" href="help.html">指南</a></li>
@@ -116,6 +127,9 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <div style="height:1px;background:#1e293b;margin:20px 0"></div>
 
     <ul class="flex flex-col gap-1">
+      <!-- 資格快檢：首頁的主按鈕現在指這裡，所以它得有一條回得去的路。
+           放次要清單而不是主清單，因為它跟初始設定一樣是做過就不用再做的事。 -->
+      <li><a class="m-sub" data-page="eligibility" href="eligibility.html">資格快檢</a></li>
       <li><a class="m-sub" data-page="risks" href="risks.html">風險說明</a></li>
       <li><a class="m-sub" data-page="transparency" href="transparency.html">資料透明</a></li>
       <li><a class="m-sub" data-page="faq" href="faq.html">常見問題</a></li>

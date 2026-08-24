@@ -41,7 +41,9 @@
         .lot-tag{color:var(--ink3);font-size:12px;white-space:nowrap}
     </style>
 </head>
-<body data-page="calculator">
+<!-- data-page 從 'calculator' 改成 'checklist'（2026-08-24）：導覽列有自己的
+     「清單」入口了，再借用試算的高亮會讓人以為自己還在試算頁。 -->
+<body data-page="checklist">
     <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
 
     <main class="wrap" style="padding-bottom:56px">
@@ -258,6 +260,35 @@
             writeChecked();
         }
 
+        /* 這一筆是不是「上一份清單留下的」。
+           ────────────────────────────────────────────────────────────
+           2026-08-24：試算頁不再刪除勾選狀態（理由見 calculator.html ③ 的註解——
+           那段刪除跑在 runCalculation 裡，使用者只是回去拉一下滑桿，就會靜默清掉
+           他在這一頁一筆一筆敲進去的實付金額，而那是重建不回來的東西）。
+
+           代價是殘留：某個品項曾經勾過、後來掉出組合、之後又被選進來，
+           它會帶著舊的購買時間重新出現，看起來像是這次買的——而購買時間就是
+           冷卻期起點，錯了整條賣出流程都會錯。
+
+           判準：正常流程一定是「先試算（savedAt）→ 才來這裡勾（lot.at）」，
+           所以**每一批都早於 savedAt 的，就是上一份計畫留下的**。
+
+           ⚠️ 只標示、不自動刪。裡面有冷卻期起點與實付金額，猜錯就是把使用者
+              真的買過的東西清掉。要不要清由他自己按。
+           ⚠️ 清單來自網址參數時 savedAt 是 null，這時一律不判——那份清單本來就
+              不是這台裝置算出來的，比對沒有意義。 */
+        function isStaleEntry(name) {
+            if (!savedAt) return false;
+            const e = checkedMap[name];
+            if (!e || !e.lots || !e.lots.length) return false;
+            const saved = Date.parse(savedAt);
+            if (isNaN(saved)) return false;
+            return e.lots.every(l => {
+                const t = l.at ? Date.parse(l.at) : NaN;
+                return !isNaN(t) && t < saved;
+            });
+        }
+
         /* 買到幾個（沒填就退回計畫數量）＋ 是否為估計值 */
         function boughtQty(item) {
             const e = checkedMap[item.name];
@@ -285,8 +316,15 @@
                        <button type="button" class="btn btn-text btn-sm" data-addlot="${escapeHtml(item.name)}" style="padding:0">再買一批</button>`;
             }
 
+            /* 上一份清單留下的紀錄。時間直接寫出來，因為使用者要判斷的就是
+               「這個日期是不是我這次買的」。 */
+            const staleHtml = (isChecked && isStaleEntry(item.name))
+                ? `<span class="short-note" style="display:block">這筆是 ${escapeHtml(new Date(e.lots[0].at).toLocaleDateString('zh-TW'))} 勾的，早於這次試算</span>
+                   <button type="button" class="btn btn-text btn-sm" data-forget="${escapeHtml(item.name)}" style="padding:0">不是這次買的，清掉</button>`
+                : '';
+
             return `
-                <td class="rt-key" data-label="品項">${escapeHtml(item.name)}</td>
+                <td class="rt-key" data-label="品項">${escapeHtml(item.name)}${staleHtml}</td>
                 <td data-label="計畫">
                     <span class="cell-stack">
                         <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
@@ -498,6 +536,9 @@
             });
             document.querySelectorAll('[data-addlot]').forEach(el => {
                 el.addEventListener('click', () => { addLot(el.dataset.addlot); render(); });
+            });
+            document.querySelectorAll('[data-forget]').forEach(el => {
+                el.addEventListener('click', () => { setChecked(el.dataset.forget, false); render(); });
             });
             document.querySelectorAll('[data-rmlot]').forEach(el => {
                 el.addEventListener('click', () => {

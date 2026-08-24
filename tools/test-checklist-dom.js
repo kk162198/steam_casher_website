@@ -30,7 +30,7 @@ const COMBO = {
 async function boot() {
   const html = fs.readFileSync(__dirname + '/../checklist.html', 'utf8')
     // nav/footer 是 fetch 進來的片段，測試環境沒有伺服器，拿掉不影響本頁邏輯
-    .replace('<body data-page="calculator">', '<body>');
+    .replace('<body data-page="checklist">', '<body>');
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
     url: 'https://example.test/checklist.html',
