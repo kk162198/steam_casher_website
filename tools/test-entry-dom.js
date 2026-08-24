@@ -207,6 +207,43 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('單價還在', html.includes('NT$ 21'), true);
   }
 
+  /* ── ④ 官網連結的靜態檢查 ─────────────────────────────
+     這幾條靠人工看很容易漏，而漏掉的後果都很具體：
+       · 帶語言前綴 → 使用者習慣看英文卻被強制換成繁中（2026-08-24 決定拿掉）
+       · 少了 rel="noopener" → 新分頁可以透過 window.opener 反向操作本站頁面
+       · 網址帶了追蹤／推薦參數 → 正面踩到「不從交易平台收分潤」那條 */
+  {
+    const pages = ['index.html', 'eligibility.html', 'setup.html', 'help.html',
+      'checklist.html', 'calculator.html', 'faq.html', 'risks.html', 'sell.html'];
+    const src = pages.map(p => {
+      try { return fs.readFileSync(__dirname + '/../' + p, 'utf8'); }
+      catch (e) { return ''; }
+    }).join('\n');
+
+    const locale = src.match(/(?:help|store)\.steampowered\.com\/(?:zh-TW|en|zh-CN)\//g) || [];
+    eq('Steam 連結不帶語言前綴（讓 Steam 照使用者設定顯示）', locale, []);
+
+    // 每一顆 .chk-link 都要另開分頁且切斷 window.opener
+    const anchors = src.match(/<a class="chk-link"[^>]*>/g) || [];
+    eq('官網連結不只一顆（有真的加上去）', anchors.length > 10, true);
+    eq('每顆官網連結都 target="_blank"',
+      anchors.filter(a => !a.includes('target="_blank"')), []);
+    eq('每顆官網連結都 rel="noopener noreferrer"',
+      anchors.filter(a => !a.includes('rel="noopener noreferrer"')), []);
+
+    // 外站網址不可以帶追蹤或推薦參數
+    const hrefs = anchors.map(a => (a.match(/href="([^"]+)"/) || [])[1]).filter(Boolean);
+    eq('官網連結不帶推薦碼／追蹤參數',
+      hrefs.filter(h => /[?&](ref|utm_|aff|affiliate|partner)/i.test(h)), []);
+    eq('官網連結都是 https',
+      hrefs.filter(h => !h.startsWith('https://')), []);
+
+    // 樣式必須在共用檔裡，不要各頁再寫一份
+    const css = fs.readFileSync(__dirname + '/../assets/style.css', 'utf8');
+    eq('.chk-link 定義在共用 style.css', css.includes('.chk-link'), true);
+    eq('觸控尺寸 44px 沒有被縮掉', /\.chk-link\{[^}]*min-height:44px/.test(css.replace(/\s*\n\s*/g, '')), true);
+  }
+
   console.log(fail ? `\n${fail} 項失敗` : '\n全部通過');
   process.exit(fail ? 1 : 0);
 })();
