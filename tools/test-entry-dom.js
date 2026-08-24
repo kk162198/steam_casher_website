@@ -207,6 +207,72 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('單價還在', html.includes('NT$ 21'), true);
   }
 
+  /* ── ③-b 指南頁 = 一次性設定 + 每一輪四步（2026-08-24 合併）───────
+     setup.html 併進 help.html。要確認的是**狀態沒有跟著搬丟**：
+     勾選寫的仍是 sah-setup-v1，勾完仍會讓 isSetupDone() 變 true，
+     否則試算頁的門檻會永遠停在「第一次」。 */
+  {
+    const { window } = boot('help.html');
+    await tick();
+    const { document, localStorage } = window;
+
+    const boxes = [...document.querySelectorAll('.su-box')];
+    eq('一次性設定五項都在指南頁上', boxes.map(b => b.dataset.step),
+      ['authenticator', 'spend5', 'notrestricted', 'csfloat', 'funded']);
+    eq('每一輪的四步也在同一頁',
+      [...document.querySelectorAll('.step .t-sub')].length, 4);
+    eq('換裝置的補丁還在（否則桌機設定完、手機就沒路回來）',
+      !!document.getElementById('su-manual'), true);
+
+    // 五項全勾 → sah-setup-v1 應該蓋上 doneAt
+    boxes.forEach(b => { b.checked = true; b.dispatchEvent(new window.Event('change')); });
+    const st = JSON.parse(localStorage.getItem('sah-setup-v1') || '{}');
+    eq('五項勾完會蓋 doneAt（試算頁的門檻靠它）', typeof st.doneAt === 'string', true);
+    eq('來源標成逐項勾選', st.source, 'checklist');
+
+    // 取消一項 → doneAt 要被清掉
+    boxes[0].checked = false;
+    boxes[0].dispatchEvent(new window.Event('change'));
+    eq('取消任何一項就清掉 doneAt',
+      JSON.parse(localStorage.getItem('sah-setup-v1')).doneAt, null);
+
+    // 第三份資格清單必須不存在
+    eq('舊的第三份資格清單已經拿掉',
+      document.querySelectorAll('.eligibility-check').length, 0);
+  }
+
+  /* setup.html 只剩轉址殼：舊網址不能 404，也不能被索引。 */
+  {
+    const html = fs.readFileSync(__dirname + '/../setup.html', 'utf8');
+    eq('舊網址還在（不會 404）', html.length > 0, true);
+    eq('meta refresh 指向指南頁', /http-equiv="refresh"[^>]*help\.html/.test(html), true);
+    eq('JS 用 replace 不是 href（不要讓上一頁彈回來）',
+      html.includes("location.replace('help.html'"), true);
+    eq('canonical 指向指南頁', /canonical"[^>]*help\.html/.test(html), true);
+    eq('標了 noindex', /name="robots"[^>]*noindex/.test(html), true);
+  }
+
+  /* ── ③-c 資格快檢只剩四題 ─────────────────────────────── */
+  {
+    const { window } = boot('eligibility.html');
+    await tick();
+    const { document } = window;
+    eq('四題', document.querySelectorAll('.q-card').length, 4);
+    eq('進度條四段', document.querySelectorAll('.prog-seg').length, 4);
+    eq('沒有金額輸入（能省多少交給試算頁）',
+      document.getElementById('elig-amount'), null);
+    eq('沒有金額快捷鍵', document.querySelectorAll('.opt[data-amount]').length, 0);
+
+    // 四題全過 → 結果卡不該出現任何金額
+    [['q1', 'yes'], ['q2', 'yes'], ['q3', 'no'], ['q4', 'yes']].forEach(([q, v]) => {
+      document.querySelector(`.opt[data-q="${q}"][data-val="${v}"]`)
+        .dispatchEvent(new window.Event('click'));
+    });
+    const result = document.getElementById('elig-result').textContent;
+    eq('結果講的是資格，不是省多少', result.includes('可以用這個方式加值'), true);
+    eq('結果沒有出現預估省下的金額', /省下約 NT\$/.test(result), false);
+  }
+
   /* ── ④ 官網連結的靜態檢查 ─────────────────────────────
      這幾條靠人工看很容易漏，而漏掉的後果都很具體：
        · 帶語言前綴 → 使用者習慣看英文卻被強制換成繁中（2026-08-24 決定拿掉）
@@ -242,6 +308,20 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const css = fs.readFileSync(__dirname + '/../assets/style.css', 'utf8');
     eq('.chk-link 定義在共用 style.css', css.includes('.chk-link'), true);
     eq('觸控尺寸 44px 沒有被縮掉', /\.chk-link\{[^}]*min-height:44px/.test(css.replace(/\s*\n\s*/g, '')), true);
+
+    /* 合併之後不可以再有指向 setup.html 的站內連結（轉址頁本身除外）。
+       留著的話使用者會多吃一次跳轉，而且看起來像兩個不同的地方。 */
+    const inbound = pages
+      .filter(p => p !== 'setup.html')
+      .map(p => {
+        try { return [p, fs.readFileSync(__dirname + '/../' + p, 'utf8')]; }
+        catch (e) { return [p, '']; }
+      })
+      .concat([['nav.html', fs.readFileSync(__dirname + '/../nav.html', 'utf8')],
+               ['footer.html', fs.readFileSync(__dirname + '/../footer.html', 'utf8')]])
+      .filter(([, body]) => /href="setup\.html"/.test(body))
+      .map(([p]) => p);
+    eq('站內已經沒有連到 setup.html 的連結', inbound, []);
   }
 
   console.log(fail ? `\n${fail} 項失敗` : '\n全部通過');

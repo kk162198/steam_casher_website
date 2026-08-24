@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題，包含消費門檻、手機驗證器與交易限制。">
+    <meta name="description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
     <title>資格快檢｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/eligibility.html">
     <meta property="og:title" content="資格快檢｜Steam 加值幫手">
-    <meta property="og:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題，包含消費門檻、手機驗證器與交易限制。">
+    <meta property="og:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="資格快檢｜Steam 加值幫手">
-    <meta name="twitter:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題，包含消費門檻、手機驗證器與交易限制。">
+    <meta name="twitter:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -43,7 +43,7 @@
         .prog-seg.is-done { background: #22d3ee; }
 
         /* .chk-links / .chk-link（到官網自己確認的連結）已移到 assets/style.css 第 9b 節，
-           因為初始設定頁與操作指南也在用。不要在這裡再寫一份。 */
+           因為操作指南也在用。不要在這裡再寫一份。 */
 
     </style>
 </head>
@@ -67,19 +67,18 @@
 
         <!-- 進度 -->
         <div class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
-            <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="elig-progressbar">
+            <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="elig-progressbar">
                 <div class="prog-seg" data-seg="1"></div>
                 <div class="prog-seg" data-seg="2"></div>
                 <div class="prog-seg" data-seg="3"></div>
                 <div class="prog-seg" data-seg="4"></div>
-                <div class="prog-seg" data-seg="5"></div>
             </div>
-            <p id="elig-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 5 題</p>
+            <p id="elig-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 4 題</p>
         </div>
 
         <!-- ① -->
         <section id="elig-q1" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 1 / 5</div>
+            <div class="t-note num c-ink3">問題 1 / 4</div>
             <h2 class="t-sect flow-xs">你的 Steam 帳號累積消費有超過 US$ 5 嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 買遊戲或儲值都算。沒滿的話帳號是 Limited，不能用社群市場。
@@ -99,7 +98,7 @@
 
         <!-- ② -->
         <section id="elig-q2" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 2 / 5</div>
+            <div class="t-note num c-ink3">問題 2 / 4</div>
             <h2 class="t-sect flow-xs">Steam 手機驗證器啟用超過 7 天了嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 沒啟用就不能在市場上架。今天才啟用要再等 7 天。
@@ -125,7 +124,7 @@
 
         <!-- ③ -->
         <section id="elig-q3" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 3 / 5</div>
+            <div class="t-note num c-ink3">問題 3 / 4</div>
             <h2 class="t-sect flow-xs">帳號有交易限制或 VAC 停權嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 有的話不能掛售，沒有繞道的方法。
@@ -152,7 +151,7 @@
 
         <!-- ④ -->
         <section id="elig-q4" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 4 / 5</div>
+            <div class="t-note num c-ink3">問題 4 / 4</div>
             <h2 class="t-sect flow-xs">你能接受買完之後等 7 天嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 這 7 天不能縮短也不能取消，要送禮或趕特價會來不及。
@@ -163,31 +162,10 @@
             </div>
         </section>
 
-        <!-- ⑤ -->
-        <section id="elig-q5" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 5 / 5</div>
-            <h2 class="t-sect flow-xs">這次打算在 Steam 花多少？</h2>
-            <p class="t-aux c-ink2 flow-xs">
-                填你想買的遊戲價格。金額決定能省多少，值不值得要看件數，交給試算頁。
-            </p>
-            <div class="flow-md" style="display:flex;align-items:baseline;gap:8px">
-                <label for="elig-amount" class="t-sub c-ink3">NT$</label>
-                <input type="number" id="elig-amount" value="3000" min="0" step="100"
-                    style="background:transparent;border:0;border-bottom:1px solid #64748b;outline:none;width:160px;
-                           font:inherit;font-size:32px;font-weight:700;color:#22d3ee;font-variant-numeric:tabular-nums;padding:2px 4px">
-            </div>
-            <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
-                <button type="button" class="opt" data-amount="800" style="min-width:0">800</button>
-                <button type="button" class="opt" data-amount="1500" style="min-width:0">1,500</button>
-                <button type="button" class="opt" data-amount="3000" style="min-width:0">3,000</button>
-                <button type="button" class="opt" data-amount="6000" style="min-width:0">6,000</button>
-            </div>
-        </section>
-
         <!-- 結果 -->
         <section class="flow-lg" id="elig-result" aria-live="polite">
             <div class="card card-roomy" style="text-align:center">
-                <p class="t-body c-ink3 flow-0">五題答完後，這裡會告訴你結果。</p>
+                <p class="t-body c-ink3 flow-0">四題答完後，這裡會告訴你結果。</p>
             </div>
         </section>
 
@@ -206,7 +184,6 @@
            主按鈕指向哪裡，所以三個頁面在讀同一個 key，字串不能各寫一份。
            **不要在這裡重新宣告**——site.js 是 `var`，這裡再寫一次 `const`
            會在全域撞名，整頁的 script 直接 SyntaxError。 */
-        const ELIG_EST_DISCOUNT = 0.24; // 折扣估算值，僅用於資格頁的粗估
 
         /* 外站連結。⚠️ blockers 是用 innerHTML 塞進去的，所以這裡就是最後一道
            跳脫關卡——文字全部由本檔案寫死，沒有使用者輸入會進來。 */
@@ -223,17 +200,28 @@
               「不值得」的結論，等於拿粗估當判決。
 
               所以這一頁只做兩件事：**判資格**、把時間成本的事實講出來。
-              結論留給試算頁，全站只有一個地方下這個判斷。 */
+              結論留給試算頁，全站只有一個地方下這個判斷。
 
-        const answers = { q1: null, q2: null, q3: null, q4: null, amount: 3000 };
+           ⚠️ 2026-08-24：連「這次打算花多少」那一題也拿掉了（原本的第 5 題），
+              以及結果卡上「預估可以省下約 NT$X」那個粗估。理由跟上面同一條，
+              只是走到底：**金額進來，就會忍不住拿它算點什麼**，而這一頁算出來的
+              任何金額都比試算頁差——它不知道你會買幾件、不知道當下的市場價，
+              只有一個寫死的 24% 折扣率。兩個地方講同一件事而其中一個比較不準，
+              使用者記住的通常是先看到的那個。
+
+              現在這一頁只回答一個問題：**你的帳號現在能不能用。**
+              `answers` 也不再有 `amount`；舊的 `sah-eligibility-v2` 裡若殘留
+              這個欄位，讀進來時會被忽略，不用遷移。 */
+
+        const answers = { q1: null, q2: null, q3: null, q4: null };
 
         function loadState() {
             try {
                 const raw = localStorage.getItem(ELIG_STORAGE_KEY);
                 if (!raw) return;
                 const saved = JSON.parse(raw);
+                // 舊資料可能還有 amount，直接忽略（見上方 2026-08-24 的註解）
                 ['q1', 'q2', 'q3', 'q4'].forEach(k => { if (saved[k]) answers[k] = saved[k]; });
-                if (saved.amount) answers.amount = Number(saved.amount) || 3000;
             } catch (e) { /* 無痕模式等情況忽略 */ }
         }
         function saveState() {
@@ -252,10 +240,6 @@
                     : v === 'unknown' ? 'unknown'          // 結果區會列為待釐清，配色也要跟著
                     : (isBlocking(k, v) ? 'no' : 'yes');
             });
-            document.getElementById('elig-amount').value = answers.amount;
-            document.querySelectorAll('.opt[data-amount]').forEach(btn => {
-                btn.setAttribute('aria-pressed', Number(btn.dataset.amount) === answers.amount ? 'true' : 'false');
-            });
         }
 
         // 哪些答案會擋住使用
@@ -268,13 +252,13 @@
         }
 
         function updateProgress() {
-            const done = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] !== null).length + (answers.amount > 0 ? 1 : 0);
+            const done = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] !== null).length;
             document.querySelectorAll('.prog-seg').forEach((seg, i) => {
                 seg.classList.toggle('is-done', i < done);
             });
             document.getElementById('elig-progressbar').setAttribute('aria-valuenow', done);
             const text = document.getElementById('elig-progress-text');
-            text.textContent = done >= 5 ? '答完了，結果在下面' : `已回答 ${done} / 5 題`;
+            text.textContent = done >= 4 ? '答完了，結果在下面' : `已回答 ${done} / 4 題`;
         }
 
         function resultCard(tone, title, body, actions) {
@@ -329,28 +313,22 @@
                         以上都是 Steam 的規則，不是本站設的。細節以
                         <a href="https://help.steampowered.com/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
                     </p>`,
-                    `<a href="setup.html" class="btn btn-secondary">看初始設定怎麼做</a>
-                     <a href="help.html" class="btn btn-text">看完整操作指南</a>`);
+                    `<a href="help.html" class="btn btn-secondary">看操作指南怎麼做</a>`);
                 return;
             }
 
-            // 資格都過。金額只用來粗估「省多少」，值不值得交給試算頁。
-            const amt = answers.amount;
-            const saving = Math.round(amt * ELIG_EST_DISCOUNT);
+            // 資格都過。**這一頁不碰金額**，能省多少、值不值得一律交給試算頁。
             const setupDone = isSetupDone();
             const setupCost = Math.round(minutesToTwd(OP_TIME.setupMinutes));
 
             box.innerHTML = resultCard('go',
-                `這筆 NT$ ${amt.toLocaleString()} 預估可以省下約 NT$ ${saving.toLocaleString()}`,
-                `<p class="flow-0">你的帳號條件都符合，可以用這個方式加值。</p>
-                 <p class="t-aux flow-sm c-ink3">
-                    以 ${Math.round(ELIG_EST_DISCOUNT * 100)}% 折扣粗估，實際要看市場價格，試算頁會算給你看。
-                 </p>
+                '你的帳號現在就可以用這個方式加值',
+                `<p class="flow-0">四題都過了。能省多少要看當下的市場價格與你買幾件，試算頁會算給你看。</p>
                  <div class="step-check flow-md">
                     <div class="step-check-title">要花你多少時間</div>
                     <p class="t-aux c-ink2 flow-0">
                         ${setupDone
-                            ? `這台裝置已完成初始設定，不用再算那${minutesText(OP_TIME.setupMinutes)}。`
+                            ? `這台裝置已完成一次性設定，不用再算那${minutesText(OP_TIME.setupMinutes)}。`
                             : `首次要先做一次性設定${minutesText(OP_TIME.setupMinutes)}（時薪計約 NT$ ${setupCost}），只做一次。`}
                         之後每輪${minutesText(OP_TIME.roundFixedMinutes)}起跳，<strong class="c-ink">每件再加約 24 秒</strong>——金額越大件數越多，賣的時候也要一件一件掛。
                         划不划得來，試算頁會算給你看。
@@ -363,7 +341,7 @@
                 setupDone
                     ? `<a href="calculator.html" class="btn btn-primary">試算我的方案</a>
                        <a href="help.html" class="btn btn-text">看操作步驟</a>`
-                    : `<a href="setup.html" class="btn btn-primary">先做初始設定</a>
+                    : `<a href="help.html" class="btn btn-primary">先做一次性設定</a>
                        <a href="calculator.html" class="btn btn-text">直接去試算</a>`);
         }
 
@@ -375,22 +353,8 @@
                 refresh();
             });
         });
-        document.querySelectorAll('.opt[data-amount]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                answers.amount = Number(btn.dataset.amount);
-                refresh();
-            });
-        });
-        document.getElementById('elig-amount').addEventListener('input', (e) => {
-            answers.amount = Number(e.target.value) || 0;
-            updateProgress(); renderResult(); saveState();
-            document.querySelectorAll('.opt[data-amount]').forEach(b => {
-                b.setAttribute('aria-pressed', Number(b.dataset.amount) === answers.amount ? 'true' : 'false');
-            });
-        });
         document.getElementById('elig-reset').addEventListener('click', () => {
             answers.q1 = answers.q2 = answers.q3 = answers.q4 = null;
-            answers.amount = 3000;
             try { localStorage.removeItem(ELIG_STORAGE_KEY); } catch (e) { /* 忽略 */ }
             refresh();
         });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="從 CSFloat 註冊到 Steam 上架的完整分步流程。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta name="description" content="分成兩段：第一次要做的五件事（做完就不用再做），以及之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 官網連結。">
     <title>操作指南｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,16 +13,44 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/help.html">
     <meta property="og:title" content="操作指南｜Steam 加值幫手">
-    <meta property="og:description" content="從 CSFloat 註冊到 Steam 上架的完整分步流程。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta property="og:description" content="第一次要做的五件事，加上之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="操作指南｜Steam 加值幫手">
-    <meta name="twitter:description" content="從 CSFloat 註冊到 Steam 上架的完整分步流程。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta name="twitter:description" content="第一次要做的五件事，加上之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
     <link rel="stylesheet" href="assets/utilities.css">
     <link rel="stylesheet" href="assets/style.css">
+    <style>
+/* 本頁專屬樣式（共用設計系統在 assets/style.css）
+   2026-08-24：原本的 setup.html 併進這一頁，這幾條是從那裡搬過來的。 */
+        .su-card { transition: border-color .15s, background-color .15s; }
+        .su-card[data-done="1"] { border-color: rgba(52,211,153,.4); }
+        /* 整張卡片是點擊區：手機上不用瞄準那個小方塊。
+           <label> 包住整張卡，觸控目標遠大於 44px。 */
+        .su-head {
+            display: flex; align-items: flex-start; gap: 14px;
+            min-height: 44px;               /* 觸控尺寸下限，全站一致 */
+            cursor: pointer; user-select: none;
+        }
+        .su-box {
+            flex: none; width: 24px; height: 24px; margin-top: 2px;
+            accent-color: #22d3ee; cursor: pointer;
+        }
+        .su-card:focus-within { border-color: #22d3ee; }
+        .prog-seg { flex: 1; height: 4px; border-radius: 999px; background: #1e293b; transition: background-color .2s; }
+        .prog-seg.is-done { background: #22d3ee; }
+        .su-from-elig {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 12px; line-height: 1.4; color: #22d3ee;
+        }
+        /* ⚠️ 一定要有這一條：class 的 display:inline-flex 會蓋掉瀏覽器內建的
+           [hidden]{display:none}，沒有它的話這個標示會永遠顯示，
+           變成「每一項都宣稱是資格快檢帶入的」。 */
+        .su-from-elig[hidden] { display: none; }
+    </style>
 </head>
 <body data-page="help">
     <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
@@ -31,96 +59,306 @@
 
         <header style="padding-top:48px">
             <h1 class="t-page">操作指南</h1>
-            <p class="t-body c-ink2 flow-sm" style="max-width:34em">
-                從註冊 CSFloat 到 Steam 上架收錢，七個步驟。其中步驟 1、2、4 是<strong class="c-ink">一次性設定</strong>（約 45 分鐘），
-                做完就不用再做；之後每一輪 10 分鐘起跳，再加上每件約 24 秒——買 20 件和買 300 件差很多。
+            <!-- ⚠️ 2026-08-24：原本的「初始設定」是獨立一頁，而這一頁的七步裡有三步
+                 跟它逐字重複（驗證器、US$5、CSFloat 交易連結），底下還有第三份資格
+                 勾選清單。同一件事寫在三個地方，改一次就得改三次，而且它們的勾選狀態
+                 各自存在不同的 localStorage key、彼此不同步。
+
+                 現在合成一頁兩段：**上半只做一次，下半每一輪都要做。**
+                 這個分段本來就是使用者真正需要的區別——他要知道的是「哪些事我明年
+                 還要再做一次」。 -->
+            <p class="t-body c-ink2 flow-sm" style="max-width:36em">
+                分成兩段：<strong class="c-ink">上半只做一次</strong>，做完就不用再碰；
+                <strong class="c-ink">下半每一輪都要做</strong>。
             </p>
-            <div class="card card-compact flow-lg" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
-                <span class="t-aux c-ink2">第一次來？那三步已經整理成一份可勾選的清單，勾完試算頁就會改用「第二次以後」的成本判斷。</span>
-                <a href="setup.html" class="btn btn-secondary btn-sm">初始設定</a>
+
+            <div class="grid gap-3 md:grid-cols-2 flow-lg">
+                <div class="stat card card-compact">
+                    <div class="stat-label">只做一次（下半頁不算）</div>
+                    <div class="stat-value-sm num" id="su-setup-time">--</div>
+                    <div class="stat-note">換算約 <span id="su-setup-cost">--</span></div>
+                </div>
+                <div class="stat card card-compact">
+                    <div class="stat-label">之後每一輪</div>
+                    <div class="stat-value-sm num" id="su-round-time">--</div>
+                    <div class="stat-note">再加上每件約 24 秒，件數越多越久</div>
+                </div>
             </div>
+            <p class="t-note c-ink3 flow-sm">
+                ⚠️ 這兩個時間是照操作步驟推估的，沒有實測。等作者自己完整跑一輪計時之後會回來修正。
+            </p>
+
             <div class="card card-compact flow-md" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
-                <span class="t-aux c-ink2">還沒確認資格？先做 30 秒快檢，免得買完才發現上架不了。</span>
+                <span class="t-aux c-ink2">還沒確認資格？先做 30 秒快檢，免得買完才發現上架不了。答過的答案會自動帶進下面前三項。</span>
                 <a href="eligibility.html" class="btn btn-secondary btn-sm">30 秒資格快檢</a>
             </div>
         </header>
 
-        <!-- 步驟 -->
+        <!-- ═══════════ A 段：只做一次 ═══════════
+             ⚠️ 整段（標題／進度條／五張卡／結果／跨裝置）一定要包在**同一個
+                section** 裡。進度條是 sticky 的，而 sticky 的作用範圍是它的
+                containing block——直接掛在 <main> 底下的話，它會一路釘到頁尾，
+                使用者在看下半頁「每一輪都要做」的時候，畫面上方還黏著一條
+                跟那一段完全無關的「還沒開始，共 5 項」。 -->
         <section class="sec">
-            <div class="card" style="display:flex;flex-direction:column;gap:32px">
+            <h2 class="t-page">只做一次</h2>
+            <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                這五件事是 Steam 與 CSFloat 的帳號條件，不是這個網站要求的。
+                <strong class="c-ink">五項都勾完，試算頁就會改用「第二次以後」的成本判斷值不值得。</strong>
+                勾選只留在你自己的瀏覽器裡。
+            </p>
+
+        <!-- 進度 -->
+        <div class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
+            <div style="display:flex;gap:6px" role="progressbar" aria-label="設定進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="su-progressbar">
+                <div class="prog-seg" data-seg="1"></div>
+                <div class="prog-seg" data-seg="2"></div>
+                <div class="prog-seg" data-seg="3"></div>
+                <div class="prog-seg" data-seg="4"></div>
+                <div class="prog-seg" data-seg="5"></div>
+            </div>
+            <p id="su-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 5 項</p>
+        </div>
+
+        <div class="flow-md" style="display:flex;flex-direction:column;gap:16px">
+
+            <!-- ① -->
+            <div class="card su-card" id="su-card-authenticator" data-done="0">
+                <label class="su-head">
+                    <input type="checkbox" class="su-box" data-step="authenticator">
+                    <span style="flex:1">
+                        <span class="t-note num c-ink3">第 1 項・要等 7 天，先做這個</span>
+                        <span class="t-sub" style="display:block;margin-top:4px">啟用 Steam 手機驗證器，並等滿 7 天</span>
+                    </span>
+                </label>
+                <div style="padding-left:38px">
+                    <p class="t-body c-ink2 flow-sm">
+                        用 Steam 手機 App 開啟驗證器。沒啟用就完全不能在市場上架，而且啟用之後還要再等 7 天。
+                        <strong class="c-ink">整條流程只有這一項是純等待</strong>，所以它要排第一個。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        會卡在哪：以為裝了 App 就好。要在 App 裡實際完成驗證器的設定流程。
+                    </p>
+                    <div class="step-check flow-sm">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                        <p class="t-aux c-ink2 flow-0">
+                            Steam 手機 App 的驗證器頁面顯示已啟用，而且啟用日期距今超過 7 天。
+                        </p>
+                    </div>
+                    <!-- ⚠️ 這五項全部是 Steam／CSFloat 的規則，不是本站訂的，而本站也
+                         查不到任何人的帳號狀態。每一項都要有一條「去官網自己看」的路，
+                         否則使用者只能照著自己的印象打勾——而打錯的代價是買完才發現賣不掉。
+                         ⚠️ 啟用滿不滿 7 天網頁端查不到，只有手機 App 有，照實寫，
+                            不要給一個點進去查不到的連結。 -->
+                    <div class="chk-links flow-sm">
+                        <a class="chk-link" href="https://help.steampowered.com/faqs/view/06B0-26E6-2CF8-254C" target="_blank" rel="noopener noreferrer">
+                            官方說明：Steam 守護行動版驗證器<span class="ext">↗</span></a>
+                        <a class="chk-link" href="https://store.steampowered.com/account/" target="_blank" rel="noopener noreferrer">
+                            帳戶明細：看是否已啟用<span class="ext">↗</span></a>
+                    </div>
+                    <p class="su-from-elig flow-sm" data-elig-for="authenticator" hidden>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        已由資格快檢帶入
+                    </p>
+                </div>
+            </div>
+
+            <!-- ② -->
+            <div class="card su-card" id="su-card-spend5" data-done="0">
+                <label class="su-head">
+                    <input type="checkbox" class="su-box" data-step="spend5">
+                    <span style="flex:1">
+                        <span class="t-note num c-ink3">第 2 項</span>
+                        <span class="t-sub" style="display:block;margin-top:4px">帳號累積消費滿 US$5，解除 Limited</span>
+                    </span>
+                </label>
+                <div style="padding-left:38px">
+                    <p class="t-body c-ink2 flow-sm">
+                        買遊戲或儲值錢包都算。沒滿這個門檻的帳號是 Limited 狀態，用不了社群市場，這一步沒有例外。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        會卡在哪：收到別人送的遊戲不算，要自己付錢的才算。
+                        另外<strong class="c-ink">過去一年內要有消費紀錄</strong>——長期完全沒消費的帳號，市場存取權限可能被收回。
+                    </p>
+                    <div class="step-check flow-sm">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                        <p class="t-aux c-ink2 flow-0">
+                            Steam 個人資料頁沒有出現「受限帳戶（Limited Account）」的黃色提示條。
+                        </p>
+                    </div>
+                    <div class="chk-links flow-sm">
+                        <a class="chk-link" href="https://store.steampowered.com/account/" target="_blank" rel="noopener noreferrer">
+                            帳戶明細：看消費與儲值紀錄<span class="ext">↗</span></a>
+                        <a class="chk-link" href="https://steamcommunity.com/my/" target="_blank" rel="noopener noreferrer">
+                            我的個人資訊頁<span class="ext">↗</span></a>
+                        <a class="chk-link" href="https://help.steampowered.com/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener noreferrer">
+                            官方說明：受限帳戶<span class="ext">↗</span></a>
+                    </div>
+                    <p class="su-from-elig flow-sm" data-elig-for="spend5" hidden>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        已由資格快檢帶入
+                    </p>
+                </div>
+            </div>
+
+            <!-- ③ -->
+            <div class="card su-card" id="su-card-notrestricted" data-done="0">
+                <label class="su-head">
+                    <input type="checkbox" class="su-box" data-step="notrestricted">
+                    <span style="flex:1">
+                        <span class="t-note num c-ink3">第 3 項・順便驗收前兩項</span>
+                        <span class="t-sub" style="display:block;margin-top:4px">確認帳號沒有交易限制或 VAC 停權</span>
+                    </span>
+                </label>
+                <div style="padding-left:38px">
+                    <p class="t-body c-ink2 flow-sm">
+                        有限制就不能掛售，而且沒有繞道的方法，只能等限制解除。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        會卡在哪：以為只有 VAC 才算。更改密碼、換裝置、剛綁定付款方式都可能觸發短期交易限制。
+                    </p>
+                    <div class="step-check flow-sm">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                        <p class="t-aux c-ink2 flow-0">
+                            打開任一 Steam 市場物品頁，看得到「出售」按鈕而不是灰色的無法交易提示。
+                            <strong class="c-ink">這一個檢查同時驗收前三項</strong>——看得到出售按鈕，
+                            代表驗證器、US$5、交易限制三件事都過了。
+                        </p>
+                    </div>
+                    <!-- 三條路各查一件事：社群市場＝實際上架得了嗎（最準，被擋時直接寫原因）／
+                         交易精靈＝有沒有交易限制／官方說明＝什麼情況會被限制。 -->
+                    <div class="chk-links flow-sm">
+                        <a class="chk-link" href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer">
+                            社群市場：被擋的話會寫原因<span class="ext">↗</span></a>
+                        <a class="chk-link" href="https://help.steampowered.com/wizard/HelpWithEconTrading" target="_blank" rel="noopener noreferrer">
+                            Steam 客服：查目前的交易限制<span class="ext">↗</span></a>
+                        <a class="chk-link" href="https://help.steampowered.com/faqs/view/4F62-35F9-F395-5C23" target="_blank" rel="noopener noreferrer">
+                            官方說明：受限制的帳戶<span class="ext">↗</span></a>
+                    </div>
+                    <p class="su-from-elig flow-sm" data-elig-for="notrestricted" hidden>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        已由資格快檢帶入
+                    </p>
+                </div>
+            </div>
+
+            <!-- ④ -->
+            <div class="card su-card" id="su-card-csfloat" data-done="0">
+                <label class="su-head">
+                    <input type="checkbox" class="su-box" data-step="csfloat">
+                    <span style="flex:1">
+                        <span class="t-note num c-ink3">第 4 項</span>
+                        <span class="t-sub" style="display:block;margin-top:4px">註冊 CSFloat，並填好 Steam 交易連結</span>
+                    </span>
+                </label>
+                <div style="padding-left:38px">
+                    <p class="t-body c-ink2 flow-sm">
+                        CSFloat 用 Steam 帳號登入，不用另外設密碼。登入後到設定頁把你的
+                        Steam 交易連結（Trade URL）填進去，物品才送得到你手上。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        會卡在哪：交易連結填錯或過期。Steam 那邊按過「產生新的連結」，舊的就會失效，要重新複製一次。
+                    </p>
+                    <div class="step-check flow-sm">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                        <p class="t-aux c-ink2 flow-0">
+                            CSFloat 設定頁的交易連結欄位顯示已驗證，沒有紅字警告。
+                        </p>
+                    </div>
+                    <!-- 只放 Steam 這一端的連結。CSFloat 設定頁的網址我們沒查證過，
+                         給一個猜的網址比不給更糟——會把人送到一個不存在的頁面，
+                         而他正卡在「交易連結填錯」這個最容易卡住的地方。 -->
+                    <div class="chk-links flow-sm">
+                        <a class="chk-link" href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" rel="noopener noreferrer">
+                            我的 Steam 交易連結（Trade URL）<span class="ext">↗</span></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑤ -->
+            <div class="card su-card" id="su-card-funded" data-done="0">
+                <label class="su-head">
+                    <input type="checkbox" class="su-box" data-step="funded">
+                    <span style="flex:1">
+                        <span class="t-note num c-ink3">第 5 項・做完就可以開始了</span>
+                        <span class="t-sub" style="display:block;margin-top:4px">在 CSFloat 完成第一次入金</span>
+                    </span>
+                </label>
+                <div style="padding-left:38px">
+                    <p class="t-body c-ink2 flow-sm">
+                        CSFloat 是錢包制：先入金，再用錢包餘額買。入金費是
+                        <strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次，
+                        所以一次入足比分好幾次划算。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        會卡在哪：分五次小額儲值。固定費會被收五次，成本直接被墊高。
+                    </p>
+                    <div class="step-check flow-sm">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                        <p class="t-aux c-ink2 flow-0">
+                            CSFloat 右上角顯示的錢包餘額 ≥ 你這次要買的金額。
+                        </p>
+                    </div>
+                    <div class="risk-bar flow-md">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                        <span>本站的成本一律用 7.5% 保守估計入金費，實際費率通常更低——這是刻意高估，讓你實際拿到的比網站顯示的更好。最低儲值金額我們還沒查證，以 CSFloat 站上顯示為準。<a href="transparency.html">看計算方式</a></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 結果 -->
+        <div class="flow-lg" id="su-result" aria-live="polite"></div>
+
+        <!-- 跨裝置補丁 + 重設 -->
+        <div class="flow-md">
+            <div class="card card-compact">
+                <p class="t-aux c-ink2 flow-0">
+                    <strong class="c-ink">換了裝置？</strong>
+                    這些勾選存在瀏覽器裡，不跨裝置也不跨瀏覽器。
+                    在桌機設定完、用手機打開這個站，上面會是空的，試算頁也會退回用第一次的成本估算。
+                </p>
+                <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                    <button type="button" id="su-manual" class="btn btn-secondary btn-sm">我在別的裝置設定過了</button>
+                    <button type="button" id="su-reset" class="btn btn-text btn-sm">清除這台裝置的設定紀錄</button>
+                </div>
+            </div>
+        </div>
+        </section>
+
+        <!-- ═══════════ B 段：每一輪都要做 ═══════════ -->
+        <section class="sec">
+            <h2 class="t-page">每一輪都要做</h2>
+            <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                四個步驟，中間卡著不能縮短的 7 天。
+            </p>
+
+            <div class="card flow-lg" style="display:flex;flex-direction:column;gap:32px">
 
                 <div class="step">
                     <div class="step-no num">1</div>
                     <div style="flex:1">
-                        <h2 class="t-sub">啟用 Steam 手機驗證器，並等滿 7 天</h2>
+                        <h3 class="t-sub">用試算頁算出你要買什麼</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            用 Steam 手機 App 開啟驗證器。這一步要最先做，因為要等 7 天，早一天做就早一天能開始。
-                        </p>
-                        <p class="t-aux c-warn flow-xs">
-                            會卡在哪：以為裝了 App 就好。要在 App 裡實際完成驗證器的設定流程，而且啟用未滿 7 天一樣不能上架。
-                        </p>
-                        <div class="step-check">
-                            <div class="step-check-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                怎麼確認做對了
-                            </div>
-                            <p class="t-aux c-ink2 flow-0">
-                                打開任一 Steam 市場物品頁，看到「出售」按鈕而不是灰色的「無法交易」提示。
-                            </p>
-                        </div>
-                        <!-- ⚠️ 這一頁講的每一條都是 Steam 的規則，不是本站訂的，而本站
-                             查不到任何人的帳號狀態。每一步都給一條「去官網自己看」的路，
-                             使用者才有辦法在卡住的當下自己確認，而不是回來猜。
-                             網址一律不帶語言前綴，Steam 會照使用者自己的設定顯示。 -->
-                        <div class="chk-links">
-                            <a class="chk-link" href="https://help.steampowered.com/faqs/view/06B0-26E6-2CF8-254C" target="_blank" rel="noopener noreferrer">
-                                官方說明：Steam 守護行動版驗證器<span class="ext">↗</span></a>
-                            <a class="chk-link" href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer">
-                                社群市場：看得到「出售」就代表過了<span class="ext">↗</span></a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hr"></div>
-
-                <div class="step">
-                    <div class="step-no num">2</div>
-                    <div style="flex:1">
-                        <h2 class="t-sub">確認帳號累積消費滿 US$5</h2>
-                        <p class="t-body c-ink2 flow-xs">
-                            買遊戲或儲值錢包都算。沒滿的話帳號是 Limited 狀態，用不了社群市場。
-                        </p>
-                        <p class="t-aux c-warn flow-xs">
-                            會卡在哪：收到別人送的遊戲不算，要自己付錢的才算。
-                        </p>
-                        <div class="step-check">
-                            <div class="step-check-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                怎麼確認做對了
-                            </div>
-                            <p class="t-aux c-ink2 flow-0">
-                                Steam 個人資料頁沒有出現「受限帳戶（Limited Account）」的黃色提示條。
-                            </p>
-                        </div>
-                        <div class="chk-links">
-                            <a class="chk-link" href="https://store.steampowered.com/account/" target="_blank" rel="noopener noreferrer">
-                                帳戶明細：看消費與儲值紀錄<span class="ext">↗</span></a>
-                            <a class="chk-link" href="https://steamcommunity.com/my/" target="_blank" rel="noopener noreferrer">
-                                我的個人資訊頁<span class="ext">↗</span></a>
-                            <a class="chk-link" href="https://help.steampowered.com/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener noreferrer">
-                                官方說明：受限帳戶<span class="ext">↗</span></a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hr"></div>
-
-                <div class="step">
-                    <div class="step-no num">3</div>
-                    <div style="flex:1">
-                        <h2 class="t-sub">用試算頁算出你要買什麼</h2>
-                        <p class="t-body c-ink2 flow-xs">
-                            到 <a href="calculator.html">試算頁</a> 填金額，會產出一份購買組合，包含品項和數量。兩個欄位任填一個就好：「目標 Steam 餘額」是你想拿到的，「投入現金」是你手上要花的，填其中一個另一個會自動算出來。省下的錢不夠付你這一輪要花的時間時，它會直接告訴你不要做。
+                            到 <a href="calculator.html">試算頁</a> 填金額，會產出一份購買組合，包含品項和數量。
+                            兩個欄位任填一個就好：「目標 Steam 餘額」是你想拿到的，「投入現金」是你手上要花的。
+                            省下的錢不夠付你這一輪要花的時間時，它會直接告訴你不要做。
                         </p>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：兩個欄位填錯邊。想拿到 3,000 元餘額就填上面，手上只有 2,000 元現金就填下面。
@@ -140,39 +378,14 @@
                 <div class="hr"></div>
 
                 <div class="step">
-                    <div class="step-no num">4</div>
+                    <div class="step-no num">2</div>
                     <div style="flex:1">
-                        <h2 class="t-sub">註冊 CSFloat 並綁定 Steam 交易連結</h2>
+                        <h3 class="t-sub">照清單下單買箱子</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            CSFloat 用 Steam 帳號登入，不用另外設密碼。登入後要到設定頁把你的 Steam 交易連結（Trade URL）填進去，物品才送得到你手上。
-                        </p>
-                        <p class="t-aux c-warn flow-xs">
-                            會卡在哪：交易連結填錯或過期。Steam 那邊按過「產生新的連結」，舊的就會失效，要重新複製一次。
-                        </p>
-                        <div class="step-check">
-                            <div class="step-check-title">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                怎麼確認做對了
-                            </div>
-                            <p class="t-aux c-ink2 flow-0">
-                                CSFloat 設定頁的交易連結欄位顯示綠色勾勾或「已驗證」，沒有紅字警告。
-                            </p>
-                        </div>
-                        <div class="chk-links">
-                            <a class="chk-link" href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" rel="noopener noreferrer">
-                                我的 Steam 交易連結（Trade URL）<span class="ext">↗</span></a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hr"></div>
-
-                <div class="step">
-                    <div class="step-no num">5</div>
-                    <div style="flex:1">
-                        <h2 class="t-sub">照清單下單買箱子</h2>
-                        <p class="t-body c-ink2 flow-xs">
-                            用 <a href="checklist.html">購物清單</a> 邊買邊勾。在 CSFloat 搜尋品項名稱，依價格由低到高排序，買清單上的數量。
+                            按試算頁的「產生購物清單」，到 <a href="checklist.html">購物清單</a> 邊買邊勾。
+                            在 CSFloat 搜尋品項名稱，依價格由低到高排序，買清單上的數量，
+                            <strong class="c-ink">回填實際買到幾個與實付總額</strong>——買不到全部很常見，
+                            填了七天後才算得出賺多少。
                         </p>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：最低價的掛單被別人買走，實際價格比清單上高。差幾塊錢可以接受，差太多就回試算頁重算一份。
@@ -196,11 +409,19 @@
                 <div class="hr"></div>
 
                 <div class="step">
-                    <div class="step-no num">6</div>
+                    <div class="step-no num">3</div>
                     <div style="flex:1">
-                        <h2 class="t-sub">等 7 天</h2>
+                        <h3 class="t-sub">等 7 天</h3>
                         <p class="t-body c-ink2 flow-xs">
                             這 7 天什麼都不用做，也什麼都做不了。不能提前賣、不能取消、不能轉移。
+                            <a href="sell.html">賣出頁</a>會倒數，也可以下載到期提醒。
+                        </p>
+                        <!-- 這一句原本埋在頁尾那份重複的資格清單裡（2026-08-24 刪掉）。
+                             它是唯一一條會被誤解的規則，搬到這裡才有人看得到。 -->
+                        <p class="t-aux c-ink2 flow-xs">
+                            ⚠️ <strong class="c-ink">這 7 天跟驗證器開通幾天無關。</strong>
+                            驗證器開通滿 15 天之後，一般交易的鎖定可以降到 0～48 小時，
+                            但<strong class="c-ink">透過市場買賣的物品仍然固定 7 天</strong>，沒有辦法縮短。
                         </p>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：這段時間價格會動。到期時價格可能比你買的時候低，這是這個做法本來就有的風險。
@@ -224,11 +445,13 @@
                 <div class="hr"></div>
 
                 <div class="step">
-                    <div class="step-no num">7</div>
+                    <div class="step-no num">4</div>
                     <div style="flex:1">
-                        <h2 class="t-sub">在 Steam 社群市場上架</h2>
+                        <h3 class="t-sub">在 Steam 社群市場上架</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            到庫存點箱子、按出售，價格填成跟目前最低掛牌價一樣或低 1 元。Steam 會自動顯示扣完手續費後你實拿多少，那個數字才是你會拿到的錢。
+                            到庫存點箱子、按出售，價格填成跟目前最低掛牌價一樣或低 1 元。
+                            Steam 會自動顯示扣完手續費後你實拿多少，那個數字才是你會拿到的錢。
+                            <a href="sell.html">賣出頁</a>會告訴你該掛多少、實拿多少。
                         </p>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。填價格的時候看下面那行「您將收到」。另外掛單不一定馬上成交，冷門品項可能要放幾天。
@@ -262,63 +485,7 @@
             </div>
         </section>
 
-        <!-- 資格檢查清單（沿用原有 localStorage 邏輯） -->
         <section class="sec">
-            <div class="card">
-                <h2 class="t-sect">Steam 帳號資格檢查清單</h2>
-                <p class="t-body c-ink2 flow-sm" style="max-width:39em">
-                    以下條件會影響你能不能在 Steam 社群市場正常掛售、兌現。勾選後會記住進度，方便分次確認。
-                    這些是 <strong class="c-ink">Steam 平台的通用規則，不是本站訂的</strong>，細節可能隨政策調整，一律以官方頁面為準。
-                </p>
-                <!-- 四條官方來源，對應下面四種會擋住你的情況。
-                     ⚠️ 這裡刻意只給連結、不抄內容——抄下來的規則會過期，連結不會。 -->
-                <div class="chk-links">
-                    <a class="chk-link" href="https://help.steampowered.com/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener noreferrer">
-                        受限帳戶（Limited）<span class="ext">↗</span></a>
-                    <a class="chk-link" href="https://help.steampowered.com/faqs/view/4F62-35F9-F395-5C23" target="_blank" rel="noopener noreferrer">
-                        受限制的帳戶（Restricted）<span class="ext">↗</span></a>
-                    <a class="chk-link" href="https://help.steampowered.com/faqs/view/06B0-26E6-2CF8-254C" target="_blank" rel="noopener noreferrer">
-                        Steam 守護行動版驗證器<span class="ext">↗</span></a>
-                    <a class="chk-link" href="https://help.steampowered.com/wizard/HelpWithEconTrading" target="_blank" rel="noopener noreferrer">
-                        查我目前的交易限制<span class="ext">↗</span></a>
-                </div>
-                <ul id="eligibility-checklist" class="t-body c-ink2" style="margin:20px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
-                    <li style="display:flex;gap:12px;align-items:flex-start">
-                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
-                            <input type="checkbox" data-id="spend5" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="帳號已消費滿 US$5">
-                        </label>
-                        <span><span class="c-ink" style="font-weight:600">帳號已消費滿 US$5</span>（買遊戲或儲值都算）。低於此門檻的 Limited 帳號不能用社群市場與交易功能。</span>
-                    </li>
-                    <li style="display:flex;gap:12px;align-items:flex-start">
-                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
-                            <input type="checkbox" data-id="mobileauth" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="已開啟 Steam 手機驗證器">
-                        </label>
-                        <span><span class="c-ink" style="font-weight:600">已開啟 Steam 手機驗證器並啟用一段時間</span>。未開通時交易一律有 7 日鎖定；開通滿 7 天後鎖定可縮短，滿 15 天後大多數交易鎖定可再降到 0～48 小時——但透過市場買賣的物品本身仍固定有 7 日鎖定期。</span>
-                    </li>
-                    <li style="display:flex;gap:12px;align-items:flex-start">
-                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
-                            <input type="checkbox" data-id="noban" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="帳號沒有交易鎖定或 VAC 停權">
-                        </label>
-                        <span><span class="c-ink" style="font-weight:600">帳號目前沒有交易鎖定或 VAC 停權</span>。有這些紀錄的帳號無法在市場掛售或交易。</span>
-                    </li>
-                    <li style="display:flex;gap:12px;align-items:flex-start">
-                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
-                            <input type="checkbox" data-id="marketcooldown" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="了解 7 日市場鎖定期">
-                        </label>
-                        <span><span class="c-ink" style="font-weight:600">了解透過市場買進的物品一律有 7 日鎖定期</span>，這點與手機驗證器開通天數無關，到期前無法動用、也無法提前轉移。</span>
-                    </li>
-                    <li style="display:flex;gap:12px;align-items:flex-start">
-                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-10px 0 0 -10px;flex:none;cursor:pointer">
-                            <input type="checkbox" data-id="yearlypurchase" class="eligibility-check" style="width:18px;height:18px;accent-color:#22d3ee;cursor:pointer" aria-label="過去一年內有消費紀錄">
-                        </label>
-                        <span><span class="c-ink" style="font-weight:600">過去一年內在 Steam 有消費紀錄</span>，避免市場存取權限因帳號長期無消費而被收回。</span>
-                    </li>
-                </ul>
-                <p id="eligibility-progress" class="t-aux c-ink3" style="margin:20px 0 0"></p>
-            </div>
-        </section>
-
-        <section class="flow-md">
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">準備好了就開始算</h2>
@@ -335,50 +502,146 @@
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
     <script src="assets/site.js"></script>
     <script>
-        // Steam 帳號資格檢查清單：勾選狀態存在 localStorage，方便使用者分次確認、下次回來不用重勾
-        const ELIGIBILITY_STORAGE_KEY = 'steamHelperEligibilityChecklist';
+        /* A 段的勾選：維護 sah-setup-v1。（2026-08-24 從 setup.html 併進來）
+           門檻常數、時間模型、狀態讀寫全部在 site.js 第⑩節，
+           **不要在這裡另立一套**——試算頁讀的是同一份。
 
-        function loadEligibilityState() {
-            try {
-                return JSON.parse(localStorage.getItem(ELIGIBILITY_STORAGE_KEY) || '{}');
-            } catch (e) {
-                return {};
-            }
-        }
-        function saveEligibilityState(state) {
-            try {
-                localStorage.setItem(ELIGIBILITY_STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {
-                // localStorage 不可用（例如無痕模式限制）時，靜默忽略，不影響本次瀏覽的勾選行為
-            }
-        }
-        function updateEligibilityProgress() {
-            const boxes = document.querySelectorAll('.eligibility-check');
-            const progressEl = document.getElementById('eligibility-progress');
-            if (!boxes.length || !progressEl) return;
-            const total = boxes.length;
-            const done = [...boxes].filter(b => b.checked).length;
-            progressEl.textContent = done === total
-                ? `五項都確認完成（${done}/${total}），可以開始操作流程。`
-                : `已確認 ${done}/${total} 項`;
-        }
-        function initEligibilityChecklist() {
-            const state = loadEligibilityState();
-            document.querySelectorAll('.eligibility-check').forEach(box => {
-                const id = box.dataset.id;
-                box.checked = !!state[id];
-                box.addEventListener('change', () => {
-                    const s = loadEligibilityState();
-                    s[id] = box.checked;
-                    saveEligibilityState(s);
-                    updateEligibilityProgress();
-                });
+           ⚠️ 這一頁原本底下還有第三份「Steam 帳號資格檢查清單」，用的是
+              `steamHelperEligibilityChecklist` 這個獨立的 key，跟 `sah-eligibility-v2`
+              與 `sah-setup-v1` 都不同步。同一個人可能在三個地方各勾一次，而且三邊
+              講的話還不一樣。2026-08-24 刪掉——**資格判斷全站只留一個來源**，
+              跟「值不值得的結論只留在試算頁」是同一條原則。
+              那份清單裡兩條別處沒有的事實已經搬走：市場物品固定 7 日鎖定 → B 段第 3 步；
+              過去一年要有消費紀錄 → A 段第 2 項。 */
+        const STEP_IDS = SETUP_STEPS.map(s => s.id);
+
+        /* 從資格快檢帶入：使用者已經在那一頁回答過同樣的問題，
+           再問一次只會讓人覺得這個站沒在記東西。
+           ⚠️ 只帶入「通過」的答案。unknown／no 一律不帶——
+              「不確定」不等於「有」，自動勾起來等於替他宣稱一件他沒說過的事。 */
+        function eligPrefill() {
+            const elig = readEligibility();   // site.js 第⑫節，讀不到會回 {}
+            const out = {};
+            SETUP_STEPS.forEach(s => {
+                if (s.fromElig && elig[s.fromElig.q] === s.fromElig.pass) out[s.id] = true;
             });
-            updateEligibilityProgress();
+            return out;
         }
 
-        initEligibilityChecklist();
-    
+        function state() { return readSetupState(); }
+
+        function doneCount(s) {
+            return STEP_IDS.filter(id => !!s.steps[id]).length;
+        }
+
+        function paint() {
+            const s = state();
+            const prefilled = eligPrefill();
+
+            STEP_IDS.forEach(id => {
+                const box = document.querySelector('.su-box[data-step="' + id + '"]');
+                const card = document.getElementById('su-card-' + id);
+                const on = !!s.steps[id];
+                if (box) box.checked = on;
+                if (card) card.dataset.done = on ? '1' : '0';
+                const tag = document.querySelector('.su-from-elig[data-elig-for="' + id + '"]');
+                if (tag) tag.hidden = !(on && prefilled[id]);
+            });
+
+            const done = doneCount(s);
+            document.querySelectorAll('.prog-seg').forEach((seg, i) => seg.classList.toggle('is-done', i < done));
+            document.getElementById('su-progressbar').setAttribute('aria-valuenow', done);
+            document.getElementById('su-progress-text').textContent =
+                s.source === 'manual' ? '你標記過「在別的裝置設定過了」'
+                : (done === 0 ? '還沒開始，共 5 項'
+                : (done >= STEP_IDS.length ? '五項都完成了' : `已完成 ${done} / 5 項`));
+
+            renderResult(s, done);
+        }
+
+        function renderResult(s, done) {
+            const box = document.getElementById('su-result');
+            if (!s.doneAt) {
+                const left = STEP_IDS.length - done;
+                box.innerHTML = `<div class="card card-roomy" style="text-align:center">
+                    <p class="t-body c-ink3 flow-0">還有 ${left} 項沒完成。五項都做完之後，試算頁就會改用「第二次以後」的成本來判斷值不值得。</p>
+                </div>`;
+                return;
+            }
+            const when = new Date(s.doneAt);
+            const via = s.source === 'manual' ? '（你自己標記的，沒有逐項勾選）' : '';
+            box.innerHTML = `
+                <div class="card">
+                    <span class="badge badge-go">設定完成</span>
+                    <h2 class="t-sect flow-md" style="color:var(--pos)">之後每一輪只剩下面那四步</h2>
+                    <p class="t-body c-ink2 flow-sm">
+                        試算頁的門檻已經改用第二次以後的成本，不會再把這五件事算進去。
+                        完成時間：${when.toLocaleDateString('zh-TW')} ${via}
+                    </p>
+                    <p class="t-aux c-ink3 flow-sm">
+                        ⚠️ 這只是「這台裝置的紀錄」，不是帳號狀態。Steam 那邊如果之後出現交易限制，這裡不會知道。
+                    </p>
+                    <div class="flow-lg" style="display:flex;flex-wrap:wrap;gap:12px">
+                        <a href="calculator.html" class="btn btn-primary">去試算</a>
+                    </div>
+                </div>`;
+        }
+
+        /* 全部勾完才蓋 doneAt。取消任何一項就把它清掉——
+           ⚠️ 不要保留「曾經完成過」，否則使用者發現自己其實沒綁交易連結、
+              回來取消勾選，試算頁卻還在用回訪門檻。 */
+        function setStep(id, on) {
+            const s = state();
+            if (on) s.steps[id] = new Date().toISOString();
+            else delete s.steps[id];
+            const all = STEP_IDS.every(k => !!s.steps[k]);
+            if (all && !s.doneAt) { s.doneAt = new Date().toISOString(); s.source = 'checklist'; }
+            if (!all && s.source !== 'manual') { s.doneAt = null; s.source = null; }
+            writeSetupState(s);
+            paint();
+        }
+
+        document.querySelectorAll('.su-box').forEach(box => {
+            box.addEventListener('change', () => setStep(box.dataset.step, box.checked));
+        });
+
+        document.getElementById('su-manual').addEventListener('click', () => {
+            const s = state();
+            s.doneAt = new Date().toISOString();
+            s.source = 'manual';
+            STEP_IDS.forEach(id => { if (!s.steps[id]) s.steps[id] = s.doneAt; });
+            writeSetupState(s);
+            paint();
+            document.getElementById('su-result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        document.getElementById('su-reset').addEventListener('click', () => {
+            try { localStorage.removeItem(SETUP_STORAGE_KEY); } catch (e) { /* 忽略 */ }
+            paint();
+        });
+
+        /* 首次進站時把資格快檢的答案帶進來（只帶入、不覆蓋既有勾選）。 */
+        (function bootstrapFromElig() {
+            const s = state();
+            if (s.doneAt) return;                    // 已完成就不要再動
+            const pre = eligPrefill();
+            let changed = false;
+            Object.keys(pre).forEach(id => {
+                if (!s.steps[id]) { s.steps[id] = new Date().toISOString(); changed = true; }
+            });
+            if (changed) writeSetupState(s);
+        })();
+
+        /* 頁首那兩個時間：直接從 site.js 的模型算，不要在這裡寫死數字。
+           每輪時間用 0 件顯示「固定開銷」，件數的部分交給試算頁講。 */
+        (function paintTimeModel() {
+            const m = opMinutes(0);
+            document.getElementById('su-setup-time').textContent = minutesText(m.setup);
+            document.getElementById('su-setup-cost').textContent = 'NT$ ' + Math.round(minutesToTwd(m.setup));
+            document.getElementById('su-round-time').textContent = minutesText(m.round) + '起';
+        })();
+
+        paint();
     </script>
 </body>
 </html>

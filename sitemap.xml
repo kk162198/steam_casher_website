@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 只列可獨立索引的頁面。
      不列入：case.html（內容依 ?name= 參數動態產生，沒有靜態網址）、
-             design-system.html 與 nav-footer-preview.html（內部參考頁）。 -->
+             design-system.html 與 nav-footer-preview.html（內部參考頁）、
+             setup.html（2026-08-24 併進 help.html，只留一個轉址頁，已標 noindex）。 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kk162198.github.io/steam_casher_website/</loc>
@@ -27,11 +28,6 @@
     <loc>https://kk162198.github.io/steam_casher_website/help.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://kk162198.github.io/steam_casher_website/setup.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://kk162198.github.io/steam_casher_website/checklist.html</loc>

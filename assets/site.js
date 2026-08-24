@@ -538,7 +538,7 @@ function downloadIcs(text, filename) {
       陣列而不是單一物件——這個 key 的格式已經改過一次了，不要再改第三次。
 
    ⚠️ **沒填的數量一律當「不知道」，不要當 0，也不要靜默當成計畫數量。**
-      兩個方向都是替使用者宣稱一件他沒說過的事，跟 `setup.html` 那條
+      兩個方向都是替使用者宣稱一件他沒說過的事，跟指南頁「只做一次」那條
       「`unknown` / `no` 不自動帶入」是同一個原則。退回計畫數量可以，
       但一定要帶著 `qtyIsEstimate` 讓畫面標示出來。
 
@@ -888,13 +888,13 @@ function saveHoldingsToDevice(items) {
 
    ## 判定「已經是回訪者」用什麼
 
-   `setup.html` 的五個步驟全部勾完 → `doneAt` 有值 → 之後一律用回訪成本。
+   指南頁「只做一次」的五個步驟全部勾完 → `doneAt` 有值 → 之後一律用回訪成本。
 
    ⚠️ 刻意**不用**到訪次數。來看五次但一次都沒買過的人，操作時間仍然是
       第一次的那個數字；到訪次數量的是「看過」不是「做過」。
 
    ⚠️ `localStorage` 不跨裝置：桌機設定完、手機打開會退回首訪。所以
-      `setup.html` 一定要保留一個「我在別的裝置設定過了」的手動開關，
+      指南頁一定要保留一個「我在別的裝置設定過了」的手動開關，
       那不是便利功能，是這個判定方式的必要補丁。
 
    ## 時間怎麼算
@@ -933,7 +933,8 @@ var VERDICT_SAFE_MULTIPLE = 2;
 
 var SETUP_STORAGE_KEY = 'sah-setup-v1';
 
-/* setup.html 的一次性步驟。id 同時是 localStorage 裡的 key，上線後不要改。
+/* 指南頁「只做一次」的五個步驟（2026-08-24 前住在 setup.html）。
+   id 同時是 localStorage 裡的 key，上線後不要改。
    fromElig：可以從資格快檢（sah-eligibility-v2）的哪一題自動帶入。 */
 var SETUP_STEPS = [
   { id: 'authenticator', fromElig: { q: 'q2', pass: 'yes' } },
@@ -1040,7 +1041,7 @@ function steamNetUsd(grossUsd) {
 }
 
 /* ── ⑫ 資格快檢狀態 ─────────────────────────────────────────
-   `eligibility.html` 的答案。三個頁面在讀它（eligibility / setup /
+   `eligibility.html` 的答案。三個頁面在讀它（eligibility / help /
    2026-08-24 起加上 index），key 字串原本各寫一份，集中到這裡。
 
    ⚠️ v2：q3 的 data-val 語意在 2026-08 修正過（yes 從「沒有限制」改成
