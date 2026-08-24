@@ -193,6 +193,20 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('沒有進度列', document.getElementById('shopping-progress'), null);
     eq('沒有清除全部勾選', document.getElementById('shopping-reset-btn'), null);
 
+    /* 三組篩選鈕的方向要一致：最左邊都是最寬鬆的那一個。
+       只有一組反過來的話，使用者掃過去會以為自己選的是另一端。 */
+    const firstOf = id => document.querySelector('#' + id + ' button').textContent.trim();
+    eq('佔比上限最左是「不限」', firstOf('cap-group'), '不限');
+    eq('保守緩衝最左是「不留緩衝」', firstOf('buffer-group'), '不留緩衝');
+    eq('流動性篩選最左是「不限」', firstOf('liq-group'), '不限');
+    eq('佔比上限由寬到嚴',
+      [...document.querySelectorAll('#cap-group button')].map(b => b.dataset.cap),
+      ['1', '0.3333', '0.2', '0.1']);
+    // ⚠️ 反過來排只動 DOM 順序，預設值不變
+    eq('預設仍是 20%',
+      [...document.querySelectorAll('#cap-group button')]
+        .find(b => b.getAttribute('aria-pressed') === 'true').dataset.cap, '0.2');
+
     // 直接叫樣板產一列，確認裡面沒有任何可操作的東西
     const html = window.renderComboRow(
       { name: 'Kilowatt Case', qty: 20, inventory: 99, volume: 5000, updatedAt: '2026-08-24T00:00:00.000Z' },
@@ -201,6 +215,15 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('列裡沒有交易連結', /trade-link/.test(html), false);
     eq('出口在表之前：頁面上有兩顆產生購物清單',
       [...document.querySelectorAll('a[href="checklist.html"]')].length, 2);
+
+    /* 兩個金額欄位：標籤與數字的字級差距不要拉太開，否則看起來像兩塊
+       獨立的數字，而不是「這個欄位叫什麼、值是多少」。 */
+    const calcCss = fs.readFileSync(__dirname + '/../calculator.html', 'utf8')
+      .replace(/\s*\n\s*/g, '');
+    eq('輸入數字是 24px（不是 32）', /\.result-input\s*\{[^}]*font-size:\s*24px/.test(calcCss), true);
+    eq('兩個欄位標籤都用 t-sub',
+      [...document.querySelectorAll('label[for="target-input"], label[for="budget-input"]')]
+        .every(l => l.classList.contains('t-sub')), true);
 
     // 顯示用的資訊要留著
     eq('數量還在', html.includes('20 個'), true);

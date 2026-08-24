@@ -78,7 +78,11 @@
             border-bottom: 1px solid #64748b;
         }
         .base-input { color: #22d3ee; }
-        .result-input { color: #22d3ee; font-size: 32px; }
+        /* ⚠️ 2026-08-24：32 → 24px，欄位標籤同時從 t-aux(14) 放大到 t-sub(17/18)。
+           原本 14px 的標籤配 32px 的數字，差了一個級距以上——兩個欄位長得像
+           兩塊獨立的數字，而不是「這個欄位叫什麼、值是多少」。
+           ⚠️ 24px 仍高於 .t-sect(20/24)，它還是這一區最大的東西，只是不再壓過標籤。 */
+        .result-input { color: #22d3ee; font-size: 24px; }
         .base-input { font-size: 20px; }
         .base-input:focus-visible, .result-input:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
         .base-input::-webkit-inner-spin-button, .base-input::-webkit-outer-spin-button,
@@ -153,7 +157,7 @@
                         <!-- 左欄：輸入 -->
                         <div class="calc-inputs">
                             <div class="calc-field" style="gap:4px">
-                                <label for="target-input" class="t-aux c-ink2">目標 Steam 餘額</label>
+                                <label for="target-input" class="t-sub c-ink">目標 Steam 餘額</label>
                                 <div style="display:flex;align-items:baseline;gap:8px">
                                     <span class="t-sub c-ink3">NT$</span>
                                     <input type="number" id="target-input" class="result-input" value="3000" min="0" step="50">
@@ -166,7 +170,7 @@
                             </div>
 
                             <div class="calc-field" style="gap:4px">
-                                <label for="budget-input" class="t-aux c-ink2">投入現金</label>
+                                <label for="budget-input" class="t-sub c-ink">投入現金</label>
                                 <div style="display:flex;align-items:baseline;gap:8px">
                                     <span class="t-sub c-ink3">NT$</span>
                                     <input type="number" id="budget-input" class="result-input" value="0" min="0" step="50">
@@ -181,11 +185,16 @@
 
                             <div class="calc-field">
                                 <span class="t-aux c-ink2">單一武器箱佔比上限</span>
+                                <!-- ⚠️ 2026-08-24 反過來排：不限 → 33% → 20% → 10%。
+                                     原本是 10% 在最左，而底下的「保守緩衝」與「流動性篩選」
+                                     都是「不限／不留」在最左、越往右越嚴。三組並排卻只有這一組
+                                     方向相反，使用者掃過去會以為自己選的是另一端。
+                                     ⚠️ 只動 DOM 順序，data-cap 的值與預設 0.2 都不變。 -->
                                 <div id="cap-group" role="group" aria-label="單一武器箱佔比上限" style="display:flex;flex-wrap:wrap;gap:8px">
-                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.1">10%</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.2">20%</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.3333">33%</button>
                                     <button type="button" class="btn btn-sm btn-secondary" data-cap="1">不限</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.3333">33%</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.2">20%</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-cap="0.1">10%</button>
                                 </div>
                                 <p class="t-note c-ink3 flow-0">避免整筆錢壓在同一個箱子上。上限愈低愈分散，倍率可能略降。</p>
                             </div>
