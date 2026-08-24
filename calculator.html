@@ -237,9 +237,23 @@
                                 <p id="liq-note" class="t-note c-ink3 flow-0"></p>
                             </div>
 
+                            <!-- ⚠️ 2026-08-24 改名。原本叫「重新載入最新資料」，實測有使用者
+                                 以為那是**把試算重置**——「重新」＋「載入」讀起來就像清空重來，
+                                 而它其實只是去重抓匯率與市場報價，填的金額與選的檔位完全不動。
+
+                                 兩個改法一起下：
+                                 ① 按鈕直接講它抓什麼（匯率與報價），不要用「重新載入」這種
+                                    在別的網站上通常意味著「捨棄目前狀態」的字。
+                                 ② 底下補一句明說不會動到輸入——光改名不夠，會怕的人需要被
+                                    講明白才敢按。
+                                 ⚠️ 這一句是 flex 容器裡的第三個子項，用 flex:1 0 100% 讓它
+                                    自己佔一行，不要跟按鈕擠在同一行。 -->
                             <div class="calc-foot">
-                                <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">重新載入最新資料</button>
+                                <button id="reload-btn" type="button" class="btn btn-secondary btn-sm">更新匯率與報價</button>
                                 <p id="rate-note" class="t-note c-ink3 flow-0">匯率載入中...</p>
+                                <p class="t-note c-ink3 flow-0" style="flex:1 0 100%">
+                                    只重抓匯率與 CSFloat／Steam 的報價，<strong class="c-ink2">不會清掉你填的金額或選的檔位</strong>。
+                                </p>
                             </div>
                         </div>
 
@@ -831,10 +845,11 @@
                 const response = await fetch('https://open.er-api.com/v6/latest/USD');
                 const data = await response.json();
                 usdToTwd = data.rates.TWD;
-                rateNote.innerText = `匯率 1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
+                rateNote.innerText = `目前用的匯率：1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
             } catch (error) {
                 usdToTwd = 32.5;
-                rateNote.innerText = `匯率抓取失敗，暫用 1 USD ≈ 32.5 TWD`;
+                // ⚠️ 抓不到就明說是預設值，不要顯示成一個看起來像即時匯率的數字
+                rateNote.innerText = `匯率抓不到，暫用預設值 1 USD ≈ 32.5 TWD`;
             }
         }
 
@@ -1174,13 +1189,16 @@
                 budgetNote.textContent = '';
             }
         });
+        /* ⚠️ 按鈕文字改了（見上方 HTML 的註解），這裡的三處字串要跟著一致。
+           它只重抓匯率與報價再算一次，**沒有任何一行會動到使用者填的值**——
+           targetInput / budgetInput / capPct / bufferTierId / liqFilterId 全部原樣。 */
         reloadBtn.addEventListener('click', async () => {
             reloadBtn.disabled = true;
-            reloadBtn.innerText = '載入中...';
+            reloadBtn.innerText = '更新中...';
             await Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })]);
             runCalculation('target');
             reloadBtn.disabled = false;
-            reloadBtn.innerText = '重新載入最新資料';
+            reloadBtn.innerText = '更新匯率與報價';
         });
 
         capGroup.addEventListener('click', (e) => {

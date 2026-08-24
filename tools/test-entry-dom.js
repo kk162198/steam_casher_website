@@ -221,6 +221,22 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const calcCss = fs.readFileSync(__dirname + '/../calculator.html', 'utf8')
       .replace(/\s*\n\s*/g, '');
     eq('輸入數字是 24px（不是 32）', /\.result-input\s*\{[^}]*font-size:\s*24px/.test(calcCss), true);
+
+    /* 更新按鈕：實測有人以為它是「把試算重置」。
+       ⚠️ 按鈕文字要講它抓什麼，而且旁邊要明說不會動到輸入——
+          光改名不夠，會怕的人需要被講明白才敢按。 */
+    const reload = document.getElementById('reload-btn');
+    eq('按鈕不再叫「重新載入」', /重新載入/.test(reload.textContent), false);
+    eq('按鈕講明抓的是匯率與報價', reload.textContent.trim(), '更新匯率與報價');
+    eq('旁邊明說不會清掉輸入',
+      reload.closest('.calc-foot').textContent.includes('不會清掉你填的金額'), true);
+    // 按下去之後填的值真的不能變
+    const before = { t: document.getElementById('target-input').value,
+                     b: document.getElementById('budget-input').value };
+    reload.dispatchEvent(new window.Event('click'));
+    await new Promise(r => setTimeout(r, 50));
+    eq('按了之後目標金額沒被清掉', document.getElementById('target-input').value, before.t);
+    eq('按了之後投入現金沒被清掉', document.getElementById('budget-input').value, before.b);
     eq('兩個欄位標籤都用 t-sub',
       [...document.querySelectorAll('label[for="target-input"], label[for="budget-input"]')]
         .every(l => l.classList.contains('t-sub')), true);
