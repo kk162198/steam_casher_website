@@ -229,12 +229,21 @@
         }
 
         /* 欄位寫入。空字串一律存 null（＝沒填），不要存 0——
-           「買到 0 個」和「還沒填」在統計上是完全不同的兩件事。 */
+           「買到 0 個」和「還沒填」在統計上是完全不同的兩件事。
+
+           ⚠️ 兩個欄位的數字型別不一樣，不要共用一條收斂規則：
+             qty     件數，一定是整數。填 13.5 個箱子沒有意義。
+             paidTwd 金額，2026-08-24 起**允許兩位小數**——刷卡帳單上的
+                     金額本來就有角有分，逼人四捨五入等於要他報一個假的數字，
+                     而這個欄位存在的唯一理由就是量「預期 vs 實際」的落差。
+                     走 site.js 的 roundTwd()，順便把浮點誤差收掉。 */
         function setLotField(name, idx, field, rawValue) {
             const e = checkedMap[name];
             if (!e || !e.lots[idx]) return;
             const v = String(rawValue).trim();
-            e.lots[idx][field] = (v === '') ? null : Math.max(0, Number(v) || 0);
+            if (v === '') { e.lots[idx][field] = null; }
+            else if (field === 'qty') { e.lots[idx][field] = Math.max(0, Math.floor(Number(v) || 0)); }
+            else { e.lots[idx][field] = roundTwd(v); }   // site.js 第⑬節
             writeChecked();
         }
 
@@ -328,7 +337,7 @@
                 <td data-label="計畫">
                     <span class="cell-stack">
                         <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
-                        <span class="t-note c-ink3">估 NT$ ${item.unitCostTwd.toFixed(0)}／個・NT$ ${planSubtotal.toFixed(0)}</span>
+                        <span class="t-note c-ink3">估 NT$ ${fmtTwd(item.unitCostTwd)}／個・NT$ ${fmtTwd(planSubtotal)}</span>
                     </span>
                 </td>
                 <td data-label="買到幾個">
@@ -346,13 +355,13 @@
                     <span class="cell-stack">
                         <label style="display:inline-flex;align-items:center;gap:6px">
                             <span class="c-ink3 t-note">NT$</span>
-                            <input type="number" inputmode="decimal" min="0" step="1" class="fill-in"
+                            <input type="number" inputmode="decimal" min="0" step="0.01" class="fill-in"
                                    data-paid-for="${escapeHtml(item.name)}" data-lot="0"
                                    value="${lot && lot.paidTwd != null ? lot.paidTwd : ''}"
-                                   placeholder="${planSubtotal.toFixed(0)}"${isChecked ? '' : ' disabled'}
+                                   placeholder="${fmtTwd(planSubtotal)}"${isChecked ? '' : ' disabled'}
                                    aria-label="${escapeHtml(item.name)} 這一批實付總額">
                         </label>
-                        ${isChecked ? '<span class="t-note c-ink3">填結帳總額，不是單價</span>' : ''}
+                        ${isChecked ? '<span class="t-note c-ink3">填結帳總額，不是單價・可以填到角分</span>' : ''}
                     </span>
                 </td>
                 <td data-label="已買到">
@@ -379,7 +388,7 @@
                 <td data-label="實付總額">
                     <label style="display:inline-flex;align-items:center;gap:6px">
                         <span class="c-ink3 t-note">NT$</span>
-                        <input type="number" inputmode="decimal" min="0" step="1" class="fill-in"
+                        <input type="number" inputmode="decimal" min="0" step="0.01" class="fill-in"
                                data-paid-for="${escapeHtml(item.name)}" data-lot="${idx}"
                                value="${lot.paidTwd != null ? lot.paidTwd : ''}" placeholder="0"
                                aria-label="${escapeHtml(item.name)} 第 ${idx + 1} 批實付總額">
@@ -419,7 +428,7 @@
 
             prog.textContent = `${doneItems.length} / ${items.length}`;
             note.textContent = `共 ${doneQty}${qtyEst ? '（含估計）' : ''} / ${totalQty} 件・`
-                + (paidEst ? '已花約 NT$ ' : '實付 NT$ ') + spent.toFixed(0);
+                + (paidEst ? '已花約 NT$ ' : '實付 NT$ ') + fmtTwd(spent);
             bar.style.width = (items.length ? (doneItems.length / items.length) * 100 : 0) + '%';
 
             /* 勾了東西就把冷卻期的終點講出來。使用者在這一刻最需要知道的不是

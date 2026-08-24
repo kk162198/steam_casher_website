@@ -524,8 +524,8 @@
                     <span class="t-note c-ink3" style="font-weight:400;display:block">佔金額 ${Number(vals.sharePct || 0).toFixed(0)}%</span>
                     ${shareLine}
                 </td>
-                <td data-label="單價">NT$ ${vals.unitCostTwd.toFixed(0)}
-                    <span class="t-note c-ink3" style="display:block">小計 NT$ ${vals.subtotalTwd.toFixed(0)}・到手 NT$ ${vals.valueTwd.toFixed(0)}</span>
+                <td data-label="單價">NT$ ${fmtTwd(vals.unitCostTwd)}
+                    <span class="t-note c-ink3" style="display:block">小計 NT$ ${fmtTwd(vals.subtotalTwd)}・到手 NT$ ${fmtTwd(vals.valueTwd)}</span>
                     <span class="t-note c-ink3" style="display:block">${chip}</span>
                 </td>
                 <td class="c-ink2" data-label="庫存">${row.inventory}</td>
@@ -592,15 +592,15 @@
             if (floorTwd !== null) {
                 const worstSavings = floorTwd - costTwd;
                 savingsEl.className = 'num c-pos';
-                savingsEl.innerHTML = `順利的話省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`
+                savingsEl.innerHTML = `順利的話省下 NT$ ${fmtTwd(savings)}（約 ${pct.toFixed(0)}%）`
                     + `<br><span class="t-aux ${worstSavings >= 0 ? 'c-ink2' : 'c-warn'}" style="font-weight:400">`
                     + (worstSavings >= 0
-                        ? `最差情況仍省下 NT$ ${worstSavings.toFixed(0)}`
-                        : `最差情況倒賠 NT$ ${Math.abs(worstSavings).toFixed(0)}`)
+                        ? `最差情況仍省下 NT$ ${fmtTwd(worstSavings)}`
+                        : `最差情況倒賠 NT$ ${fmtTwd(Math.abs(worstSavings))}`)
                     + `</span>`;
             } else {
                 savingsEl.className = 'num c-pos';
-                savingsEl.textContent = `省下 NT$ ${savings.toFixed(0)}（約 ${pct.toFixed(0)}%）`;
+                savingsEl.textContent = `省下 NT$ ${fmtTwd(savings)}（約 ${pct.toFixed(0)}%）`;
             }
 
             /* 判斷用「順利的話省下多少」。有開緩衝而且最差情況會倒賠時
@@ -616,19 +616,19 @@
             /* 第一句：把「省下多少」和「要花多少時間」擺在一起。
                件數要講出來——它是時間的來源，也是使用者唯一能調整的變數。 */
             const timeLine = `要買 ${qty} 件，約花${minutesText(v.roundMin)}`
-                + `（時薪 NT$196 計 ≈ NT$ ${Math.round(v.roundCost)}）`;
+                + `（時薪 NT$196 計 ≈ NT$ ${fmtTwd(v.roundCost)}）`;
 
             let head;
             if (brokeFloor) {
                 head = `這個緩衝檔位下最差情況會倒賠。該做的是不做，不是換一個寬鬆的檔位。`;
             } else if (tier === 'no') {
-                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省的不夠付時間，還要等 7 天。`
+                head = `省下約 NT$ ${fmtTwd(savings)}，${timeLine}。省的不夠付時間，還要等 7 天。`
                      + `建議直接用官方儲值或信用卡回饋。`;
             } else if (tier === 'maybe') {
-                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。省得比時間多，但沒多太多，`
+                head = `省下約 NT$ ${fmtTwd(savings)}，${timeLine}。省得比時間多，但沒多太多，`
                      + `而且資金要鎖 7 天。`;
             } else {
-                head = `省下約 NT$ ${savings.toFixed(0)}，${timeLine}。前提是你本來就要在 Steam 花這筆錢。`;
+                head = `省下約 NT$ ${fmtTwd(savings)}，${timeLine}。前提是你本來就要在 Steam 花這筆錢。`;
             }
 
             /* 第二句：兩段式揭露。首次成本只講給還沒設定過的人聽，
@@ -640,7 +640,7 @@
                 const withSetup = savings >= (v.roundCost + v.setupCost);
                 tail = `<br><span class="t-note ${withSetup ? 'c-ink3' : 'c-warn'}" style="font-weight:400">`
                      + `首次還要一次性設定${minutesText(OP_TIME.setupMinutes)}`
-                     + `（≈ NT$ ${Math.round(v.setupCost)}）。`
+                     + `（≈ NT$ ${fmtTwd(v.setupCost)}）。`
                      + (withSetup
                         ? `算進去仍然划算。`
                         : `算進去就不划算了，但設定只做一次。`)
@@ -836,7 +836,7 @@
             const typed = Number(budgetInput.value) || 0;
             const diff = typed - rounded;
             budgetNote.textContent = diff > 0
-                ? `實際會花 NT$ ${rounded}，比你填的少 NT$ ${diff}（只能整件買）。`
+                ? `實際會花 NT$ ${fmtTwd(rounded)}，比你填的少 NT$ ${fmtTwd(diff)}（只能整件買）。`
                 : '';
         }
 
@@ -1010,8 +1010,8 @@
 
             if (combo.length === 0) {
                 comboBody.innerHTML = `<tr><td class="c-warn" colspan="5" style="padding:32px 0;text-align:center">目標金額太低，或目前沒有符合條件的武器箱</td></tr>`;
-                resultCost.innerText = `NT$ 0`;
-                resultValue.innerText = `NT$ 0`;
+                resultCost.innerText = `NT$ ${fmtTwd(0)}`;
+                resultValue.innerText = `NT$ ${fmtTwd(0)}`;
                 resultRatio.innerText = `--`;
                 costOutput.textContent = '--';
                 updateVerdict(targetTwd, 0, 0, 0); // 畫面層
@@ -1059,10 +1059,10 @@
             renderTimestamps(comboBody);              // 畫面層：換算每一列的資料時間
             saveComboForChecklist(combo, usdToTwd);   // 畫面層：供購物清單頁讀取
 
-            resultCost.innerText = `NT$ ${totalCostTwd.toFixed(0)}`;
-            resultValue.innerText = `NT$ ${totalValueTwd.toFixed(0)}`;
-            resultRatio.innerText = reached ? `x${effectiveRatio.toFixed(2)}｜溢出 NT$ ${overshootTwd.toFixed(0)}` : `x${effectiveRatio.toFixed(2)}`;
-            costOutput.textContent = `NT$ ${totalCostTwd.toFixed(0)}`;
+            resultCost.innerText = `NT$ ${fmtTwd(totalCostTwd)}`;
+            resultValue.innerText = `NT$ ${fmtTwd(totalValueTwd)}`;
+            resultRatio.innerText = reached ? `x${effectiveRatio.toFixed(2)}｜溢出 NT$ ${fmtTwd(overshootTwd)}` : `x${effectiveRatio.toFixed(2)}`;
+            costOutput.textContent = `NT$ ${fmtTwd(totalCostTwd)}`;
 
             /* 保守緩衝的兩行顯示。
                ⚠️ 這裡刻意把「最差情況」講成金額而不是百分比：使用者要決定的是
@@ -1070,7 +1070,7 @@
             if (tier.drop > 0) {
                 // 標籤要短：390px 時「最差情況仍有（賣價少 16.0%）」會把這一列撐成 3 行
                 floorLabel.textContent = `最差情況仍有（−${(tier.drop * 100).toFixed(1)}%）`;
-                resultFloor.textContent = `NT$ ${floorTwd.toFixed(0)}`;
+                resultFloor.textContent = `NT$ ${fmtTwd(floorTwd)}`;
                 /* ⚠️ 綠色的條件是「有達標**而且**沒倒賠」兩個都要成立。
                    只看達標的話，會出現「保底金額標綠色、底下同時掛著倒賠警示」
                    這種自相矛盾的畫面——保底達成但整筆是賠的，那不是好消息。 */
@@ -1089,7 +1089,7 @@
                    而不是換一個檔位再算一次。 */
                 if (worstRatio < 1) {
                     const lossTwd = totalCostTwd - floorTwd;
-                    floorWarn.textContent = `⚠️ 這個檔位最差情況是倒賠：花 NT$ ${totalCostTwd.toFixed(0)} 只換到 NT$ ${floorTwd.toFixed(0)}，虧 NT$ ${lossTwd.toFixed(0)}（x${worstRatio.toFixed(2)}）。多買補不回來。真的不能少就用官方儲值。`;
+                    floorWarn.textContent = `⚠️ 這個檔位最差情況是倒賠：花 NT$ ${fmtTwd(totalCostTwd)} 只換到 NT$ ${fmtTwd(floorTwd)}，虧 NT$ ${fmtTwd(lossTwd)}（x${worstRatio.toFixed(2)}）。多買補不回來。真的不能少就用官方儲值。`;
                     floorWarn.style.display = 'block';
                 }
             }
@@ -1106,8 +1106,8 @@
                 const extraTwd = totalCostTwd - baseCostTwd;
                 if (base.combo.length > 0 && Math.abs(extraTwd) >= 1) {
                     liqCost.textContent = extraTwd > 0
-                        ? `篩選的代價：同樣拿到 NT$ ${totalValueTwd.toFixed(0)}，不篩只要 NT$ ${baseCostTwd.toFixed(0)}，你多付 NT$ ${extraTwd.toFixed(0)}（約 ${(extraTwd / baseCostTwd * 100).toFixed(1)}%）換賣得掉。`
-                        : `篩選後反而便宜 NT$ ${Math.abs(extraTwd).toFixed(0)}——被篩掉的本來就不划算。`;
+                        ? `篩選的代價：同樣拿到 NT$ ${fmtTwd(totalValueTwd)}，不篩只要 NT$ ${fmtTwd(baseCostTwd)}，你多付 NT$ ${fmtTwd(extraTwd)}（約 ${(extraTwd / baseCostTwd * 100).toFixed(1)}%）換賣得掉。`
+                        : `篩選後反而便宜 NT$ ${fmtTwd(Math.abs(extraTwd))}——被篩掉的本來就不划算。`;
                     liqCost.style.display = 'block';
                 }
             }
@@ -1126,7 +1126,7 @@
                     + (others > 0 ? `另有 ${others} 個同樣情況。` : ''));
             }
             if (thinValueShare >= THIN_VALUE_WARN) {
-                msgs.push(`有 ${(thinValueShare * 100).toFixed(0)}% 的金額（約 NT$ ${thinValueTwd.toFixed(0)}）壓在極低流動品項上，也就是一天成交不到 100 個的那些。`);
+                msgs.push(`有 ${(thinValueShare * 100).toFixed(0)}% 的金額（約 NT$ ${fmtTwd(thinValueTwd)}）壓在極低流動品項上，也就是一天成交不到 100 個的那些。`);
             }
             if (msgs.length > 0) {
                 thinNote.textContent = '⚠️ ' + msgs.join(' ')
@@ -1140,7 +1140,7 @@
             }
 
             if (!reached) {
-                shortfallNote.textContent = `庫存不足以達成這個目標，全部用完也只有約 NT$ ${totalValueTwd.toFixed(0)}。可調低目標，或等資料更新後再試。`;
+                shortfallNote.textContent = `庫存不足以達成這個目標，全部用完也只有約 NT$ ${fmtTwd(totalValueTwd)}。可調低目標，或等資料更新後再試。`;
                 shortfallNote.style.display = 'block';
             }
         }

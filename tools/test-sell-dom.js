@@ -82,7 +82,9 @@ async function boot(sold, opts) {
   eq('沒填成交價時不顯示賺賠', row.textContent.includes('賺 NT$'), false);
 
   // 全部賣掉預計實拿 = 0.52 USD × 32.5 × 13 件
-  const wantTotal = (0.52 * RATE * 13).toFixed(0);
+  // ⚠️ 2026-08-24 起台幣一律兩位小數（site.js 第⑬節 fmtTwd），期望值跟著改。
+  const wantTotal = (0.52 * RATE * 13)
+    .toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   eq('總實拿用 13 件計算', doc.getElementById('sl-total').textContent, 'NT$ ' + wantTotal);
   eq('註腳講出成本', doc.querySelector('#sl-total').nextElementSibling.textContent.includes('成本 NT$ 280'), true);
   eq('數量與成本都是實填的 → 不標「估」',

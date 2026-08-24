@@ -677,7 +677,7 @@
         (function paintTimeModel() {
             const m = opMinutes(0);
             document.getElementById('su-setup-time').textContent = minutesText(m.setup);
-            document.getElementById('su-setup-cost').textContent = 'NT$ ' + Math.round(minutesToTwd(m.setup));
+            document.getElementById('su-setup-cost').textContent = 'NT$ ' + fmtTwd(minutesToTwd(m.setup));   // site.js 第⑬節
             document.getElementById('su-round-time').textContent = minutesText(m.round) + '起';
         })();
 

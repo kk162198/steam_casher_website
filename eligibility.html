@@ -321,7 +321,7 @@
 
             // 資格都過。**這一頁不碰金額**，能省多少、值不值得一律交給試算頁。
             const setupDone = isSetupDone();
-            const setupCost = Math.round(minutesToTwd(OP_TIME.setupMinutes));
+            const setupCost = fmtTwd(minutesToTwd(OP_TIME.setupMinutes));   // site.js 第⑬節
 
             box.innerHTML = resultCard('go',
                 '你的帳號現在就可以用這個方式加值',

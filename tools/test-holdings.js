@@ -235,5 +235,37 @@ eq('品項名裡的引號不會撐破 HTML',
   .forEach(([gross, net]) => eq('毛額 ' + gross + ' → 淨額 ' + net, ctx.steamNetUsd(gross), net));
 eq('不是 ×0.85（那會低估約 2.3%）', ctx.steamNetUsd(100) !== 85, true);
 
+/* ── 9. 台幣格式：兩位小數（2026-08-24 新增）──────────────
+   ⚠️ 這一組存在的理由是「單價 × 數量 ≠ 小計」：US$0.5 換算約 NT$16.25，
+      顯示成 16 的時候買 20 件會跟小計差 5 元，而小計是用未取整的值算的。
+      想自己驗算的使用者會直接卡住。 */
+eq('整數也補兩位', ctx.fmtTwd(280), '280.00');
+eq('小數保留兩位', ctx.fmtTwd(16.25), '16.25');
+eq('第三位四捨五入', ctx.fmtTwd(16.255), '16.26');
+eq('四位數帶千分位', ctx.fmtTwd(12345.6), '12,345.60');
+eq('0 是 0.00，不是空的', ctx.fmtTwd(0), '0.00');
+eq('壞值當 0，不要吐 NaN 到畫面上', ctx.fmtTwd(undefined), '0.00');
+eq('負數也照樣兩位（最差情況倒賠會用到）', ctx.fmtTwd(-58.5), '-58.50');
+
+eq('寫入前收斂到兩位', ctx.roundTwd('279.499'), 279.5);
+eq('字串進得來', ctx.roundTwd('280'), 280);
+eq('空的當 0', ctx.roundTwd(''), 0);
+eq('負的一律當 0（金額不會是負的）', ctx.roundTwd(-5), 0);
+/* ⚠️ 浮點誤差要在寫進 localStorage 之前收掉，不然每次讀出來都帶著，
+      而且會在「預期 vs 實際」那個減法裡被放大。 */
+eq('浮點誤差收掉', ctx.roundTwd(0.1 + 0.2), 0.3);
+
+/* 網址參數也要帶得動小數——刷卡帳單上的金額本來就有角有分 */
+const decParam = ctx.holdingsToParam([{
+  name: 'Kilowatt Case', qty: 13, unitCostTwd: 16.25, defIndex: 4001,
+  paidTwd: 279.5, qtyIsEstimate: false, boughtAtIsEstimate: false,
+  boughtAt: '2026-08-15T02:00:00.000Z'
+}]);
+const decBack = ctx.paramToHoldings(decParam, null)[0];
+eq('往返後實付保住小數', decBack.paidTwd, 279.5);
+eq('往返後單價保住小數', decBack.unitCostTwd, 16.25);
+/* ⚠️ 舊網址是整數，一定要仍然讀得回來，不要在遷移時把人家的紀錄弄丟 */
+eq('舊的整數網址照樣讀得回', ctx.paramToHoldings('A:2:21:4001:280::2:', null)[0].paidTwd, 280);
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

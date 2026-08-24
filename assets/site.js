@@ -18,6 +18,8 @@
         追蹤網址 holdingsTrackUrl() / copyText() / saveHoldingsToDevice()
      ⑩ 初始設定與時間成本 isSetupDone() / opMinutes() / worthVerdict()
      ⑪ Steam 手續費換算 steamNetUsd()（毛額 → 淨額，與後端同一套算法）
+     ⑫ 資格快檢狀態 readEligibility() / eligibilityState()
+     ⑬ 台幣顯示格式 fmtTwd()（兩位小數）／ roundTwd()（寫入前收斂）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -707,7 +709,7 @@ function holdingsFromPlan(planItems, checked, savedAt) {
 
    | 段 | 內容 | 空的時候 |
    |---|---|---|
-   | 5 | 實付總額（整數 NT$） | 沒填 |
+   | 5 | 實付總額（NT$，最多兩位小數） | 沒填 |
    | 6 | 旗標 | 見下 |
    | 7 | 計畫數量 | 與實際數量相同 |
    | 8 | 這一批的買進時間（epoch 秒） | 退回用網址的 `bought` 參數 |
@@ -740,9 +742,9 @@ function holdingsToParam(items) {
     return [
       i.name,
       i.qty,
-      Math.round(i.unitCostTwd || 0),
+      roundTwd(i.unitCostTwd || 0),
       i.defIndex == null ? '' : i.defIndex,
-      i.paidTwd == null ? '' : Math.round(i.paidTwd),
+      i.paidTwd == null ? '' : roundTwd(i.paidTwd),
       (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '') + (i.closed ? 'c' : ''),
       (i.plannedQty != null && i.plannedQty !== i.qty) ? i.plannedQty : '',
       isFinite(at) ? at : ''
@@ -1059,6 +1061,44 @@ function steamNetUsd(grossUsd) {
   var feeCents = Math.max(Math.floor(estNetCents * STEAM_FEE_RATE), minCents);
   var pubCents = Math.max(Math.floor(estNetCents * STEAM_PUBLISHER_FEE_RATE), minCents);
   return Math.max(grossCents - feeCents - pubCents, 0) / 100;
+}
+
+/* ── ⑬ 台幣顯示格式 ─────────────────────────────────────────
+   全站台幣一律**兩位小數**（2026-08-24 改，原本各處寫死 `toFixed(0)`）。
+
+   ⚠️ 為什麼需要小數：武器箱單價常只有 US$0.5，換算約 NT$16.25。
+      顯示成「16」的時候，買 20 件的小計是 325 而不是 320——而小計是用
+      **未取整**的值算的，於是畫面上「單價 × 數量 ≠ 小計」，想自己驗算的
+      使用者直接卡住。PROJECT_OVERVIEW〈三個會重複踩的坑〉第 1 條講的就是
+      這種對不起來，只是那次是欄位用錯、這次是顯示精度不夠。
+
+   ⚠️ **只給顯示用。** 任何計算一律用原始浮點值，不要先格式化再 parse 回來——
+      那會把捨入誤差累進到結果裡。
+
+   ⚠️ **百分比、件數、成交量不要走這裡。** 它們不是金額，`toFixed(0)` 是對的。
+
+   ⚠️ **兩位小數把落差壓小，但不會歸零。** 小計仍然是用未取整的值算的，
+      所以「顯示的單價 × 數量」跟小計還是會差一點——差的是角分（例如
+      16.24 × 88 = 1,429.12 vs 小計 1,428.68），不再是幾十元。
+      要完全對齊只能把單價也顯示到更多位數，那反而更難讀。
+      **不要為了讓兩個數字相等，改成用取整後的單價去算小計**——
+      那會讓總額偏離你實際要付的錢，而總額才是使用者拿去入金的依據。
+
+   ⚠️ 千分位由 `toLocaleString` 帶出來（12,345.67）。四位數以上的金額本來就
+      很難一眼讀對，而現在多了兩位小數，沒有分隔會更難。 */
+function fmtTwd(n) {
+  var v = Number(n);
+  if (!isFinite(v)) v = 0;
+  return v.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* 使用者敲進來的金額，寫進 localStorage 或網址之前先收斂到兩位小數。
+   ⚠️ 不收的話浮點誤差會被原樣存起來（例如 279.49999999999994），
+      之後每次讀出來都帶著，而且會在「少了多少」那個減法裡放大。 */
+function roundTwd(n) {
+  var v = Number(n);
+  if (!isFinite(v) || v < 0) return 0;
+  return Math.round(v * 100) / 100;
 }
 
 /* ── ⑫ 資格快檢狀態 ─────────────────────────────────────────
