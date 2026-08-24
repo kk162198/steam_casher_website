@@ -316,12 +316,19 @@
                 }
 
                 const item = data[0];
-                const ratio = Number(item.ratio) || 0;
-                const steamPrice = Number(item.steam_price || 0) * rate;
+                /* 台幣化（2026-08-24，DECISIONS 4.17）。
+                   ⚠️ 五個數字全部來自同一個 twdView()（site.js 第⑮節），
+                      不要有任何一個還在自己乘匯率。
+                   ⚠️ ratio 一律重算，不要讀 item.ratio——資料庫那個是**純美元**的，
+                      而台幣手續費下限是 NT$1／分量、美元是 US$0.01／分量（差三倍以上），
+                      低價品項兩者差很多。 */
+                const v = twdView(item, rate);
+                const ratio = v.ratio || 0;
+                const steamPrice = v.steamPriceTwd;
                 // 💡 csfloat_cost 才是含買方手續費的實付成本（csfloat_price 是未含手續費的掛牌價）
-                const csfloatCost = Number(item.csfloat_cost || 0) * rate;
-                const steamIncome = Number(item.steam_income || 0) * rate;
-                const netProfit = Number(item.diff || 0) * rate;
+                const csfloatCost = v.csfloatCostTwd;
+                const steamIncome = v.steamIncomeTwd;
+                const netProfit = v.netProfitTwd;
                 const inventory = Number(item.csfloat_inventory || 0);
 
                 document.getElementById('case-name').textContent = item.name;

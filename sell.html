@@ -226,9 +226,12 @@
            會有兩列，兩批可能賣在不同價錢。單批時 key 就等於品項名，
            所以舊資料在最常見的情況下不用遷移。
 
-           ⚠️ 存的是**買家付的錢（毛額）**，也就是使用者在 Steam 畫面上
-              看到的那個數字。要跟 steam_income 比之前一定要先過
-              steamNetUsd()——見 site.js 第⑪節與 DECISIONS.md 4.7。 */
+           ⚠️ 存的是**買家付的錢（毛額）、單位是新台幣**，也就是使用者在
+              Steam 畫面上看到的那個數字。要換成賣家實拿一定要先過
+              steamNetTwd()——見 site.js 第⑮節與 DECISIONS.md 4.7／4.17。
+           ⚠️ 2026-08-24 起是 steamNetTwd() 不是 steamNetUsd()。台幣的手續費下限
+              是 NT$1／分量，美元是 US$0.01／分量（約 NT$0.32）——**差三倍以上**，
+              低價品項換算過去會高估實拿 27% 以上。 */
         function readSold() {
             try {
                 const raw = JSON.parse(localStorage.getItem(SOLD_STORAGE_KEY) || '{}');
@@ -335,12 +338,18 @@
 
             if (!holdings.length) return;
             const names = holdings.map(i => i.name);
-            const { data, error } = await CLIENT
-                .from('cases_data')
-                .select('name,steam_price,steam_income,steam_volume,steam_updated_at')
-                .in('name', names);
-            if (error) throw error;
-            (data || []).forEach(row => { priceMap[row.name] = row; });
+
+            /* ⚠️ 台幣欄位要等資料庫跑過遷移才有，而 PostgREST 對不存在的欄位是
+                  **整個查詢失敗**，不是回 null。沒有這個退路的話，遷移還沒跑的時候
+                  整頁會變成「查不到目前價格」——比顯示美元換算過的舊值糟得多。 */
+            const COLS_TWD = 'name,steam_price,steam_income,steam_price_twd,steam_income_twd,steam_volume,steam_updated_at';
+            const COLS_OLD = 'name,steam_price,steam_income,steam_volume,steam_updated_at';
+            let res = await CLIENT.from('cases_data').select(COLS_TWD).in('name', names);
+            if (res.error) {
+                res = await CLIENT.from('cases_data').select(COLS_OLD).in('name', names);
+            }
+            if (res.error) throw res.error;
+            (res.data || []).forEach(row => { priceMap[row.name] = row; });
         }
 
         /* ── 單列樣板 ──────────────────────────────────────── */
@@ -349,8 +358,16 @@
             const cd = cooldownText(item.boughtAt);
             const u = unlockAt(item.boughtAt);
 
-            const askTwd = p && p.steam_price ? Number(p.steam_price) * rate : null;
-            const netTwd = p && p.steam_income ? Number(p.steam_income) * rate : null;
+            /* 掛牌價與實拿：有台幣欄位就直接用，那是 Steam 台幣市場的真實數字；
+               沒有才退回「美元 × 匯率」。
+               ⚠️ 退回路徑會在低價品項上高估實拿（US$0.22 高估 27%），是已知的暫時狀態。
+               ⚠️ 用 != null 判斷而不是真假值：台幣掛牌價可能真的是 NT$0 嗎不會，
+                  但 steam_income_twd 在極低價品項上**可以合法等於 0**
+                  （NT$2 全部被兩個 NT$1 下限吃掉），用真假值會把它當成沒資料。 */
+            const askTwd = p && p.steam_price_twd != null ? Number(p.steam_price_twd)
+                         : (p && p.steam_price ? Number(p.steam_price) * rate : null);
+            const netTwd = p && p.steam_income_twd != null ? Number(p.steam_income_twd)
+                         : (p && p.steam_income ? Number(p.steam_income) * rate : null);
             const totalNet = netTwd != null ? netTwd * item.qty : null;
 
             const cdNote = cd.state === 'locked' && u
@@ -372,12 +389,20 @@
             /* 你到底賺了多少：拿**實付總額**去比**實際成交的淨額**。
                兩邊都必須是實際值，任一邊用估計就只是在量估計的誤差。
 
-               ⚠️ 輸入的是買家付的錢（毛額），一定要先過 steamNetUsd() 換成
-                  賣家實拿再比。直接相減會憑空生出約 −13% 的假缺口，
-                  那就是 DECISIONS.md 4.7 踩過的那一次。 */
+               ⚠️ 輸入的是買家付的錢（毛額），一定要先換成賣家實拿再比。
+                  直接相減會憑空生出約 −13% 的假缺口，
+                  那就是 DECISIONS.md 4.7 踩過的那一次。
+
+               ⚠️⚠️ 2026-08-24：這裡本來寫的是 `steamNetUsd(soldVal / rate) * rate`，
+                  也就是「換成美元、用美元規則算實拿、再換回台幣」。**那是錯的。**
+                  使用者填的是他在 **Steam 台幣市場**上實際成交的台幣價，
+                  而台幣的手續費下限是 NT$1／分量、美元是 US$0.01／分量（約 NT$0.32）。
+                  繞道美元會在低價品項上高估實拿 27% 以上——而這一格是
+                  「我到底賺了多少」的答案，高估實拿等於直接告訴使用者他賺得比實際多。
+                  這一格**不需要匯率**：台幣進、台幣出，中間不要碰美元。 */
             let gapHtml = '';
             if (soldVal !== '' && item.paidTwd != null) {
-                const netTwd2 = steamNetUsd(Number(soldVal) / rate) * rate * item.qty;
+                const netTwd2 = steamNetTwd(Number(soldVal)) * item.qty;
                 const gap = netTwd2 - item.paidTwd;
                 const pct = item.paidTwd > 0 ? (gap / item.paidTwd) * 100 : null;
                 const cls = gap >= 0 ? 'c-pos' : 'c-neg';
@@ -486,7 +511,9 @@
             let total = 0, missing = 0, cost = 0, costComplete = true, qtyEst = false;
             holdings.forEach(i => {
                 const p = priceMap[i.name];
-                if (p && p.steam_income) total += Number(p.steam_income) * rate * i.qty;
+                // 台幣實拿優先，沒有才退回美元換算（理由同 renderSellRow）
+                if (p && p.steam_income_twd != null) total += Number(p.steam_income_twd) * i.qty;
+                else if (p && p.steam_income) total += Number(p.steam_income) * rate * i.qty;
                 else missing++;
                 if (i.paidTwd != null) cost += i.paidTwd;
                 else { cost += i.unitCostTwd * i.qty; costComplete = false; }

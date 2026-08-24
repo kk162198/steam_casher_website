@@ -102,14 +102,22 @@ async function boot(sold, opts) {
   input.dispatchEvent(new dom.window.Event('change'));
 
   row = doc.querySelector('#sl-body tr');
-  // 25 TWD 毛額 → USD 0.7692 → 淨額 US$0.66 → ×32.5 ×13 件
-  const netUsd = dom.window.steamNetUsd(25 / RATE);
-  const wantNet = (netUsd * RATE * 13).toFixed(0);
-  const wantGap = (netUsd * RATE * 13 - 280).toFixed(0);
-  eq('賺賠用淨額算，不是拿毛額直接減', row.textContent.includes('實拿 NT$ ' + wantNet), true);
-  eq('賺賠金額', row.textContent.includes('NT$ ' + Math.abs(wantGap)), true);
+  /* ⚠️ 2026-08-24：這一段本來是「NT$25 → 換成美元 → 用美元規則算實拿 → 換回台幣」。
+     **那是錯的**（DECISIONS 4.17）。使用者填的是他在 **Steam 台幣市場**
+     實際成交的台幣價——台幣進、台幣出，中間不該碰美元，也不該碰匯率。
+     NT$25 毛額 → steamNetTwd → 實拿 NT$22／個 × 13 件。 */
+  const netTwd = dom.window.steamNetTwd(25);
+  eq('NT$25 的實拿是 22（台幣規則）', netTwd, 22);
+  const f = n => n.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  eq('賺賠用淨額算，不是拿毛額直接減',
+    row.textContent.includes('實拿 NT$ ' + f(netTwd * 13)), true);
+  eq('賺賠金額', row.textContent.includes('NT$ ' + f(Math.abs(netTwd * 13 - 280))), true);
   eq('毛額直接減會多算，這裡不該出現那個數字',
-    row.textContent.includes('NT$ ' + (25 * 13 - 280).toFixed(0)), false);
+    row.textContent.includes('NT$ ' + f(25 * 13 - 280)), false);
+  /* ⚠️ 這一條擋的是「哪天有人把它改回繞道美元」。
+     美元路徑會算出 22.10／個（高估），跟 22 差得夠多，一改回去就會紅。 */
+  eq('沒有繞道美元（美元路徑會給不同的數字）',
+    row.textContent.includes('實拿 NT$ ' + f(dom.window.steamNetUsd(25 / RATE) * RATE * 13)), false);
 
   /* 沒填實付總額時要老實說算不出來，不要拿試算頁的估計值頂上去
      假裝那是實際損益——那就是「拿估計比實際」。 */

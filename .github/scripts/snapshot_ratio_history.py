@@ -67,16 +67,41 @@ SNAPSHOT_COLUMNS = (
     "csfloat_price, csfloat_inventory"
 )
 
+# 2026-08-24：台幣市場的報價。只存原始輸入，**不存台幣倍率**——
+# ⚠️ ratio 的分母 csfloat_cost 是美元，要同單位就得挑一個匯率，
+#    而挑哪一個是顯示層的決定（買進側要加刷卡的 1.5%、賣出側不加），
+#    不該固定在歷史資料裡。理由見 DECISIONS.md 4.17。
+TWD_SNAPSHOT_KEYS = ("steam_price_twd", "steam_lowest_price_twd")
+SNAPSHOT_COLUMNS_TWD = SNAPSHOT_COLUMNS + ", " + ", ".join(TWD_SNAPSHOT_KEYS)
+
+# 遷移還沒跑的時候整輪走舊路徑。
+# ⚠️ 這條管線是網站顯示的來源，**不可以因為「使用者還沒去 Supabase 貼那段 SQL」就停擺**。
+_twd_ok = True
+
 
 def fetch_all_ratio_rows():
-    """讀取 cases_data 要快照的欄位（分頁讀取，避免筆數超過 Supabase 單次上限）。"""
+    """
+    讀取 cases_data 要快照的欄位（分頁讀取，避免筆數超過 Supabase 單次上限）。
+
+    ⚠️ 先用一筆探測 TWD 欄位在不在。PostgREST 對不存在的欄位是**整個查詢失敗**，
+       不是回 None，所以不能只寫一個 select 就期待它自己降級。
+    """
+    global _twd_ok
+    try:
+        supabase.table("cases_data").select(SNAPSHOT_COLUMNS_TWD).limit(1).execute()
+    except Exception as err:
+        _twd_ok = False
+        print(f"⚠️ 讀不到 TWD 欄位，本次快照只寫舊欄位：{err}")
+        print("   （請在 Supabase SQL Editor 執行 db/schema.sql 的 ⑥ 段）")
+
+    cols = SNAPSHOT_COLUMNS_TWD if _twd_ok else SNAPSHOT_COLUMNS
     rows = []
     page_size = 1000
     start = 0
     while True:
         page = (
             supabase.table("cases_data")
-            .select(SNAPSHOT_COLUMNS)
+            .select(cols)
             .range(start, start + page_size - 1)
             .execute()
             .data
@@ -118,6 +143,10 @@ TICK_AGG_SPECS = [
     ('steam',   'steam_price',         'steam_price'),
     ('steam',   'steam_lowest_price',  'steam_lowest_price'),
     ('steam',   'steam_volume',        'steam_volume'),
+    # 2026-08-24：台幣市場。⚠️ 台幣掛單價是整數元，取整誤差在低價品項上很大
+    # （NT$8 就有 ±6%），所以這兩條序列在低價品項上噪音偏高，看趨勢請以高價品項為準。
+    ('steam',   'steam_price_twd',        'steam_price_twd'),
+    ('steam',   'steam_lowest_price_twd', 'steam_lowest_price_twd'),
     ('csfloat', 'csfloat_price',       'csfloat_price'),
     ('csfloat', 'csfloat_price_depth', 'csfloat_price_depth'),
 ]
@@ -191,18 +220,38 @@ def write_daily_aggregates(day_iso):
 
     aggregates = aggregate_ticks(ticks)
     written, failed = 0, 0
+    twd_agg_ok = True
     for name, agg in aggregates.items():
         payload = {"name": name, "snapshot_date": day_iso}
         payload.update(agg)
+        if not twd_agg_ok:
+            payload = {k: v for k, v in payload.items() if "_twd" not in k}
         try:
             supabase.table("cases_ratio_history").upsert(
                 payload, on_conflict="name,snapshot_date"
             ).execute()
             written += 1
         except Exception as err:
+            # ⚠️ 先試「拿掉台幣彙總欄位」再算失敗。沒有這一層的話，⑥ 段還沒跑的人
+            #    會因為兩個新欄位而讓**整個日彙總停擺**，連本來好好的美元彙總一起沒了——
+            #    新加的觀測害死既有的觀測，方向完全反了。而彙總的原料 tick 只留當天，
+            #    這一天漏掉就補不回來。
+            narrow = {k: v for k, v in payload.items() if "_twd" not in k}
+            if twd_agg_ok and len(narrow) < len(payload):
+                twd_agg_ok = False
+                print(f"⚠️ 日彙總的台幣欄位寫不進去，本次只寫美元：{err}")
+                print("   （請執行 db/schema.sql 的 ⑥ 段。美元彙總不受影響。）")
+                try:
+                    supabase.table("cases_ratio_history").upsert(
+                        narrow, on_conflict="name,snapshot_date"
+                    ).execute()
+                    written += 1
+                    continue
+                except Exception:
+                    pass
             if failed == 0:   # 只印第一筆，不要洗掉 45 行
                 print(f"⚠️ 寫入日彙總失敗（{name}）：{err}")
-                print("   （若欄位還沒建立，請執行 db/schema.sql 的 ⑤ 段）")
+                print("   （若欄位還沒建立，請執行 db/schema.sql 的 ⑤／⑥ 段）")
             failed += 1
 
     counts = [a.get("csfloat_price_n", 0) for a in aggregates.values()]
@@ -247,6 +296,9 @@ def main():
             "csfloat_price": row.get("csfloat_price"),
             "csfloat_inventory": row.get("csfloat_inventory"),
         }
+        if _twd_ok:
+            for k in TWD_SNAPSHOT_KEYS:
+                payload[k] = row.get(k)
 
         try:
             supabase.table("cases_ratio_history").upsert(

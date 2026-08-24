@@ -21,6 +21,8 @@
      ⑫ 資格快檢狀態 readEligibility() / eligibilityState()
      ⑬ 台幣顯示格式 fmtTwd()（兩位小數）／ roundTwd()（寫入前收斂）
      ⑭ 匯率 FX_CARD_FEE_RATE / buyRate()（買進側要多 1.5% 國外交易費）
+     ⑮ Steam 台幣手續費 steamNetTwd()（下限 NT$1／分量，四捨五入不是捨去）
+        以及 twdView()：一列 cases_data → 該顯示的台幣數字（四頁共用）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -1062,6 +1064,131 @@ function steamNetUsd(grossUsd) {
   var feeCents = Math.max(Math.floor(estNetCents * STEAM_FEE_RATE), minCents);
   var pubCents = Math.max(Math.floor(estNetCents * STEAM_PUBLISHER_FEE_RATE), minCents);
   return Math.max(grossCents - feeCents - pubCents, 0) / 100;
+}
+
+/* ── ⑮ Steam 台幣市場的手續費（2026-08-24 實測解出）──────────
+   ⚠️ 台灣帳號是在 **TWD 市場**掛單，而台幣的手續費規則跟美元**不一樣**。
+      這一段取代低價品項上的 `steamNetUsd()`，不是補充。
+
+   作者在 Steam 賣出畫面實填四個價位，抄回「您將收到」（DECISIONS 4.17）：
+
+     NT$3 → 1     NT$12 → 10     NT$20 → 17     NT$30 → 26
+
+   四個點只有一個模型全中：
+
+     手續費 = max(round(實收 × 5%), 1) + max(round(實收 × 10%), 1)
+     賣價   = 實收 + 手續費                    （單位：**整數新台幣**）
+
+   ⚠️ 跟美元版的兩個差別，都會咬人：
+
+     ① **最低收費 NT$1／分量（合計 NT$2）**，不是 US$0.01／分量（≈NT$0.64）。
+        **3.1 倍。**
+     ② **取整是 `round` 不是 `floor`。** floor 會把 NT$30 算成 27、NT$20 算成 18，
+        兩個都錯。NT$20 那一點就是專門為了分辨這件事去取的。
+
+   ⚠️ 佐證：`priceoverview` 的 TWD `lowest_price` 三次都是整數
+      （NT$8／NT$2,931／NT$5,053），`median_price` 才有小數——
+      **掛單價是整數元**，中位數只是統計值。
+
+   ⚠️⚠️ **這個錯誤與推薦順序同向，這才是它真正危險的地方。**
+      下限只咬低價品項（US$0.5 以上幾乎沒差、US$0.3 以下急速惡化），
+      而低價品項的倍率因此被灌水，**計算器的組合演算法永遠先挑倍率最高的**
+      ——它會優先推薦錯得最厲害的品項。
+
+   ⚠️ 不要為了「跟美元版一致」把這裡改成 floor。美元版那組期望值是拿本站自己的
+      `calc_steam_income()` 產生的，**從來沒有對過 Steam 的真實輸出**；
+      它「正確」只證明前後端一致。要動美元版，先照這次的做法去 Steam 實測。 */
+var STEAM_TWD_MIN_FEE_COMPONENT = 1;   // 每個分量最低 NT$1
+
+/* 賣家實拿 NT$net（整數元）→ Steam 會收多少手續費（整數元）。
+
+   ⚠️⚠️ **為什麼是 `(r+10)/20` 而不是 `Math.round(r * 0.05)`。**
+      兩者在 JS 裡結果完全相同（r = 0…200000 逐一比對過，零筆差異），
+      改成整數式**不是為了 JS**，是為了**後端那份 Python 實作**：
+
+        Python 的 round() 是 **banker's rounding**（四捨六入五成雙）。
+          round(2.5) → 2      Math.round(2.5) → 3
+          round(0.5) → 0      Math.round(0.5) → 1
+
+        直接把這一段照抄成 Python 會在 **20 萬個值裡差 15,000 個**
+        （5% 那項每 20 個差 1 個、10% 那項每 10 個差 1 個），
+        而且**不會報錯**——資料庫裡的 steam_income_twd 會安靜地錯。
+
+      整數式沒有浮點數也沒有取整慣例的差異，兩邊照抄就一定一致。
+      推導：round_half_up(r × 5/100) = floor((r + 10) / 20)
+            round_half_up(r × 10/100) = floor((r + 5) / 10)
+
+   ⚠️ 要改費率就不能再用這兩個常數式。改之前先回去讀 DECISIONS 4.17，
+      並且**兩份實作要一起改**（這裡與 code/common/update_derived_fields.py）。 */
+function steamFeeTwd(netTwd) {
+  var r = Math.max(0, Math.round(Number(netTwd) || 0));
+  return Math.max(Math.floor((r + 10) / 20), STEAM_TWD_MIN_FEE_COMPONENT)
+       + Math.max(Math.floor((r + 5) / 10), STEAM_TWD_MIN_FEE_COMPONENT);
+}
+
+/* 賣價（買家付的錢，整數元）→ 賣家實拿。
+   ⚠️ 與 Steam 一樣是**反解**：找出使「實拿 + 手續費 ≤ 賣價」的最大實拿。
+      不要寫成「賣價 × 0.87」那種近似——下限咬進來的時候差到 20% 以上。
+   ⚠️ 二分搜尋成立的前提是 `R + steamFeeTwd(R)` 對 R **單調不遞減**。
+      現在的手續費是兩個 max(round(比例), 常數) 相加，兩項都單調，所以成立。
+      **改動 steamFeeTwd 之前先確認這件事還成立**，不然這裡會回錯答案而且不會報錯。 */
+function steamNetTwd(grossTwd) {
+  var g = Math.floor(Number(grossTwd) || 0);
+  if (!(g > 0)) return 0;
+  var lo = 0, hi = g;
+  while (lo < hi) {
+    var mid = Math.ceil((lo + hi) / 2);
+    if (mid + steamFeeTwd(mid) <= g) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/* 一列 cases_data → 該顯示的台幣數字（2026-08-24）。
+
+   ⚠️ 這個函式存在的唯一理由是**不要讓四個頁面各算一次**。
+      marketlist / case / calculator / sell 都要把同一列資料換成台幣，
+      而換算規則有三個容易各自寫歪的地方：
+        ① 台幣欄位在不在（遷移沒跑、或那一輪台幣沒抓到）
+        ② 缺席時退回哪一條路（美元 × 匯率，會在低價品項高估實拿）
+        ③ 倍率的分母用哪一個匯率
+      PROJECT_OVERVIEW〈三個會重複踩的坑〉第 1 條就是這種「各自重算、邏輯分歧」。
+
+   參數 row 是 cases_data 的一列，rate 是**中間價**（不是 buyRate）。
+
+   ⚠️ 分母刻意用中間價、不含刷卡的 1.5%：
+      這裡是瀏覽用的市場倍率，而 1.5% 對所有品項是同一個常數，加了不影響排序。
+      試算頁的「實際倍率」會比這個低約 1.5%，那是對的——兩者量的不是同一件事，
+      不要為了對齊而改其中一邊。見第⑭節。
+
+   回傳 isTwd：**畫面上要講出來**這一列是真台幣還是換算的。
+   ⚠️ 不要把 isTwd=false 靜靜地當成一樣的東西——退回路徑在 US$0.22 的品項上
+      高估實拿 27.3%、倍率 21.4%，而且錯誤方向與推薦順序同向。 */
+function twdView(row, rate) {
+  var r = Number(rate);
+  if (!isFinite(r) || r <= 0) r = 0;
+  var costUsd = Number(row && row.csfloat_cost) || 0;
+  var hasTwd = row && row.steam_income_twd !== null && row.steam_income_twd !== undefined;
+
+  var priceTwd = (row && row.steam_price_twd !== null && row.steam_price_twd !== undefined)
+    ? Number(row.steam_price_twd)
+    : (Number(row && row.steam_price) || 0) * r;
+  var incomeTwd = hasTwd
+    ? Number(row.steam_income_twd)
+    : (Number(row && row.steam_income) || 0) * r;
+  var costTwd = costUsd * r;
+
+  return {
+    isTwd: !!hasTwd,
+    steamPriceTwd: priceTwd,
+    steamIncomeTwd: incomeTwd,
+    csfloatCostTwd: costTwd,
+    netProfitTwd: incomeTwd - costTwd,
+    /* ⚠️ 一律重算，不要直接讀 row.ratio。資料庫的 ratio 是**純美元**的
+          （後端刻意不寫 ratio_twd，理由見 update_derived_fields.py），
+          而台幣實拿跟美元實拿不是同一個常數倍——低價品項差很多。 */
+    ratio: costTwd > 0 ? incomeTwd / costTwd : 0
+  };
 }
 
 /* ── ⑭ 匯率：買進側與賣出側不是同一個數字 ────────────────────

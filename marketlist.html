@@ -489,6 +489,17 @@
 
                 if (error) throw error;
 
+                /* 台幣化 + 重排（2026-08-24，DECISIONS 4.17）。
+
+                   ⚠️ 上面的 .order('ratio') 排的是資料庫裡的**純美元**倍率。
+                      台幣實拿跟美元實拿不是同一個常數倍（台幣手續費下限 NT$1／分量，
+                      美元 US$0.01／分量，差三倍以上），所以台幣倍率的高低順序
+                      跟美元倍率**不一樣**——沿用伺服器順序等於用舊的判斷去排新的數字。
+                   ⚠️ 換算與退回規則統一走 site.js 第⑮節的 twdView()，
+                      不要在這裡自己再寫一份。 */
+                (data || []).forEach(item => { item._twd = twdView(item, rate); });
+                (data || []).sort((a, b) => (b._twd.ratio || 0) - (a._twd.ratio || 0));
+
                 if (!data || data.length === 0) {
                     addLog('<span style="color:#fbbf24">連線成功，但目前 cases_data 表中沒有任何數據。</span>');
                     caseTableBody.innerHTML = `<tr><td colspan="6" style="padding:40px 16px;text-align:center">
@@ -522,9 +533,9 @@
                     item.ratio !== null && item.ratio !== undefined
                     && item.csfloat_inventory !== null && item.csfloat_inventory !== undefined
                     && Number(item.csfloat_inventory) > DEPTH_WARN_MAX);
-                const bestRow = deepEnough[0];   // data 已依 ratio 由高到低排序
+                const bestRow = deepEnough[0];   // data 已依**台幣**倍率由高到低排序
                 if (bestRow) {
-                    maxRoiDisplay.innerText = `${((Number(bestRow.ratio) - 1) * 100).toFixed(2)} %`;
+                    maxRoiDisplay.innerText = `${((bestRow._twd.ratio - 1) * 100).toFixed(2)} %`;
                     maxRoiNote.textContent = `每投入 100 元多拿到的餘額，已扣兩邊手續費。只計入最低價位有 ${DEPTH_WARN_MAX + 1} 件以上的品項。`;
                 } else {
                     maxRoiDisplay.innerText = '--';
@@ -555,12 +566,16 @@
                 data.forEach(item => {
                     
                     // 💡 關鍵修正：csfloat_cost 才是含買方手續費的實付成本（csfloat_price 是未含手續費的掛牌價）
-                    const netProfit = Number(item.diff || 0) * rate;
-                    const steamPrice = Number(item.steam_price || 0) * rate;
-                    const steamIncome = Number(item.steam_income || 0) * rate;
-                    const csfloatCost = Number(item.csfloat_cost || 0) * rate;
+                    /* ⚠️ 五個數字全部來自同一個 twdView()，不要有任何一個
+                          還在自己乘匯率——混用會讓「賣出 − 買進 ≠ 淨利」這種
+                          自己對不起來的畫面又出現一次。 */
+                    const v = item._twd;
+                    const netProfit = v.netProfitTwd;
+                    const steamPrice = v.steamPriceTwd;
+                    const steamIncome = v.steamIncomeTwd;
+                    const csfloatCost = v.csfloatCostTwd;
 
-                    const ratio = Number(item.ratio) || 0;
+                    const ratio = v.ratio || 0;
                     const row = document.createElement('tr');
                     // 排序用的原始數值，放在 data 屬性上供 sortTable() 使用
                     row.dataset.sortName = String(item.name == null ? '' : item.name);

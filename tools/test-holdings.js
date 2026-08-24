@@ -279,5 +279,85 @@ eq('0 或負的匯率一律回 0', ctx.buyRate(-1), 0);
       要是哪天有人補了一個 sellRate()，先回去看 site.js 第⑭節。 */
 eq('沒有 sellRate()（賣出側不該有國外交易費）', typeof ctx.sellRate, 'undefined');
 
+/* ── 11. 台幣市場手續費（2026-08-24 實測，DECISIONS 4.17）────────
+   ⚠️ 下面四條**不是手算的**，是作者在 Steam 賣出畫面實填價位、
+      抄回「您將收到」的數字。它們是這一節唯一的真值來源。
+      改 steamFeeTwd／steamNetTwd 而這四條變紅 = 改錯了，不是測試過期。 */
+[[3, 1], [12, 10], [20, 17], [30, 26]]
+  .forEach(([gross, net]) => eq('實測 NT$' + gross + ' → 實拿 ' + net, ctx.steamNetTwd(gross), net));
+
+/* ⚠️ NT$20 是專門為了分辨 floor 與 round 去取的：
+      floor 會給 18、ceil 會給 16，只有 round 給 17。
+      下面兩條把「換回 floor」這個很自然的手滑擋住。 */
+eq('NT$20 不是 18（那是 floor）', ctx.steamNetTwd(20) !== 18, true);
+eq('NT$30 不是 27（那是 floor）', ctx.steamNetTwd(30) !== 27, true);
+
+eq('每個分量最低 NT$1', ctx.STEAM_TWD_MIN_FEE_COMPONENT, 1);
+/* 低價區：兩個下限都咬著，手續費固定 NT$2 */
+eq('NT$3 的手續費是 2（兩個下限）', ctx.steamFeeTwd(1), 2);
+eq('實拿 10 時 5% 那項仍是下限', ctx.steamFeeTwd(10), 1 + 1);
+/* 反解要自洽：實拿 + 手續費 一定 ≤ 賣價，而且再加 1 就會超過 */
+[3, 12, 20, 30, 64, 159, 636, 2931, 5053].forEach(g => {
+  const r = ctx.steamNetTwd(g);
+  eq('NT$' + g + ' 反解自洽（' + r + ' + 費 ≤ ' + g + '）', r + ctx.steamFeeTwd(r) <= g, true);
+  eq('NT$' + g + ' 是最大解（再多 1 就超過）', (r + 1) + ctx.steamFeeTwd(r + 1) > g, true);
+});
+
+/* ⚠️ 台幣的下限是 NT$1／分量，美元是 US$0.01／分量（約 NT$0.32）——**三倍以上**。
+      這一條擋的是「把台幣毛額換成美元丟進 steamNetUsd() 再換回來」這個捷徑：
+      低價品項會因此高估實拿，而高估實拿 = 高估倍率 = 演算法優先推薦它。 */
+eq('低價品項：台幣模型比「換美元再算」少拿', ctx.steamNetTwd(12) < Math.round(ctx.steamNetUsd(12 / 31.8) * 31.8), true);
+
+eq('0 元回 0', ctx.steamNetTwd(0), 0);
+eq('負的回 0', ctx.steamNetTwd(-5), 0);
+eq('壞值回 0，不要吐 NaN', ctx.steamNetTwd(undefined), 0);
+/* 掛單價是整數元（priceoverview 的 TWD lowest_price 三次都是整數），
+   帶小數進來一律無條件捨去——寧可少算實拿，不要多算。 */
+eq('小數的毛額往下取整', ctx.steamNetTwd(30.9), ctx.steamNetTwd(30));
+
+/* ── 12. twdView()：四頁共用的台幣換算（2026-08-24）─────────────
+   ⚠️ 這個函式存在的理由就是「不要讓 marketlist / case / calculator / sell
+      各算一次」。下面這幾條盯的是它的兩條路徑不要互相污染。 */
+const RATE = 32.5;
+const rowTwd = {
+  csfloat_cost: 0.22, steam_price: 0.26, steam_income: 0.22,
+  steam_price_twd: 8, steam_income_twd: 6
+};
+const vTwd = ctx.twdView(rowTwd, RATE);
+eq('有台幣欄位就標成真台幣', vTwd.isTwd, true);
+eq('掛牌價直接用台幣，不再乘匯率', vTwd.steamPriceTwd, 8);
+eq('實拿直接用台幣', vTwd.steamIncomeTwd, 6);
+eq('成本仍走美元 × 中間價', Math.round(vTwd.csfloatCostTwd * 1e6) / 1e6, 7.15);
+eq('淨利是重算的，不是讀 diff', Math.round(vTwd.netProfitTwd * 1e6) / 1e6, -1.15);
+eq('倍率是重算的台幣倍率', Math.round(vTwd.ratio * 1e4) / 1e4, Math.round((6 / 7.15) * 1e4) / 1e4);
+
+/* ⚠️⚠️ 這一條是整組裡最重要的：它量的就是「不改會錯多少」。
+      同一列走美元退回路徑，實拿會被高估到 7.15，倍率被高估到 1.0——
+      也就是從「賣掉是虧的」翻成「打平」。而組合演算法永遠先挑倍率最高的。 */
+const rowUsd = { csfloat_cost: 0.22, steam_price: 0.26, steam_income: 0.22 };
+const vUsd = ctx.twdView(rowUsd, RATE);
+eq('沒有台幣欄位就標成換算的', vUsd.isTwd, false);
+eq('退回路徑真的會高估實拿', vUsd.steamIncomeTwd > vTwd.steamIncomeTwd, true);
+eq('高估幅度 > 15%（不是四捨五入的零頭）',
+  (vUsd.steamIncomeTwd / vTwd.steamIncomeTwd - 1) > 0.15, true);
+/* ⚠️ 錯誤方向：退回路徑把「虧」講成「不虧」。這正是為什麼不能默默退回不講。 */
+eq('台幣算出來是虧的', vTwd.ratio < 1, true);
+eq('美元算出來卻不虧', vUsd.ratio >= 1, true);
+
+/* 高價品項兩條路徑應該幾乎一樣——下限只咬低價的 */
+const hi = ctx.twdView({ csfloat_cost: 90, steam_price: 100, steam_income: 87,
+                         steam_price_twd: 3250, steam_income_twd: 2827 }, RATE);
+const hiUsd = ctx.twdView({ csfloat_cost: 90, steam_price: 100, steam_income: 87 }, RATE);
+eq('高價品項兩條路徑差 < 1%',
+  Math.abs(hi.steamIncomeTwd / hiUsd.steamIncomeTwd - 1) < 0.01, true);
+
+eq('壞匯率不要吐 NaN 到畫面上', ctx.twdView(rowUsd, 0).steamIncomeTwd, 0);
+eq('沒有成本時倍率回 0，不是 Infinity', ctx.twdView({ steam_income_twd: 6 }, RATE).ratio, 0);
+/* ⚠️ steam_income_twd 可以合法等於 0（NT$2 全被兩個 NT$1 下限吃掉）。
+      用真假值判斷會把它誤當成「沒資料」而退回美元，於是顯示成正的。 */
+const zero = ctx.twdView({ csfloat_cost: 0.05, steam_income: 0.04, steam_income_twd: 0 }, RATE);
+eq('實拿 0 是有效值，不是沒資料', zero.isTwd, true);
+eq('實拿 0 就顯示 0', zero.steamIncomeTwd, 0);
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);
