@@ -217,17 +217,23 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const { document, localStorage } = window;
 
     const boxes = [...document.querySelectorAll('.su-box')];
-    eq('一次性設定五項都在指南頁上', boxes.map(b => b.dataset.step),
-      ['authenticator', 'spend5', 'notrestricted', 'csfloat', 'funded']);
-    eq('每一輪的四步也在同一頁',
-      [...document.querySelectorAll('.step .t-sub')].length, 4);
+    eq('一次性設定剩四項（入金搬走了）', boxes.map(b => b.dataset.step),
+      ['authenticator', 'spend5', 'notrestricted', 'csfloat']);
+    eq('每一輪變成五步（多了入金）',
+      [...document.querySelectorAll('.step .t-sub')].length, 5);
+    /* ⚠️ CSFloat 是錢包制、餘額每輪花光，入金**不是**一次性的事。
+       擺回上半段等於告訴使用者做過就不用再做，而他第二輪回來錢包是空的。 */
+    eq('入金在「每一輪都要做」那一段，不在上半段',
+      [...document.querySelectorAll('.step .t-sub')].some(h => h.textContent.includes('入金')), true);
+    eq('上半段沒有任何入金勾選框',
+      boxes.some(b => b.dataset.step === 'funded'), false);
     eq('換裝置的補丁還在（否則桌機設定完、手機就沒路回來）',
       !!document.getElementById('su-manual'), true);
 
-    // 五項全勾 → sah-setup-v1 應該蓋上 doneAt
+    // 四項全勾 → sah-setup-v1 應該蓋上 doneAt
     boxes.forEach(b => { b.checked = true; b.dispatchEvent(new window.Event('change')); });
     const st = JSON.parse(localStorage.getItem('sah-setup-v1') || '{}');
-    eq('五項勾完會蓋 doneAt（試算頁的門檻靠它）', typeof st.doneAt === 'string', true);
+    eq('四項勾完會蓋 doneAt（試算頁的門檻靠它）', typeof st.doneAt === 'string', true);
     eq('來源標成逐項勾選', st.source, 'checklist');
 
     // 取消一項 → doneAt 要被清掉
@@ -239,6 +245,27 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     // 第三份資格清單必須不存在
     eq('舊的第三份資格清單已經拿掉',
       document.querySelectorAll('.eligibility-check').length, 0);
+  }
+
+  /* 過渡：舊資料勾了四項、只差已被移除的 funded，載入時要自動補上 doneAt。
+     不補的話畫面說「四項都完成了」、結果區卻說「還有 0 項沒完成」，
+     而且試算頁會一直用第一次的成本估算他。 */
+  {
+    const { window } = boot('help.html', ls => ls.setItem('sah-setup-v1', JSON.stringify({
+      steps: {
+        authenticator: '2026-08-01T00:00:00.000Z',
+        spend5: '2026-08-01T00:00:00.000Z',
+        notrestricted: '2026-08-01T00:00:00.000Z',
+        csfloat: '2026-08-01T00:00:00.000Z'
+        // funded 沒勾——舊版第 5 項，現在已經不算數
+      },
+      doneAt: null, source: null
+    })));
+    await tick();
+    const st = JSON.parse(window.localStorage.getItem('sah-setup-v1'));
+    eq('舊資料四項齊全 → 自動補上 doneAt', typeof st.doneAt === 'string', true);
+    eq('結果區顯示已完成',
+      window.document.getElementById('su-result').textContent.includes('設定完成'), true);
   }
 
   /* setup.html 只剩轉址殼：舊網址不能 404，也不能被索引。 */

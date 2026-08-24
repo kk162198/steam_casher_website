@@ -912,9 +912,21 @@ function saveHoldingsToDevice(items) {
         驗證方式只有一個：**自己完整跑一輪並實際計時**（買進計一次、
         七天後掛單再計一次），然後回來改這三個數字。
         DECISIONS.md 五節已把它列為待驗證假設。 */
+/* ⚠️ 2026-08-24 調整（護欄 3 要求理由寫進 commit message，這裡也留一份）：
+   入金原本被當成一次性的事（「完成第一次入金」），算在 setupMinutes 裡。
+   那是錯的——CSFloat 是**錢包制**，餘額每一輪都會花光，所以入金是每輪都要做的。
+   時間跟著搬：
+
+     setupMinutes      45 → 40   扣掉入金那一次的操作本身（約 5 分鐘）。
+                                 ⚠️ 不是扣滿：第一次入金裡有一塊真的只做一次
+                                    （綁付款方式、搞懂錢包制），那塊留在首次成本。
+     roundFixedMinutes 10 → 15   每輪多一次入金（登入、輸金額、付款、等到帳）。
+
+   方向檢查：每輪成本提高＝門檻變嚴＝更容易勸退，是保守的那一邊。
+   首次成本略降只影響「加註」不影響判定（首訪者本來就不擋）。 */
 var OP_TIME = {
-  setupMinutes:      45,  // 一次性：驗證器設定、確認資格、註冊 CSFloat、綁交易連結、首次入金
-  roundFixedMinutes: 10,  // 每輪固定：查價、決定組合、登入、確認餘額
+  setupMinutes:      40,  // 一次性：驗證器設定、確認資格、註冊 CSFloat、綁交易連結、綁付款方式
+  roundFixedMinutes: 15,  // 每輪固定：查價、決定組合、登入、**入金**、確認餘額
   perItemMinutes:    0.4  // 每件約 24 秒＝CSFloat 逐筆買 + 七天後 Steam 逐件上架
 };
 
@@ -933,15 +945,24 @@ var VERDICT_SAFE_MULTIPLE = 2;
 
 var SETUP_STORAGE_KEY = 'sah-setup-v1';
 
-/* 指南頁「只做一次」的五個步驟（2026-08-24 前住在 setup.html）。
+/* 指南頁「只做一次」的四個步驟（2026-08-24 前是五個、且住在 setup.html）。
    id 同時是 localStorage 裡的 key，上線後不要改。
-   fromElig：可以從資格快檢（sah-eligibility-v2）的哪一題自動帶入。 */
+   fromElig：可以從資格快檢（sah-eligibility-v2）的哪一題自動帶入。
+
+   ⚠️ 2026-08-24 拿掉 `funded`（「完成第一次入金」）。CSFloat 是錢包制，
+      餘額每輪都會花光，入金根本不是一次性的事——它現在是指南頁下半段
+      「每一輪都要做」的第 2 步。
+
+   ⚠️ 舊的 `sah-setup-v1.steps` 裡可能還留著 `funded`，那沒關係：
+      這份清單是唯一的判定依據，多出來的 key 不會被讀到，**不需要遷移**。
+      但反過來會有一個過渡狀態：本來勾了四項、只差 `funded` 的人，
+      現在四項就是全部了，卻還沒有 `doneAt`（那是在 setStep 裡蓋的）。
+      指南頁的 reconcileDone() 負責補上，見該頁註解。 */
 var SETUP_STEPS = [
   { id: 'authenticator', fromElig: { q: 'q2', pass: 'yes' } },
   { id: 'spend5',        fromElig: { q: 'q1', pass: 'yes' } },
   { id: 'notrestricted', fromElig: { q: 'q3', pass: 'no'  } },
-  { id: 'csfloat',       fromElig: null },
-  { id: 'funded',        fromElig: null }
+  { id: 'csfloat',       fromElig: null }
 ];
 
 function readSetupState() {

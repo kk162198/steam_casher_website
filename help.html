@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="分成兩段：第一次要做的五件事（做完就不用再做），以及之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 官網連結。">
+    <meta name="description" content="分成兩段：第一次要做的四件事（做完就不用再做），以及之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 官網連結。">
     <title>操作指南｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/help.html">
     <meta property="og:title" content="操作指南｜Steam 加值幫手">
-    <meta property="og:description" content="第一次要做的五件事，加上之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta property="og:description" content="第一次要做的四件事，加上之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="操作指南｜Steam 加值幫手">
-    <meta name="twitter:description" content="第一次要做的五件事，加上之後每一輪的四個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta name="twitter:description" content="第一次要做的四件事，加上之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -66,7 +66,13 @@
 
                  現在合成一頁兩段：**上半只做一次，下半每一輪都要做。**
                  這個分段本來就是使用者真正需要的區別——他要知道的是「哪些事我明年
-                 還要再做一次」。 -->
+                 還要再做一次」。
+
+                 ⚠️ 分段的正確性比分段本身重要。原本「在 CSFloat 完成第一次入金」
+                 被放在上半段，但 CSFloat 是**錢包制**、餘額每輪都會花光，
+                 所以入金是每輪都要做的事。擺在「只做一次」等於告訴使用者
+                 這件事做過就不用再做，而他第二輪回來會發現錢包是空的。
+                 2026-08-24 移到下半段第 2 步。 -->
             <p class="t-body c-ink2 flow-sm" style="max-width:36em">
                 分成兩段：<strong class="c-ink">上半只做一次</strong>，做完就不用再碰；
                 <strong class="c-ink">下半每一輪都要做</strong>。
@@ -99,25 +105,24 @@
                 section** 裡。進度條是 sticky 的，而 sticky 的作用範圍是它的
                 containing block——直接掛在 <main> 底下的話，它會一路釘到頁尾，
                 使用者在看下半頁「每一輪都要做」的時候，畫面上方還黏著一條
-                跟那一段完全無關的「還沒開始，共 5 項」。 -->
+                跟那一段完全無關的「還沒開始，共 4 項」。 -->
         <section class="sec">
             <h2 class="t-page">只做一次</h2>
             <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
-                這五件事是 Steam 與 CSFloat 的帳號條件，不是這個網站要求的。
-                <strong class="c-ink">五項都勾完，試算頁就會改用「第二次以後」的成本判斷值不值得。</strong>
+                這四件事是 Steam 與 CSFloat 的帳號條件，不是這個網站要求的。
+                <strong class="c-ink">四項都勾完，試算頁就會改用「第二次以後」的成本判斷值不值得。</strong>
                 勾選只留在你自己的瀏覽器裡。
             </p>
 
         <!-- 進度 -->
         <div class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
-            <div style="display:flex;gap:6px" role="progressbar" aria-label="設定進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="su-progressbar">
+            <div style="display:flex;gap:6px" role="progressbar" aria-label="設定進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="su-progressbar">
                 <div class="prog-seg" data-seg="1"></div>
                 <div class="prog-seg" data-seg="2"></div>
                 <div class="prog-seg" data-seg="3"></div>
                 <div class="prog-seg" data-seg="4"></div>
-                <div class="prog-seg" data-seg="5"></div>
             </div>
-            <p id="su-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 5 項</p>
+            <p id="su-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 4 項</p>
         </div>
 
         <div class="flow-md" style="display:flex;flex-direction:column;gap:16px">
@@ -148,7 +153,7 @@
                             Steam 手機 App 的驗證器頁面顯示已啟用，而且啟用日期距今超過 7 天。
                         </p>
                     </div>
-                    <!-- ⚠️ 這五項全部是 Steam／CSFloat 的規則，不是本站訂的，而本站也
+                    <!-- ⚠️ 這四項全部是 Steam／CSFloat 的規則，不是本站訂的，而本站也
                          查不到任何人的帳號狀態。每一項都要有一條「去官網自己看」的路，
                          否則使用者只能照著自己的印象打勾——而打錯的代價是買完才發現賣不掉。
                          ⚠️ 啟用滿不滿 7 天網頁端查不到，只有手機 App 有，照實寫，
@@ -256,7 +261,7 @@
                 <label class="su-head">
                     <input type="checkbox" class="su-box" data-step="csfloat">
                     <span style="flex:1">
-                        <span class="t-note num c-ink3">第 4 項</span>
+                        <span class="t-note num c-ink3">第 4 項・做完就可以開始了</span>
                         <span class="t-sub" style="display:block;margin-top:4px">註冊 CSFloat，並填好 Steam 交易連結</span>
                     </span>
                 </label>
@@ -287,40 +292,6 @@
                 </div>
             </div>
 
-            <!-- ⑤ -->
-            <div class="card su-card" id="su-card-funded" data-done="0">
-                <label class="su-head">
-                    <input type="checkbox" class="su-box" data-step="funded">
-                    <span style="flex:1">
-                        <span class="t-note num c-ink3">第 5 項・做完就可以開始了</span>
-                        <span class="t-sub" style="display:block;margin-top:4px">在 CSFloat 完成第一次入金</span>
-                    </span>
-                </label>
-                <div style="padding-left:38px">
-                    <p class="t-body c-ink2 flow-sm">
-                        CSFloat 是錢包制：先入金，再用錢包餘額買。入金費是
-                        <strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次，
-                        所以一次入足比分好幾次划算。
-                    </p>
-                    <p class="t-aux c-warn flow-xs">
-                        會卡在哪：分五次小額儲值。固定費會被收五次，成本直接被墊高。
-                    </p>
-                    <div class="step-check flow-sm">
-                        <div class="step-check-title">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            怎麼確認做對了
-                        </div>
-                        <p class="t-aux c-ink2 flow-0">
-                            CSFloat 右上角顯示的錢包餘額 ≥ 你這次要買的金額。
-                        </p>
-                    </div>
-                    <div class="risk-bar flow-md">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                        <span>本站的成本一律用 7.5% 保守估計入金費，實際費率通常更低——這是刻意高估，讓你實際拿到的比網站顯示的更好。最低儲值金額我們還沒查證，以 CSFloat 站上顯示為準。<a href="transparency.html">看計算方式</a></span>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
         <!-- 結果 -->
@@ -346,7 +317,7 @@
         <section class="sec">
             <h2 class="t-page">每一輪都要做</h2>
             <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
-                四個步驟，中間卡著不能縮短的 7 天。
+                五個步驟，中間卡著不能縮短的 7 天。
             </p>
 
             <div class="card flow-lg" style="display:flex;flex-direction:column;gap:32px">
@@ -377,8 +348,45 @@
 
                 <div class="hr"></div>
 
+                <!-- ⚠️ 2026-08-24：入金原本掛在「只做一次」的第 5 項，寫成
+                     「完成第一次入金」。那是錯的——CSFloat 是錢包制，餘額每輪都會花掉，
+                     所以**每一輪都要再入金一次**。放在一次性清單裡等於告訴使用者
+                     「這件事做過就不用再做」，而他第二輪回來會發現錢包是空的。
+
+                     位置在試算之後：入多少要看試算算出來的組合金額，先試算才知道。 -->
                 <div class="step">
                     <div class="step-no num">2</div>
+                    <div style="flex:1">
+                        <h3 class="t-sub">在 CSFloat 入金</h3>
+                        <p class="t-body c-ink2 flow-xs">
+                            CSFloat 是錢包制：先入金，再用錢包餘額買。
+                            金額照試算頁的「預估要花的現金」抓，<strong class="c-ink">一次入足這一輪要用的量</strong>——
+                            入金費是<strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次。
+                        </p>
+                        <p class="t-aux c-warn flow-xs">
+                            會卡在哪：分五次小額儲值。固定費會被收五次，成本直接被墊高。
+                            第一次還要多花時間綁付款方式，之後就只剩輸入金額。
+                        </p>
+                        <div class="step-check">
+                            <div class="step-check-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                怎麼確認做對了
+                            </div>
+                            <p class="t-aux c-ink2 flow-0">
+                                CSFloat 右上角顯示的錢包餘額 ≥ 這一輪要買的金額。
+                            </p>
+                        </div>
+                        <div class="risk-bar flow-md">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                            <span>本站的成本一律用 7.5% 保守估計入金費，實際費率通常更低——這是刻意高估，讓你實際拿到的比網站顯示的更好。最低儲值金額我們還沒查證，以 CSFloat 站上顯示為準。<a href="transparency.html">看計算方式</a></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="step">
+                    <div class="step-no num">3</div>
                     <div style="flex:1">
                         <h3 class="t-sub">照清單下單買箱子</h3>
                         <p class="t-body c-ink2 flow-xs">
@@ -409,7 +417,7 @@
                 <div class="hr"></div>
 
                 <div class="step">
-                    <div class="step-no num">3</div>
+                    <div class="step-no num">4</div>
                     <div style="flex:1">
                         <h3 class="t-sub">等 7 天</h3>
                         <p class="t-body c-ink2 flow-xs">
@@ -445,7 +453,7 @@
                 <div class="hr"></div>
 
                 <div class="step">
-                    <div class="step-no num">4</div>
+                    <div class="step-no num">5</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 Steam 社群市場上架</h3>
                         <p class="t-body c-ink2 flow-xs">
@@ -553,8 +561,8 @@
             document.getElementById('su-progressbar').setAttribute('aria-valuenow', done);
             document.getElementById('su-progress-text').textContent =
                 s.source === 'manual' ? '你標記過「在別的裝置設定過了」'
-                : (done === 0 ? '還沒開始，共 5 項'
-                : (done >= STEP_IDS.length ? '五項都完成了' : `已完成 ${done} / 5 項`));
+                : (done === 0 ? '還沒開始，共 4 項'
+                : (done >= STEP_IDS.length ? '四項都完成了' : `已完成 ${done} / 4 項`));
 
             renderResult(s, done);
         }
@@ -564,7 +572,7 @@
             if (!s.doneAt) {
                 const left = STEP_IDS.length - done;
                 box.innerHTML = `<div class="card card-roomy" style="text-align:center">
-                    <p class="t-body c-ink3 flow-0">還有 ${left} 項沒完成。五項都做完之後，試算頁就會改用「第二次以後」的成本來判斷值不值得。</p>
+                    <p class="t-body c-ink3 flow-0">還有 ${left} 項沒完成。四項都做完之後，試算頁就會改用「第二次以後」的成本來判斷值不值得。</p>
                 </div>`;
                 return;
             }
@@ -573,9 +581,9 @@
             box.innerHTML = `
                 <div class="card">
                     <span class="badge badge-go">設定完成</span>
-                    <h2 class="t-sect flow-md" style="color:var(--pos)">之後每一輪只剩下面那四步</h2>
+                    <h2 class="t-sect flow-md" style="color:var(--pos)">之後每一輪只剩下面那五步</h2>
                     <p class="t-body c-ink2 flow-sm">
-                        試算頁的門檻已經改用第二次以後的成本，不會再把這五件事算進去。
+                        試算頁的門檻已經改用第二次以後的成本，不會再把這四件事算進去。
                         完成時間：${when.toLocaleDateString('zh-TW')} ${via}
                     </p>
                     <p class="t-aux c-ink3 flow-sm">
@@ -630,6 +638,26 @@
                 if (!s.steps[id]) { s.steps[id] = new Date().toISOString(); changed = true; }
             });
             if (changed) writeSetupState(s);
+        })();
+
+        /* 過渡補丁：四項都勾了但沒有 doneAt 的，補蓋上去。
+           ────────────────────────────────────────────────────────────
+           doneAt 只在 setStep() 裡蓋，而 2026-08-24 把 `funded`（第一次入金）
+           從清單裡拿掉之後，本來勾了四項、只差那一項的人，**現在四項就是全部了**，
+           卻不會有 doneAt——畫面會顯示「四項都完成了」但結果區寫「還有 0 項沒完成」，
+           而且試算頁還在拿第一次的成本估算他。
+
+           ⚠️ 放在 bootstrapFromElig 之後：那一段可能剛把資格快檢的答案帶進來，
+              補完之後才是這一輪真正的勾選狀態。
+           ⚠️ 只補「該有而沒有」這個方向。反過來（有 doneAt 但沒勾滿）不在這裡處理——
+              那是 setStep() 的責任，而且 source === 'manual' 本來就允許沒勾滿。 */
+        (function reconcileDone() {
+            const s = state();
+            if (s.doneAt) return;
+            if (!STEP_IDS.length || !STEP_IDS.every(id => !!s.steps[id])) return;
+            s.doneAt = new Date().toISOString();
+            s.source = 'checklist';
+            writeSetupState(s);
         })();
 
         /* 頁首那兩個時間：直接從 site.js 的模型算，不要在這裡寫死數字。
