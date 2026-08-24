@@ -233,6 +233,95 @@ discount       = (1 − 1 ÷ 1.32) × 100%
             </div>
         </section>
 
+        <!-- 保守緩衝的依據（2026-08-24 從 calculator.html 第②節整段搬過來）
+             ────────────────────────────────────────────────────────────
+             原本這一整張卡片長在試算頁上，夾在「結果」與「你要買什麼」中間。
+             它講的是**方法論**（三個落差數字哪來的、為什麼是除不是加、什麼時候
+             多買也沒用），而不是這一次試算的結果——那是資料透明頁的工作。
+
+             試算頁現在只留兩件事：檔位按鈕底下那行動態說明，以及一句
+             「數字來自作者自己的 51 筆交易」＋一條連到這裡的連結。
+
+             ⚠️ 這一段不可以再壓縮掉的是最後那條樣本說明：n=51、全部來自本站
+                作者一人、不是市場統計。`DECISIONS.md` 4.7 明文要求這個限制必須
+                寫出來。可以改寫法，不能拿掉。 -->
+        <section class="sec" id="buffer">
+            <h2 class="t-sect">保守緩衝：那三個數字怎麼來的</h2>
+            <p class="t-body c-ink2 flow-md" style="max-width:39em">
+                試算頁的數字是<strong>今天</strong>的價格快照，而你賣的是 7 天後的價格。
+                「保守緩衝」就是把這段落差換算成「目標要多抓幾趴」。
+            </p>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">落差有多大</h3>
+                <p class="t-body c-ink2 flow-xs">
+                    我們自己的 51 筆交易對照下來：<strong>最好多了 21.8%，最差少了 22.4%</strong>。
+                    所以試算是「順利的話」，不是保證。
+                </p>
+                <div class="card card-flush flow-md" style="padding:8px 20px 4px">
+                    <table class="rt">
+                        <thead>
+                            <tr>
+                                <th scope="col">檔位</th>
+                                <th scope="col">擋得住</th>
+                                <th scope="col">目標要多抓</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">一般</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 5.7%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+6.0%</td>
+                            </tr>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">保守</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 16.0%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+19.1%</td>
+                            </tr>
+                            <tr>
+                                <td class="rt-key" data-label="檔位">最保守</td>
+                                <td class="c-ink2" data-label="擋得住">賣價少 22.4%</td>
+                                <td class="num c-brand" data-label="目標要多抓">+28.8%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="t-note c-ink3 flow-md">
+                    少 16% 要多抓 19.1%，因為剩下的 84% 要撐起原本的 100%：<span class="num">1 ÷ 0.840 = 1.191</span>。
+                    ⚠️ 是<strong>除</strong>不是加——寫成 <span class="num">× 1.1603</span> 會少抓 3 個百分點，
+                    而「少抓」正是這個功能唯一不能犯的錯：緩衝不夠保守比沒有緩衝更糟，因為使用者以為自己保過了。
+                </p>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">⚠️ 多買不是萬靈丹</h3>
+                <p class="t-body c-ink2 flow-xs">
+                    保底要成立，組合倍率得先高過 <span class="num">1 ÷ (1 − 落差)</span>：
+                    <strong>x1.06（一般）／x1.19（保守）／x1.29（最保守）</strong>。
+                    而帳本實測的倍率是 <span class="num">1.13–1.30</span>、平均 <span class="num">1.18</span>。
+                </p>
+                <p class="t-body c-ink2 flow-md">
+                    也就是說在「保守」以上的檔位，<strong>多數組合在最差情況下是倒賠的</strong>——
+                    多買並不能把賠的補回來，它只放大部位。試算標示「最差情況倒賠」時，
+                    <strong>該做的是不做，不是換一個寬鬆的檔位再算一次。</strong>
+                </p>
+            </div>
+
+            <div class="card flow-lg">
+                <h3 class="t-sub">這 51 筆是什麼</h3>
+                <p class="t-body c-ink2 flow-xs">
+                    <strong>本站作者自己的交易紀錄，不是市場統計</strong>，也不保證對你成立。
+                    而且偏差會分期間換檔，不是一個固定值——同一份帳本裡有過 <span class="num">+21.8%</span> 的期間，
+                    也有過連續十筆全負的期間。
+                </p>
+                <p class="t-note c-ink3 flow-md">
+                    上面〈原始資料〉那一區的快照序列是獨立的第二個來源，你可以自己算一次來對照。
+                    ⚠️ 但兩者量的東西不一樣：快照量得到<strong>市場怎麼移動</strong>，
+                    量不到<strong>你掛上去實際成交在什麼價</strong>——後者只有真實成交紀錄回答得了。
+                </p>
+            </div>
+        </section>
+
         <!-- 原始資料下載
              2026-08-14 改寫。原本這一區是「資料累積中，預計 9 月起提供」的佔位卡片，
              等我們自己算完再公布結論——但那等於要使用者相信我們算得對，

@@ -102,6 +102,12 @@ body{
 @media (min-width:768px){ .card-roomy{padding:40px 32px} }
 .hr{height:1px;background:var(--line);border:0;margin:0}
 
+/* 錨點目標要讓開黏在上方的導覽列（64px）。
+   沒有這一條的話，transparency.html#buffer 這種連結會把標題捲到
+   導覽列底下，使用者以為自己跳錯地方了。
+   ⚠️ 用 :target 而不是 [id]，只在真的由網址片段導過去時才生效。 */
+:target{scroll-margin-top:80px}
+
 /* ── focus ─────────────────────────────── */
 a:focus-visible,button:focus-visible,[tabindex]:focus-visible,summary:focus-visible{
   outline:2px solid var(--brand);outline-offset:2px;border-radius:4px;

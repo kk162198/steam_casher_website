@@ -191,7 +191,16 @@
                             </div>
 
                             <!-- 保守緩衝：把「7 天後賣價可能低多少」換算成「目標要多抓幾趴」。
-                                 三個檔位對應三組實測落差，數字與註解一起維護在下方的 BUFFER_TIERS。 -->
+                                 三個檔位對應三組實測落差，數字與註解一起維護在下方的 BUFFER_TIERS。
+
+                                 ⚠️ 2026-08-24：原本第②節有一整張卡片在講這三個數字怎麼來的
+                                 （檔位表、÷(1−落差) 的算式、「多買不是萬靈丹」、樣本說明），
+                                 夾在結果與購買組合表中間。那是**方法論**，不是這一次試算的結果——
+                                 已整段搬到 transparency.html#buffer。
+
+                                 ⚠️ 但下面那句樣本說明**不可以一起搬走**：n=51、全部來自本站作者
+                                 一人、不是市場統計。DECISIONS.md 4.7 明文要求這個限制必須寫在
+                                 「使用者正在用這個數字」的地方。可以壓成一行，不能拿掉。 -->
                             <div class="calc-field">
                                 <span class="t-aux c-ink2">保守緩衝（避免七天後不夠）</span>
                                 <div id="buffer-group" role="group" aria-label="保守緩衝" style="display:flex;flex-wrap:wrap;gap:8px">
@@ -201,6 +210,10 @@
                                     <button type="button" class="btn btn-sm btn-secondary" data-buffer="safest">最保守</button>
                                 </div>
                                 <p id="buffer-note" class="t-note c-ink3 flow-0"></p>
+                                <p class="t-note c-ink3 flow-0">
+                                    落差來自<strong class="c-ink2">本站作者自己的 51 筆交易，不是市場統計</strong>。
+                                    <a href="transparency.html#buffer">這三個數字怎麼來的</a>
+                                </p>
                             </div>
 
                             <!-- 流動性篩選：門檻沿用 site.js 的 LIQUIDITY_TIERS，不要在這裡另立一套 -->
@@ -263,66 +276,21 @@
             </div>
         </section>
 
-        <!-- ② 預期區間
-             2026-08-14 精簡。原本用三格 calc-stat ＋兩段敘述把各期間的實測落差逐一
-             列出來，但保守緩衝做出來之後，那些數字已經在檔位表的「依據」欄與按鈕
-             說明裡出現過一次，這裡再講一遍是重複，而且把該讀的動作推到很下面。
-             改成「最好／最差各一個數字」帶過，細節交給 transparency.html。
+        <!-- ⚠️ 這裡原本是第②節「上面的數字會變，請自己留緩衝」——整張卡片，
+             含檔位表、÷(1−落差) 的算式、「多買不是萬靈丹」與樣本說明。
+             2026-08-24 整段搬到 transparency.html#buffer。
 
-             ⚠️ 唯一不可以再刪的是最後那段樣本說明：n=51、全部來自本站作者一人、
-                不是市場統計。DECISIONS.md 4.7 明白寫這個限制必須寫出來。
-                精簡文案時可以改寫法，不能拿掉這條。 -->
-        <section class="flow-md">
-            <div class="card">
-                <h2 class="t-sub">上面的數字會變，請自己留緩衝</h2>
-                <p id="range-note" class="t-body c-ink2 flow-xs">
-                    這是<strong>今天</strong>的價格快照，你賣的是 7 天後的價格。
-                    我們自己的 51 筆交易對照下來：<strong>最好多了 21.8%，最差少了 22.4%</strong>。
-                </p>
-                <p class="t-body c-ink2 flow-md">
-                    <strong>所以試算是「順利的話」，不是保證。</strong>這筆錢少了就不夠的話，用輸入區的<strong>保守緩衝</strong>自動多抓：
-                </p>
-                <div class="card card-flush flow-md" style="padding:8px 20px 4px">
-                    <table class="rt">
-                        <thead>
-                            <tr>
-                                <th scope="col">檔位</th>
-                                <th scope="col">擋得住</th>
-                                <th scope="col">目標要多抓</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="rt-key" data-label="檔位">一般</td>
-                                <td class="c-ink2" data-label="擋得住">賣價少 5.7%</td>
-                                <td class="num c-brand" data-label="目標要多抓">+6.0%</td>
-                            </tr>
-                            <tr>
-                                <td class="rt-key" data-label="檔位">保守</td>
-                                <td class="c-ink2" data-label="擋得住">賣價少 16.0%</td>
-                                <td class="num c-brand" data-label="目標要多抓">+19.1%</td>
-                            </tr>
-                            <tr>
-                                <td class="rt-key" data-label="檔位">最保守</td>
-                                <td class="c-ink2" data-label="擋得住">賣價少 22.4%</td>
-                                <td class="num c-brand" data-label="目標要多抓">+28.8%</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p class="t-note c-ink3 flow-md">
-                    少 16% 要多抓 19.1%，因為剩下的 84% 要撐起原本的 100%：<span class="num">1 ÷ 0.840 = 1.191</span>。
-                </p>
-                <p class="t-body c-ink2 flow-md">
-                    ⚠️ <strong>多買不是萬靈丹。</strong>組合倍率要先高過 <strong>x1.19（保守）／x1.29（最保守）</strong>，
-                    否則跌幅吃掉的比賺到的多。試算標示「最差情況倒賠」時，<strong>該做的是不做，不是換寬鬆檔位</strong>。
-                </p>
-                <p class="t-note c-ink3 flow-md">
-                    這 51 筆都來自本站作者自己的交易，<strong>不是市場統計</strong>，也不保證對你成立。
-                    <a href="transparency.html">看我們怎麼算的</a>
-                </p>
-            </div>
-        </section>
+             理由：它講的是**方法論**（三個落差數字哪來的、為什麼是除不是加、
+             什麼時候多買也沒用），不是這一次試算的結果，卻夾在「結果」與
+             「你要買什麼」中間，把該讀的動作推到很下面。
+
+             ⚠️ 留在這一頁的有兩處，都不可以再省：
+               · 輸入區「保守緩衝」按鈕底下那行樣本說明（n=51、作者一人、
+                 不是市場統計）＋ 連到 transparency.html#buffer 的連結。
+                 DECISIONS.md 4.7 要求這個限制寫在「使用者正在用這個數字」的地方。
+               · 結果面板的「順利的話省下 / 最差情況…」兩行，以及 worstRatio < 1
+                 時的 floorWarn（「多買補不回來，真的不能少就用官方儲值」）。
+                 那是動態的、對著這一次的組合講的，搬不走。 -->
 
         <!-- ⑤-0 下一步：出口放在表**之前**
              ────────────────────────────────────────────────────────────
@@ -464,9 +432,9 @@
              normal 0.0570 → 2026-06~07 那批的平均（n=10，10/10 全負）
              safe   0.1603 → 2026 年最差的一筆
              safest 0.2235 → 全部 51 筆裡最差的一筆（2025-09~10）
-           ⚠️ 改這裡的數字時，第②節的文案與 DECISIONS.md 4.7 要一起改。
+           ⚠️ 改這裡的數字時，transparency.html#buffer 的檔位表與 DECISIONS.md 4.7 要一起改。
            ⚠️ note 只寫「什麼時候選這個」，不要再寫一次數字的出處——
-              落差已經顯示在同一行，出處在第②節與 transparency.html。 */
+              落差已經顯示在同一行，出處在 transparency.html#buffer。 */
         const BUFFER_TIERS = [
             { id: 'none',   label: '不留緩衝', drop: 0,
               note: '照今天的價格算，不預留。' },
@@ -724,7 +692,7 @@
             });
             const pct = (bufferMultiplier(tier.drop) - 1) * 100;
             // ⚠️ 這行在手機上只有約 386px 寬，講太長會變 4 行。
-            //    「為什麼是除不是加」的算式放在第②節，不在這裡重複。
+            //    「為什麼是除不是加」的算式放在 transparency.html#buffer，不在這裡重複。
             bufferNote.textContent = tier.drop > 0
                 ? `目標多抓 ${pct.toFixed(1)}%，補回賣價少 ${(tier.drop * 100).toFixed(1)}% 的落差。${tier.note}`
                 : tier.note;

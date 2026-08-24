@@ -310,6 +310,37 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('結果沒有出現預估省下的金額', /省下約 NT\$/.test(result), false);
   }
 
+  /* ── ③-d 保守緩衝的說明搬到資料透明頁（2026-08-24）───────
+     ⚠️ 樣本說明（n=51、作者一人、不是市場統計）**不可以跟著搬走**：
+        DECISIONS.md 4.7 要求這個限制寫在「使用者正在用這個數字」的地方，
+        也就是試算頁的檔位按鈕旁邊。 */
+  {
+    const calc = fs.readFileSync(__dirname + '/../calculator.html', 'utf8');
+    const tr = fs.readFileSync(__dirname + '/../transparency.html', 'utf8');
+    /* ⚠️ 比對前先把 HTML 註解拿掉。這一頁的註解裡就寫著「原本是那張卡片」，
+       不剝掉的話這條檢查永遠是紅的，而且紅的原因跟畫面無關。 */
+    const calcVisible = calc.replace(/<!--[\s\S]*?-->/g, '');
+
+    eq('試算頁不再有那張檔位說明卡', calcVisible.includes('上面的數字會變，請自己留緩衝'), false);
+    eq('檔位表也不在試算頁了', calcVisible.includes('目標要多抓'), false);
+    eq('檔位表搬到資料透明頁', tr.includes('保守緩衝：那三個數字怎麼來的'), true);
+    eq('資料透明頁有 #buffer 錨點', /<section[^>]*id="buffer"/.test(tr), true);
+    eq('試算頁連得過去', calc.includes('transparency.html#buffer'), true);
+
+    // 搬走的三塊確實都在新家
+    eq('「多買不是萬靈丹」還在', tr.includes('多買不是萬靈丹'), true);
+    eq('÷(1−落差) 的算式還在', tr.includes('1 ÷ 0.840 = 1.191'), true);
+    eq('樣本說明也在新家', tr.includes('本站作者自己的交易紀錄'), true);
+
+    // ⚠️ 但試算頁自己也一定要留一份
+    eq('試算頁仍寫明 51 筆來自作者本人', calc.includes('51 筆交易'), true);
+    eq('試算頁仍寫明不是市場統計', calc.includes('不是市場統計'), true);
+
+    // 錨點不能被黏住的導覽列蓋住
+    const css = fs.readFileSync(__dirname + '/../assets/style.css', 'utf8');
+    eq('錨點有讓開導覽列', /:target\{scroll-margin-top:\d+px\}/.test(css.replace(/\s*\n\s*/g, '')), true);
+  }
+
   /* ── ④ 官網連結的靜態檢查 ─────────────────────────────
      這幾條靠人工看很容易漏，而漏掉的後果都很具體：
        · 帶語言前綴 → 使用者習慣看英文卻被強制換成繁中（2026-08-24 決定拿掉）
