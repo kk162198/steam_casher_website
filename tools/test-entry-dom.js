@@ -222,6 +222,14 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
       .replace(/\s*\n\s*/g, '');
     eq('輸入數字是 24px（不是 32）', /\.result-input\s*\{[^}]*font-size:\s*24px/.test(calcCss), true);
 
+    /* 買進側含國外交易費、賣出側不含。這兩行如果被「順手對齊」成同一個匯率，
+       畫面上不會有任何症狀——只有使用者入完金才發現錢不夠。 */
+    eq('成本用 buyRate()', /totalCostUsd \* buyRate\(usdToTwd\)/.test(calcCss), true);
+    eq('單價用 buyRate()', /row\.costUsd \* buyRate\(usdToTwd\)/.test(calcCss), true);
+    eq('賣出側維持中間價', /totalIncomeUsd \* usdToTwd;/.test(calcCss), true);
+    eq('畫面上講明含 1.5% 國外交易費',
+      document.querySelector('.calc-foot').textContent.includes('1.5% 國外交易費'), true);
+
     /* 更新按鈕：實測有人以為它是「把試算重置」。
        ⚠️ 按鈕文字要講它抓什麼，而且旁邊要明說不會動到輸入——
           光改名不夠，會怕的人需要被講明白才敢按。 */

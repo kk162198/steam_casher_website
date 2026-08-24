@@ -254,6 +254,14 @@
                                 <p class="t-note c-ink3 flow-0" style="flex:1 0 100%">
                                     只重抓匯率與 CSFloat／Steam 的報價，<strong class="c-ink2">不會清掉你填的金額或選的檔位</strong>。
                                 </p>
+                                <!-- ⚠️ 這一句要留著。試算頁的倍率是「台幣進／台幣出」、含刷卡的
+                                     國外交易費；市場列表的倍率是純美元市場比值。兩個數字本來就
+                                     不一樣，不講的話使用者會以為其中一個算錯了——而
+                                     「同一個品項在兩頁講不同的話」正是最快讓人不信這個站的方式。 -->
+                                <p class="t-note c-ink3 flow-0" style="flex:1 0 100%">
+                                    成本已含刷卡的 <strong class="c-ink2">1.5% 國外交易費</strong>（依發卡行而異），
+                                    所以這一頁的倍率會比<a href="marketlist.html">市場列表</a>低一點點。
+                                </p>
                             </div>
                         </div>
 
@@ -556,7 +564,7 @@
                     items: combo.map(i => ({
                         name: i.name,
                         qty: i.qty,
-                        unitCostTwd: Math.round(i.costUsd * rate),
+                        unitCostTwd: roundTwd(i.costUsd * rate),   // ⚠️ 不要 Math.round，購物清單顯示到分
                         defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
                     }))
                 }));
@@ -795,7 +803,7 @@
         function costTwdForTarget(targetTwd) {
             if (!(targetTwd > 0) || casesCache.length === 0) return 0;
             const { totalCostUsd } = buildCombo(plannedTargetTwd(targetTwd) / usdToTwd, usableCases(), capPct);
-            return totalCostUsd * usdToTwd;
+            return totalCostUsd * buyRate(usdToTwd);   // 成本側含 1.5% 國外交易費，見 site.js 第⑭節
         }
 
         function targetForBudget(budgetTwd) {
@@ -845,11 +853,13 @@
                 const response = await fetch('https://open.er-api.com/v6/latest/USD');
                 const data = await response.json();
                 usdToTwd = data.rates.TWD;
-                rateNote.innerText = `目前用的匯率：1 USD ≈ ${usdToTwd.toFixed(2)} TWD`;
+                // 講明是哪一種匯率、多久更新一次。免得使用者拿它去對自己的帳單。
+                rateNote.innerText = `中間價 1 USD ≈ ${usdToTwd.toFixed(2)}`
+                    + `・刷卡實付約 ${buyRate(usdToTwd).toFixed(2)}`;
             } catch (error) {
                 usdToTwd = 32.5;
                 // ⚠️ 抓不到就明說是預設值，不要顯示成一個看起來像即時匯率的數字
-                rateNote.innerText = `匯率抓不到，暫用預設值 1 USD ≈ 32.5 TWD`;
+                rateNote.innerText = `匯率抓不到，暫用預設中間價 1 USD ≈ 32.5`;
             }
         }
 
@@ -1019,7 +1029,9 @@
                 return;
             }
 
-            const totalCostTwd = totalCostUsd * usdToTwd;
+            const totalCostTwd = totalCostUsd * buyRate(usdToTwd);   // 買進側：中間價 × 1.015
+            /* ⚠️ 賣出側**維持中間價**，不要套 buyRate()。它換的是 Steam 錢包餘額，
+               沒有經過刷卡，沒有國外交易費。見 site.js 第⑭節。 */
             const totalValueTwd = totalIncomeUsd * usdToTwd;   // 照今天的價格賣掉能拿到的（＝順利的話）
             const overshootTwd = totalValueTwd - plannedTwd;   // 溢出要對含緩衝的目標算，緩衝不是溢出
             const effectiveRatio = totalCostTwd > 0 ? totalValueTwd / totalCostTwd : 1;
@@ -1042,7 +1054,7 @@
             const thinRows = [];
             let thinValueTwd = 0;
             combo.forEach(row => {
-                const unitCostTwd = row.costUsd * usdToTwd;
+                const unitCostTwd = row.costUsd * buyRate(usdToTwd);
                 const subtotalTwd = unitCostTwd * row.qty;
                 const valueTwd = row.incomeUsd * usdToTwd * row.qty;
                 const sharePct = totalIncomeUsd > 0 ? (row.incomeUsd * row.qty / totalIncomeUsd) * 100 : 0;
@@ -1057,7 +1069,7 @@
                 comboBody.appendChild(tr);
             });
             renderTimestamps(comboBody);              // 畫面層：換算每一列的資料時間
-            saveComboForChecklist(combo, usdToTwd);   // 畫面層：供購物清單頁讀取
+            saveComboForChecklist(combo, buyRate(usdToTwd));   // 畫面層：供購物清單頁讀取（單價是成本，走買進側）
 
             resultCost.innerText = `NT$ ${fmtTwd(totalCostTwd)}`;
             resultValue.innerText = `NT$ ${fmtTwd(totalValueTwd)}`;
@@ -1102,7 +1114,7 @@
                在背後默默讓他少賺，而他以為自己只是變安全了。 */
             if (currentLiqFilter().minVolume !== null && casesCache.length > 0) {
                 const base = buildCombo(targetUsd, casesCache, capPct);
-                const baseCostTwd = base.totalCostUsd * usdToTwd;
+                const baseCostTwd = base.totalCostUsd * buyRate(usdToTwd);
                 const extraTwd = totalCostTwd - baseCostTwd;
                 if (base.combo.length > 0 && Math.abs(extraTwd) >= 1) {
                     liqCost.textContent = extraTwd > 0

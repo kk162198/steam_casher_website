@@ -20,6 +20,7 @@
      ⑪ Steam 手續費換算 steamNetUsd()（毛額 → 淨額，與後端同一套算法）
      ⑫ 資格快檢狀態 readEligibility() / eligibilityState()
      ⑬ 台幣顯示格式 fmtTwd()（兩位小數）／ roundTwd()（寫入前收斂）
+     ⑭ 匯率 FX_CARD_FEE_RATE / buyRate()（買進側要多 1.5% 國外交易費）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js"></script>
@@ -1061,6 +1062,42 @@ function steamNetUsd(grossUsd) {
   var feeCents = Math.max(Math.floor(estNetCents * STEAM_FEE_RATE), minCents);
   var pubCents = Math.max(Math.floor(estNetCents * STEAM_PUBLISHER_FEE_RATE), minCents);
   return Math.max(grossCents - feeCents - pubCents, 0) / 100;
+}
+
+/* ── ⑭ 匯率：買進側與賣出側不是同一個數字 ────────────────────
+   （2026-08-24 新增。實測見 DECISIONS.md 4.17）
+
+   網站抓的是 open.er-api.com 的**中間價**（interbank mid-market），
+   免費層**一天更新一次**。它是「銀行之間的參考價」，不是任何人實際換得到的價。
+
+   ⚠️ 買進側：CSFloat 以美元計價，台灣使用者刷卡付款時，
+      Visa／Mastercard 收約 1% 跨境交易費，發卡行再收 ≤0.5% 國外交易服務費，
+      合計常見 **1.5%**（凱基銀行說明頁，2026-08-24 查證）。
+      所以他實際付出去的台幣，比中間價換算出來的**多約 1.5%**。
+
+   ⚠️⚠️ **這 1.5% 不在 `CSFLOAT_BUYER_FEE_RATE = 0.075` 裡面。**
+      那 7.5% 是**美元內部**的入金費（2.8% + US$0.30，US$10 時等效 5.80%，
+      與帳本實測 5.82% 吻合，見 DECISIONS 4.1／4.12）。
+      兩者是**相乘不是相加**：實付台幣 = 美元價 × 1.075 × 匯率 × 1.015。
+      所以加這 1.5% 不會吃掉 7.5% 的保守邊際，那是兩個不同層的成本。
+
+   ⚠️ 為什麼一定要加：試算頁的「預估要花的現金」是使用者**拿去入金的依據**。
+      低估 1.5% 的後果不是數字難看，是他照著入金之後錢包不夠，清單買不完。
+      這正好踩到護欄「寧可高估成本、低估折扣」。
+
+   ⚠️ 賣出側**不要**套這個。它換的是 Steam 錢包餘額，沒有經過刷卡。
+      （賣出側另有問題，見 DECISIONS 4.17 與 site.js 第⑪節的待驗證註記。）
+
+   ⚠️ 副作用要知道：試算頁的「實際倍率」＝台幣進／台幣出，會比市場列表的
+      `ratio`（純美元市場比值）**低約 1.5%**。兩者量的不是同一件事，
+      這是對的，不要為了對齊而把其中一邊改掉。 */
+var FX_CARD_FEE_RATE = 0.015;
+
+/* 買進側該用的匯率。呼叫端一律走這個，不要各頁自己乘 1.015。 */
+function buyRate(midRate) {
+  var r = Number(midRate);
+  if (!isFinite(r) || r <= 0) return 0;
+  return r * (1 + FX_CARD_FEE_RATE);
 }
 
 /* ── ⑬ 台幣顯示格式 ─────────────────────────────────────────

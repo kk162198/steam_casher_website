@@ -267,5 +267,17 @@ eq('往返後單價保住小數', decBack.unitCostTwd, 16.25);
 /* ⚠️ 舊網址是整數，一定要仍然讀得回來，不要在遷移時把人家的紀錄弄丟 */
 eq('舊的整數網址照樣讀得回', ctx.paramToHoldings('A:2:21:4001:280::2:', null)[0].paidTwd, 280);
 
+/* ── 10. 買進側匯率：中間價之外還要加國外交易費（2026-08-24 新增）──
+   ⚠️ 這 1.5% 不在 CSFLOAT_BUYER_FEE_RATE 的 7.5% 裡面——那是美元內部的
+      入金費，兩者相乘不是相加。加它是因為「預估要花的現金」是使用者拿去
+      入金的依據，低估的後果是他入完金發現清單買不完。 */
+eq('國外交易費率 1.5%', ctx.FX_CARD_FEE_RATE, 0.015);
+eq('買進側 = 中間價 × 1.015', Math.round(ctx.buyRate(31.82) * 1e6) / 1e6, 32.29730);
+eq('壞值不要吐 NaN 到金額上', ctx.buyRate(undefined), 0);
+eq('0 或負的匯率一律回 0', ctx.buyRate(-1), 0);
+/* ⚠️ 賣出側沒有對應函式，是刻意的：Steam 錢包餘額沒有經過刷卡。
+      要是哪天有人補了一個 sellRate()，先回去看 site.js 第⑭節。 */
+eq('沒有 sellRate()（賣出側不該有國外交易費）', typeof ctx.sellRate, 'undefined');
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);
