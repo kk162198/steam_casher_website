@@ -223,6 +223,16 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
       [...document.querySelectorAll('.step .t-sub')].length, 5);
     /* ⚠️ CSFloat 是錢包制、餘額每輪花光，入金**不是**一次性的事。
        擺回上半段等於告訴使用者做過就不用再做，而他第二輪回來錢包是空的。 */
+    /* CSFloat 那三步（註冊／入金／下單）都要有一條過去的路，
+       否則使用者得自己在瀏覽器打 csfloat.com。 */
+    const csf = [...document.querySelectorAll('a.chk-link[href="https://csfloat.com/"]')];
+    eq('CSFloat 的網址出現在註冊、入金、下單三步', csf.length, 3);
+    eq('CSFloat 連結不帶任何參數（不放推薦碼）',
+      csf.every(a => a.getAttribute('href') === 'https://csfloat.com/'), true);
+    eq('CSFloat 連結不指深層路徑（SPA，路徑沒查證過）',
+      [...document.querySelectorAll('a.chk-link')]
+        .filter(a => /csfloat\.com\/./.test(a.getAttribute('href'))).length, 0);
+
     eq('入金在「每一輪都要做」那一段，不在上半段',
       [...document.querySelectorAll('.step .t-sub')].some(h => h.textContent.includes('入金')), true);
     eq('上半段沒有任何入金勾選框',

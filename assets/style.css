@@ -342,9 +342,10 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
 .trade-sell:hover{background:rgba(30,41,59,.5);border-color:var(--ink3)}
 .trade-off{color:var(--ink3);opacity:.5;cursor:not-allowed}
 
-/* ── 9b. 官網確認連結（2026-08-24）────────────────────
-   「到 Steam 官網自己看」的連結。用在資格快檢、初始設定、操作指南——
-   這三頁講的每一條都是 Steam 的規則，而本站沒有登入、查不到任何人的帳號狀態。
+/* ── 9b. 官網連結（2026-08-24）────────────────────────
+   「去官網自己看／自己操作」的連結。用在資格快檢與操作指南——
+   這兩頁講的每一條都是 Steam 或 CSFloat 的規則與操作，
+   而本站沒有登入、查不到任何人的帳號狀態，也不代操作任何一步。
 
    ⚠️ 這不是裝飾，是「不確定」這個答案的唯一出路。沒有一條當場查得到的路，
       使用者只能猜，而猜錯的代價是買完才發現賣不掉。
@@ -353,6 +354,8 @@ a:hover{text-decoration:underline;text-underline-offset:3px}
    ⚠️ 不含任何推薦碼或追蹤參數，與交易連結同一條規矩。
    ⚠️ 網址**不帶 /zh-TW/ 之類的語言前綴**（2026-08-24 決定）：Steam 會依使用者
       自己的語言設定顯示，強制繁中反而會蓋掉習慣看英文的人的設定。
+   ⚠️ CSFloat 只放**首頁**，不放設定／錢包這類深層路徑——它是 SPA，那些路徑
+      我們沒查證過，給一個猜的網址比不給更糟。
    ⚠️ 44px 高是觸控尺寸，跟 .trade-link 同一個標準，不要為了版面縮掉。 */
 .chk-links{display:flex;flex-wrap:wrap;gap:0 16px;margin-top:4px}
 .chk-link{

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="分成兩段：第一次要做的四件事（做完就不用再做），以及之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 官網連結。">
+    <meta name="description" content="分成兩段：第一次要做的四件事（做完就不用再做），以及之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 與 CSFloat 的網址。">
     <title>操作指南｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -101,7 +101,7 @@
         </header>
 
         <!-- ═══════════ A 段：只做一次 ═══════════
-             ⚠️ 整段（標題／進度條／五張卡／結果／跨裝置）一定要包在**同一個
+             ⚠️ 整段（標題／進度條／四張卡／結果／跨裝置）一定要包在**同一個
                 section** 裡。進度條是 sticky 的，而 sticky 的作用範圍是它的
                 containing block——直接掛在 <main> 底下的話，它會一路釘到頁尾，
                 使用者在看下半頁「每一輪都要做」的時候，畫面上方還黏著一條
@@ -282,10 +282,14 @@
                             CSFloat 設定頁的交易連結欄位顯示已驗證，沒有紅字警告。
                         </p>
                     </div>
-                    <!-- 只放 Steam 這一端的連結。CSFloat 設定頁的網址我們沒查證過，
-                         給一個猜的網址比不給更糟——會把人送到一個不存在的頁面，
-                         而他正卡在「交易連結填錯」這個最容易卡住的地方。 -->
+                    <!-- ⚠️ 只放 CSFloat **首頁**，不放設定頁的深層路徑。
+                         CSFloat 是 SPA，設定頁的網址我們沒查證過，給一個猜的路徑
+                         比不給更糟——會把人送到一個不存在的頁面，而他正卡在
+                         「交易連結填錯」這個最容易卡住的地方。
+                         ⚠️ 網址不帶任何參數。本站不從交易平台收分潤，也不放推薦碼。 -->
                     <div class="chk-links flow-sm">
+                        <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
+                            CSFloat：用 Steam 帳號登入<span class="ext">↗</span></a>
                         <a class="chk-link" href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" rel="noopener noreferrer">
                             我的 Steam 交易連結（Trade URL）<span class="ext">↗</span></a>
                     </div>
@@ -376,6 +380,10 @@
                                 CSFloat 右上角顯示的錢包餘額 ≥ 這一輪要買的金額。
                             </p>
                         </div>
+                        <div class="chk-links">
+                            <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
+                                CSFloat：登入後在這裡入金<span class="ext">↗</span></a>
+                        </div>
                         <div class="risk-bar flow-md">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                             <span>本站的成本一律用 7.5% 保守估計入金費，實際費率通常更低——這是刻意高估，讓你實際拿到的比網站顯示的更好。最低儲值金額我們還沒查證，以 CSFloat 站上顯示為準。<a href="transparency.html">看計算方式</a></span>
@@ -408,6 +416,8 @@
                             </p>
                         </div>
                         <div class="chk-links">
+                            <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
+                                CSFloat：在這裡下單<span class="ext">↗</span></a>
                             <a class="chk-link" href="https://steamcommunity.com/my/inventory/" target="_blank" rel="noopener noreferrer">
                                 我的 Steam 庫存<span class="ext">↗</span></a>
                         </div>
