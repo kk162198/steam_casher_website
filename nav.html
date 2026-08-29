@@ -66,13 +66,25 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <ul class="hidden md:flex items-center gap-1">
       <li><a id="nav-main" href="index.html" class="nav-link text-slate-300 hover:text-cyan-400">首頁</a></li>
       <li><a id="nav-calculator" href="calculator.html" class="nav-link text-slate-300 hover:text-cyan-400">試算</a></li>
+      <li><a id="nav-marketlist" href="marketlist.html" class="nav-link text-slate-300 hover:text-cyan-400">市場</a></li>
+      <!-- ⚠️ 順序有意義，不要隨手調（2026-08-29 改成現在這樣）：
+
+             首頁 → 試算 → 市場 ｜ 清單 → 賣出 ｜ 指南
+                    ↑ 決定要買什麼    ↑ 已經買了，走完後半段
+
+           **「清單」與「賣出」必須相鄰。** 它們是同一件事的兩個階段——
+           買到幾個、實付多少（清單）→ 等冷卻期 → 該掛多少、實拿多少（賣出），
+           資料也是同一份（sah-checklist-checked-v1）。中間插一個「市場」
+           會把一條流程切成兩半，而使用者七天後回來時要找的正是這兩顆。
+
+           「市場」是瀏覽型的，跟「試算」同一類（還在決定要買什麼），
+           所以往前併到試算旁邊。 -->
       <!-- 購物清單必須在導覽列裡（2026-08-24 加）。試算頁不再有勾選框，
            買到幾個、實付多少、什麼時候買的全部只在這一頁；而買東西常常
            跨兩天，第二天回來補填時他手上不會有那條連結。少了這個入口，
            唯一的路是「先去試算頁再按產生清單」——而重新試算出來的組合
            不一定跟昨天那份一樣。 -->
       <li><a id="nav-checklist" href="checklist.html" class="nav-link text-slate-300 hover:text-cyan-400">清單</a></li>
-      <li><a id="nav-marketlist" href="marketlist.html" class="nav-link text-slate-300 hover:text-cyan-400">市場</a></li>
       <!-- 賣出頁必須在導覽列裡。使用者是七天後才回來的，那時候行事曆連結
            可能已經找不到、localStorage 也可能在另一台裝置——如果導覽列
            沒有入口，他就沒有路回到後半段流程。 -->
@@ -117,8 +129,10 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <ul class="flex flex-col gap-2">
       <li><a class="m-link" data-page="main" href="index.html">首頁</a></li>
       <li><a class="m-link" data-page="calculator" href="calculator.html">試算</a></li>
-      <li><a class="m-link" data-page="checklist" href="checklist.html">購物清單</a></li>
+      <!-- ⚠️ 順序與桌機清單一致，理由見上面那段註解：清單與賣出必須相鄰。
+           兩邊各排各的話，同一個人在手機與桌機會看到不同的動線。 -->
       <li><a class="m-link" data-page="marketlist" href="marketlist.html">市場</a></li>
+      <li><a class="m-link" data-page="checklist" href="checklist.html">購物清單</a></li>
       <li><a class="m-link" data-page="sell" href="sell.html">賣出</a></li>
       <li><a class="m-link" data-page="help" href="help.html">指南</a></li>
     </ul>
