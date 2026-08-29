@@ -199,11 +199,14 @@ async function boot() {
   eq('改回還沒到就清掉到貨時間', read()['Kilowatt Case'].lots[0].got, null);
   const lotAt = read()['Kilowatt Case'].lots[0].at;
   const csBack = dom.window.cooldownStart(lotAt, null);
-  eq('退回後起點 = 打勾 + 1 天',
-    Date.parse(csBack.at) - Date.parse(lotAt), 86400000);
+  eq('退回後起點就是打勾那一刻，不加緩衝',
+    Date.parse(csBack.at) - Date.parse(lotAt), 0);
   eq('退回後標成估計值', csBack.isEstimate, true);
   eq('沒按時頁面要講出來是估的',
-    document.getElementById('cl-next-note').textContent.includes('+ 1 天'), true);
+    document.getElementById('cl-next-note').textContent.includes('最快能賣的時刻'), true);
+  /* ⚠️ 解鎖是一個時刻不是一天。只寫日期就是 2026-08-29 那個誤會的來源。 */
+  eq('可賣時間要連時刻一起講',
+    /\d{1,2}:\d{2}/.test(document.getElementById('cl-next-note').textContent), true);
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);

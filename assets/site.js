@@ -344,28 +344,34 @@ var COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
    而勾選時間 ≈ 你在 CSFloat 按下購買那一刻。
 
    CSFloat 是掛單制：你付完錢之後，賣家才會去送交易報價，**不保證即時**。
-   使用者回報實際落差常常要跨到隔天。
+   所以拿下單時間算出來的解鎖時刻是一個**下界**——實際只會更晚，不會更早。
+   解法是讓使用者記錄真正的到貨時間（購物清單每一批的「物品到了」）；
+   沒記錄時就照實用下單時間，並且**標成估計值、文案講「最快」**。
 
-   ⚠️ 方向錯得很難看：拿下單時間當起點會把解鎖日算得**太早**，使用者照著
-      回到賣出頁，看到「可以賣了」卻上架不了。這是白跑一趟，而且會讓他
-      懷疑整站的數字。跟 CSFLOAT_BUYER_FEE_RATE 刻意高估成本同一個原則：
-      **寧可讓他晚一點來，不可讓他白跑。**
+   ⚠️⚠️ **這裡曾經有一個 `TRANSFER_BUFFER_DAYS = 1`，2026-08-29 當天就拿掉了。
+      不要再加回來。**
 
-   兩層修法，順序不要顛倒：
-     ① 主要解法是**記錄真正的到貨時間**（購物清單頁每一批的「已到貨」）。
-        有記錄就直接用，下面這個緩衝完全不參與。
-     ② 沒記錄時才退回「下單時間 + 緩衝」，並且**畫面上要標成估計值**。
+      當時使用者回報「時間追蹤要多加一天」，我據此加了一天緩衝。後來查明
+      那個回報是**行事曆造成的誤會**：`.ics` 事件原本是**全天事件**，只有
+      日期沒有時間——一批在當地時間 23:00 解鎖的箱子，行事曆整天都掛在
+      那一天的頂端，早上看到就跑去賣，當然還鎖著。
+      **7 天從來沒有不夠，是提醒沒有把時刻講出來。**
+      真正的修法是把事件改成定時事件（sell.html 的 buildCooldownIcs）。
 
-   ⚠️ 緩衝取 1 天是使用者實測回報的落差，不是量出來的分布。要動這個數字
-      之前先累積實際的「下單 → 到貨」樣本，別憑感覺加碼——加太多會讓
-      解鎖日晚到使用者不信任它，那等於把功能關掉。 */
-var TRANSFER_BUFFER_DAYS = 1;
-var TRANSFER_BUFFER_MS = TRANSFER_BUFFER_DAYS * 24 * 60 * 60 * 1000;
+   ⚠️ 教訓：使用者回報的是**症狀**（「要多加一天」），不是**病因**。改動
+      核心常數之前先問一句「有沒有一個純顯示的問題會產生一模一樣的症狀」——
+      這次就有。而且加緩衝會讓真正的 bug 更難被發現：提醒晚一天響，看起來
+      就對了，全天事件在說謊這件事永遠不會浮上來。
+      同一類錯誤 4.7 犯過一次：拿毛額比淨額，憑空生出一個 −13% 的假缺口。
+
+   ⚠️ **下界要誠實，不要偷偷加碼。** 加一個猜的數字讓它「看起來準一點」，
+      結果是兩邊都不對——既不是下界也不是實際值，而且沒有人知道那個數字
+      是哪來的。要精確就記錄到貨時間，那才是真的答案。 */
 
 /* 這一批的冷卻期要從哪一刻起算。回傳 { at, isEstimate }。
 
      有到貨時間   → 就是那一刻，isEstimate = false
-     只有下單時間 → 下單 + 緩衝，isEstimate = true
+     只有下單時間 → 下單那一刻（下界），isEstimate = true
      兩個都沒有   → { at: null, isEstimate: true }
 
    ⚠️ **全站只有這一個地方決定起點。** 賣出頁、購物清單、行事曆各判一次
@@ -380,7 +386,7 @@ function cooldownStart(boughtAt, arrivedAt) {
   }
   var b = boughtAt ? Date.parse(boughtAt) : NaN;
   if (isNaN(b)) return { at: null, isEstimate: true };
-  return { at: new Date(b + TRANSFER_BUFFER_MS).toISOString(), isEstimate: true };
+  return { at: new Date(b).toISOString(), isEstimate: true };
 }
 
 /* ⚠️ 參數是**冷卻期起點**（cooldownStart().at），不是下單時間。
@@ -484,7 +490,16 @@ function icsStampUTC(d) {
        + 'T' + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + 'Z';
 }
 /* 全天事件用 DATE 型別（沒有時間、沒有時區），提醒才不會因為時區
-   而跑到前一天晚上。 */
+   而跑到前一天晚上。
+
+   ⚠️⚠️ **冷卻期到期提醒已經不用全天事件了**（2026-08-29）。全天事件只有
+      日期沒有時刻，而解鎖是一個精確的瞬間——一批當地時間 23:00 解鎖的
+      箱子，全天事件整天掛在那一天的頂端，使用者早上看到就跑去 Steam，
+      結果還鎖著。**使用者回報的「7 天好像不夠、要多加一天」就是這個**，
+      冷卻期本身從來沒錯。見 sell.html 的 buildCooldownIcs。
+   ⚠️ 這個函式留著給**真的是全天**的事件用（特賣檔期、最晚買進日）——
+      那些本來就是「那一整天都算數」，沒有時刻可言。
+      判準：這件事有沒有一個精確的發生時刻？有 → 定時事件。 */
 function icsDate(d) {
   function p(n) { return (n < 10 ? '0' : '') + n; }
   return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
@@ -535,9 +550,16 @@ function icsCalendar(events, calName) {
     if (e.url) lines.push('URL:' + icsEscape(e.url));
     lines.push('TRANSP:TRANSPARENT'); // 不要讓它把你的行事曆標成忙碌
     if (e.alarmDaysBefore != null) {
+      /* ⚠️ 定時事件的「當下提醒」要寫 `-PT0M` 不是 `-P0D`。
+         `-P0D` 在部分行事曆（iOS 曾實測過）會被當成「當天的預設時刻」
+         而不是「事件開始的那一刻」，於是提醒又跑回早上——那正是
+         2026-08-29 要修掉的那個症狀。天數 > 0 或全天事件才用 D。 */
+      var trigger = (!e.allDayDays && e.alarmDaysBefore === 0)
+        ? '-PT0M'
+        : ('-P' + e.alarmDaysBefore + 'D');
       lines.push('BEGIN:VALARM', 'ACTION:DISPLAY',
         'DESCRIPTION:' + icsEscape(e.summary),
-        'TRIGGER:-P' + e.alarmDaysBefore + 'D', 'END:VALARM');
+        'TRIGGER:' + trigger, 'END:VALARM');
     }
     lines.push('END:VEVENT');
   });
@@ -781,11 +803,11 @@ function holdingsFromPlan(planItems, checked, savedAt) {
    | 6 | 旗標 | 見下 |
    | 7 | 計畫數量 | 與實際數量相同 |
    | 8 | 這一批的買進時間（epoch 秒） | 退回用網址的 `bought` 參數 |
-   | 9 | 這一批的**到貨時間**（epoch 秒） | 沒按過「已到貨」，冷卻期用買進時間 + 緩衝 |
+   | 9 | 這一批的**到貨時間**（epoch 秒） | 沒按過「物品到了」，冷卻期退回用買進時間（下界） |
 
-   ⚠️ 第 9 段一定要帶。少了它，桌機上按過「已到貨」的那批到了手機上會退回
-      「買進時間 + 1 天」的估計值——而使用者按那顆按鈕的**唯一理由**就是
-      他不想要估計值。跨裝置之後又變回估計，等於那顆按鈕在手機上不存在。
+   ⚠️ 第 9 段一定要帶。少了它，桌機上按過「物品到了」的那批到了手機上會退回
+      「買進時間」的下界估計——而使用者按那顆按鈕的**唯一理由**就是他不想要
+      估計值。跨裝置之後又變回估計，等於那顆按鈕在手機上不存在。
 
    旗標：`q` = 數量是估計的（沒填，用計畫數量頂替）
          `t` = 購買時間是估計的

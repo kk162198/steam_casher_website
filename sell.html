@@ -352,6 +352,16 @@
             (res.data || []).forEach(row => { priceMap[row.name] = row; });
         }
 
+        /* 解鎖時刻的統一說法：日期 + 24 小時制的時分。
+           ⚠️ 全站只有這一個地方決定「解鎖時刻怎麼寫」——表格、總覽、行事曆
+              說法不一致的話，使用者會以為其中一個是錯的。 */
+        function unlockText(d) {
+            return d.toLocaleString('zh-TW', {
+                month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
+        }
+
         /* ── 單列樣板 ──────────────────────────────────────── */
         function renderSellRow(item, sold) {
             const p = priceMap[item.name];
@@ -375,15 +385,19 @@
             const totalNet = netTwd != null ? netTwd * item.qty : null;
 
             /* ⚠️ 估計值要標出來，而且要講清楚是**哪一件事**在估：
-                 沒按「物品到了」→ 起點是猜的（打勾 + 1 天）
+                 沒按「物品到了」→ 起點用下單時間，算出來是**最快**能賣的時刻
                  舊資料沒有勾選時間 → 連下單時間都是拿試算時間近似的
-               兩者都會讓日期偏，但使用者能做的事不同——前者回購物清單按一下
+               兩者都會讓時刻偏，但使用者能做的事不同——前者回購物清單按一下
                就變準，後者只能重新確認。混成一句「日期為估算」等於兩邊都不能修。 */
             const estNote = item.cooldownFromIsEstimate
                 ? '<span class="t-note c-warn" style="display:block">估計值・<a href="checklist.html">按「物品到了」可校正</a></span>'
                 : '';
+            /* ⚠️ **要連時刻一起講。** 只寫日期的話，一批當地時間 23:00 解鎖的
+               箱子看起來就像「那天可以賣」，使用者早上跑去 Steam 會發現還鎖著。
+               2026-08-29 使用者回報的「7 天好像不夠」就是這個症狀的行事曆版本
+               （見 buildCooldownIcs），這一頁也一起補上，兩邊要說同一件事。 */
             const cdNote = (cd.state === 'locked' && u
-                ? '<span class="t-note c-ink3" style="display:block">' + u.toLocaleDateString('zh-TW') + ' 解鎖</span>'
+                ? '<span class="t-note c-ink3" style="display:block">' + unlockText(u) + ' 解鎖</span>'
                 : '') + estNote;
 
             /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
@@ -580,18 +594,34 @@
         }
 
         /* ── 行事曆：冷卻期到期提醒 ─────────────────────────
-           每個解鎖日一個全天事件（同一天買的合併成一則，不要洗版）。
-           事件裡帶著回到這一頁的連結與品項清單，換裝置也打得開。 */
-        /* ⚠️ 日期一定要用**使用者當地時間**分組，不能用 UTC。
+           每個解鎖日一則**定時事件**（同一天的批次合併成一則，不要洗版）。
+           事件裡帶著回到這一頁的連結與品項清單，換裝置也打得開。
 
-           解鎖時刻是「買進時間 + 7 天」的精確瞬間。若用 toISOString() 取日期，
-           一個台灣時間 8/14 凌晨 1 點解鎖的品項會被算成 UTC 的 8/13——
-           提醒早一天響，使用者跑去 Steam 卻發現東西還鎖著。
-           **這個功能存在的唯一目的就是把人準時叫回來，早一天等於功能是壞的。**
+           ⚠️⚠️ **2026-08-29：這裡原本是全天事件，那是一個會說謊的提醒。**
+              全天事件只有日期沒有時刻，而解鎖是一個精確的瞬間——一批當地
+              時間 23:00 解鎖的箱子，事件整天掛在那一天的頂端，使用者早上
+              看到就跑去 Steam，發現還鎖著。
+              **使用者回報的「7 天好像不夠、時間追蹤要多加一天」就是這個。**
+              冷卻期本身從來沒錯，是提醒沒有把時刻講出來。
 
-           而且表格那邊用的是 toLocaleDateString（當地時間），兩邊會對不起來。
-           所以這裡一律走當地時間，並且無條件取「解鎖瞬間所在的那一整天」，
-           寧可晚幾小時提醒，也不要早一天。 */
+              ⚠️ 當時的第一個修法是「冷卻期加一天緩衝」，那是修錯地方，而且
+                 會讓真正的 bug 永遠不會浮上來（提醒晚一天響，看起來就對了）。
+                 緩衝已經拿掉，見 site.js 第⑥節那段更正。
+
+           ⚠️ **同一天的多批取那一組裡「最晚」的解鎖時刻。** 取最早的話，
+              事件響的時候組裡還有東西鎖著——那就是原本那個 bug 換個形狀。
+              代價是早解鎖的那幾批會被一起延到最晚那一刻才提醒，通常只差
+              幾小時（同一天買的批次本來就集中），而方向是安全的那一邊。
+              各批自己的時刻寫在事件內文裡，看得到細節。 */
+        /* ⚠️ 分組用**使用者當地時間**的日期，不能用 UTC。
+
+           這個 key 現在**只用來分組**（決定哪幾批合成一則事件），事件本身的
+           時刻是那一組裡最晚的解鎖瞬間，不再由這個日期決定。即使如此還是不能
+           用 UTC：一個台灣時間 8/14 凌晨 1 點解鎖的品項會被歸到 UTC 的 8/13，
+           跟表格那邊的 toLocaleDateString 對不起來，使用者會看到兩個日期。
+
+           ⚠️ 2026-08-29 之前，這個日期同時也是事件的日期（全天事件），
+              那才是真正咬人的地方——見上面 buildCooldownIcs 的註解。 */
         function localDayKey(d) {
             const p = n => String(n).padStart(2, '0');
             return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
@@ -613,19 +643,40 @@
                 const qty = group.reduce((s, i) => s + i.qty, 0);
                 const url = base + '?items=' + encodeURIComponent(holdingsToParam(group))
                           + '&bought=' + encodeURIComponent(group[0].boughtAt || '');
-                const [y, m, d] = day.split('-').map(Number);
+
+                /* 事件時刻 = 這一組裡**最晚**解鎖的那一刻。理由見上面的註解：
+                   取最早的話事件響的時候組裡還有東西鎖著。 */
+                const unlocks = group.map(i => unlockAt(i.cooldownFrom)).filter(Boolean);
+                /* ⚠️ 無條件**進位到下一秒**。ICS 沒有毫秒（DTSTART 只到秒），
+                   直接截掉的話事件會比真正的解鎖時刻早最多 999 毫秒——
+                   實務上無所謂，但「提醒絕不早於解鎖」是這個功能唯一的不變式，
+                   讓它剛好成立比讓它「幾乎成立」好，測試也才能寫得嚴格。 */
+                const latestMs = Math.max.apply(null, unlocks.map(u => u.getTime()));
+                const startAt = new Date(Math.ceil(latestMs / 1000) * 1000);
+                /* 半小時的長度。⚠️ 不要用 0 長度：部分行事曆會把零長度事件
+                   畫成幾乎看不見的一條線，等於提醒不存在。 */
+                const endAt = new Date(startAt.getTime() + 30 * 60000);
+
+                /* 每一批自己的時刻也寫進內文——合併成一則之後，早解鎖的那幾批
+                   會被延到最晚那一刻才提醒，使用者有權知道自己其實早就能賣了。 */
+                const lines = group.map(i => {
+                    const u = unlockAt(i.cooldownFrom);
+                    return '・' + i.name + ' ×' + i.qty + (u ? '（' + unlockText(u) + ' 解鎖）' : '');
+                });
+
                 return {
                     uid: 'cooldown-' + day + '-' + Math.random().toString(36).slice(2, 8) + '@steam-casher',
-                    // icsDate() 讀的是 getUTC*，所以用 Date.UTC 組出「UTC 欄位剛好等於當地日期」的值
-                    start: new Date(Date.UTC(y, m - 1, d)),
-                    allDayDays: 1,
+                    start: startAt,
+                    end: endAt,
                     summary: '可以賣了：' + qty + ' 個箱子解鎖',
-                    description: group.map(i => '・' + i.name + ' ×' + i.qty).join('\n')
+                    description: lines.join('\n')
                         + '\n\n7 天冷卻期到期，可以在 Steam 市場上架了。'
                         /* ⚠️ 行事曆事件是**離線**的：使用者三天後看到它時不會再回到網站，
-                           所以「這個日期是估計的」必須寫進事件本文，不能只留在頁面上。 */
+                           所以「這個時刻是估計的」必須寫進事件本文，不能只留在頁面上。 */
                         + (group.some(i => i.cooldownFromIsEstimate)
-                            ? '\n\n⚠️ 這一則有批次沒有記錄到貨時間，日期是用「下單 + 1 天」估的，實際可能再晚一點。'
+                            ? '\n\n⚠️ 這一則有批次沒有記錄到貨時間，時刻是用「下單那一刻 + 7 天」算的，'
+                              + '也就是**最快**能賣的時間。CSFloat 的賣家不一定馬上轉移，'
+                              + '實際只會更晚不會更早——回購物清單按「物品到了」就會變準。'
                             : '')
                         + '\n點連結看該掛多少、實拿多少。\n' + url,
                     url: url,

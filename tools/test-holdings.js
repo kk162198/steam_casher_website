@@ -372,8 +372,12 @@ const GOT = '2026-08-18T02:00:00.000Z';   // 賣家拖了整整三天才轉移
 const csEst = ctx.cooldownStart(BUY, null);
 const csGot = ctx.cooldownStart(BUY, GOT);
 eq('沒到貨時間 → 起點是估計的', csEst.isEstimate, true);
-eq('沒到貨時間 → 起點 = 下單 + 1 天',
-  Date.parse(csEst.at) - Date.parse(BUY), DAY);
+/* ⚠️ **不加任何緩衝。** 2026-08-29 這裡一度是「下單 + 1 天」，那個 1 天是
+   從一份誤診的回報推出來的（真正的問題是行事曆的全天事件只有日期沒有時刻）。
+   下界就要是下界——加一個猜的數字上去，既不是下界也不是實際值。 */
+eq('沒到貨時間 → 起點就是下單那一刻，不加緩衝',
+  Date.parse(csEst.at) - Date.parse(BUY), 0);
+eq('沒到貨時間 → at 原封不動', csEst.at, BUY);
 eq('有到貨時間 → 起點就是到貨那一刻', csGot.at, GOT);
 eq('有到貨時間 → 不是估計值', csGot.isEstimate, false);
 eq('兩個都沒有 → 沒有起點', ctx.cooldownStart(null, null).at, null);
@@ -395,8 +399,8 @@ const noGot   = h.find(i => i.name === 'Clutch Case');
 eq('有到貨：cooldownFrom = 到貨時間', withGot.cooldownFrom, GOT);
 eq('有到貨：不標成估計', withGot.cooldownFromIsEstimate, false);
 eq('有到貨：boughtAt 仍然是下單時間', withGot.boughtAt, BUY);
-eq('沒到貨：cooldownFrom = 下單 + 1 天',
-  Date.parse(noGot.cooldownFrom) - Date.parse(BUY), DAY);
+eq('沒到貨：cooldownFrom 就是下單那一刻',
+  Date.parse(noGot.cooldownFrom) - Date.parse(BUY), 0);
 eq('沒到貨：標成估計', noGot.cooldownFromIsEstimate, true);
 eq('沒到貨：arrivedAt 是 null，不要填假的', noGot.arrivedAt, null);
 
@@ -425,8 +429,8 @@ eq('沒到貨的那批往返後仍是估計值', backNo.cooldownFromIsEstimate, 
 const eight = ctx.paramToHoldings('Kilowatt%20Case:20:21:4001:280::20:' + Math.floor(Date.parse(BUY) / 1000), null)[0];
 eq('舊八段網址 → 到貨時間是 null', eight.arrivedAt, null);
 eq('舊八段網址 → 起點退回估計值', eight.cooldownFromIsEstimate, true);
-eq('舊八段網址 → 起點 = 下單 + 1 天',
-  Date.parse(eight.cooldownFrom) - Date.parse(BUY), DAY);
+eq('舊八段網址 → 起點就是下單那一刻',
+  Date.parse(eight.cooldownFrom) - Date.parse(BUY), 0);
 
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

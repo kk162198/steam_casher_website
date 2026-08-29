@@ -249,6 +249,56 @@ async function boot(sold, opts) {
   eq('賣家拖三天：不標估計值',
     /估計值/.test(late.window.document.getElementById('sl-body').textContent), false);
 
+  /* ── 行事曆：提醒必須帶時刻（2026-08-29）──────────────────
+     ⚠️⚠️ 這一段是那個誤會的回歸測試。原本的 .ics 是**全天事件**，只有日期
+        沒有時刻——一批當地時間 23:00 解鎖的箱子，事件整天掛在那一天的頂端，
+        使用者早上看到就跑去 Steam，發現還鎖著，於是回報「7 天好像不夠、
+        要多加一天」。冷卻期從來沒錯，是提醒在說謊。
+     ⚠️ 當時的第一個修法是「冷卻期加一天緩衝」——修錯地方，而且會讓真正的
+        bug 永遠不會浮上來（提醒晚一天響，看起來就對了）。所以這裡守的不是
+        「有沒有加緩衝」，是**事件到底有沒有講出時刻、會不會早響**。 */
+  {
+    // 兩批同一天買、差三小時，解鎖時刻因此也差三小時
+    const t1 = new Date(Date.now() - 6 * DAY).toISOString();
+    const t2 = new Date(Date.now() - 6 * DAY + 3 * 3600000).toISOString();
+    const cal = await boot(null, { checked: {
+      'Kilowatt Case': { lots: [
+        { at: t1, qty: 7, paidTwd: 150 },
+        { at: t2, qty: 6, paidTwd: 130 },
+      ], closed: true },
+    } });
+    const w = cal.window;
+    const ics = w.buildCooldownIcs();
+
+    eq('ics 產得出來', typeof ics === 'string' && ics.length > 0, true);
+    eq('不是全天事件（全天事件只有日期，那正是這個 bug）',
+      /VALUE=DATE/.test(ics), false);
+    eq('DTSTART 帶時刻', /DTSTART:\d{8}T\d{6}Z/.test(ics), true);
+    /* 定時事件的「當下提醒」要寫 -PT0M；-P0D 在部分行事曆會退回當天預設時刻，
+       等於又變回早上響。 */
+    eq('提醒設在事件發生的那一刻', /TRIGGER:-PT0M/.test(ics), true);
+
+    /* ⚠️ 核心不變式：**每一個解鎖時刻，都要有一則事件在它之後（或同時）響。**
+       取最早的解鎖當事件時刻，就會在組裡還有東西鎖著的時候響——那是同一個
+       bug 換個形狀。 */
+    const starts = [...ics.matchAll(/DTSTART:(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/g)]
+      .map(m => Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+    const unlocks = w.readHoldings().items.map(i => w.unlockAt(i.cooldownFrom).getTime());
+    eq('有兩批', unlocks.length, 2);
+    eq('兩批的解鎖時刻不一樣', unlocks[0] !== unlocks[1], true);
+    eq('每一批都有一則不早於它的提醒',
+      unlocks.every(u => starts.some(st => st >= u)), true);
+    eq('沒有任何提醒早於它那一天最晚的解鎖',
+      starts.every(st => {
+        const sameDay = unlocks.filter(u =>
+          new Date(u).toDateString() === new Date(st).toDateString());
+        return sameDay.length === 0 || st >= Math.max.apply(null, sameDay);
+      }), true);
+
+    // 合併成一則的時候，各批自己的時刻要寫在內文裡
+    eq('內文帶各批自己的解鎖時刻', /\d{1,2}:\d{2} 解鎖/.test(ics), true);
+  }
+
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);
 })();

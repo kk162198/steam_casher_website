@@ -147,7 +147,8 @@
                     <li>箱子進到 Steam 庫存後，滑鼠移上去會顯示可交易日期。</li>
                     <li><strong>箱子到了就回來按「物品到了」</strong>——冷卻期是從物品進到庫存才開始算的，
                         而 CSFloat 的賣家收到訂單之後才去送交易報價，不一定馬上。</li>
-                    <li>沒按也不會壞：賣出頁會用<strong>打勾時間 + 1 天</strong>當保守估計，並且標明那是估計值。</li>
+                    <li>沒按也不會壞：賣出頁會用打勾時間算出<strong>最快</strong>能賣的時刻，並標明那是估計值——
+                        實際只會更晚不會更早。</li>
                     <li>到期後在 Steam 市場逐一上架，賣出頁會告訴你該掛多少、實拿多少。</li>
                     <li><strong>實付總額填結帳畫面的金額，不要填單價</strong>——一次買 13 個常是好幾筆不同價格湊的，單價不存在。</li>
                 </ol>
@@ -324,7 +325,7 @@
                         <button type="button" class="btn btn-text btn-sm" data-ungot="${escapeHtml(name)}" data-lot="${idx}" style="padding:0">改回還沒到</button>`;
             }
             return `<button type="button" class="btn btn-text btn-sm" data-got="${escapeHtml(name)}" data-lot="${idx}" style="padding:0">物品到了</button>
-                    <span class="t-note c-ink3" style="display:block">沒按就用 +1 天估</span>`;
+                    <span class="t-note c-ink3" style="display:block">沒按就用下單時間估</span>`;
         }
 
         /* 買到幾個（沒填就退回計畫數量）＋ 是否為估計值 */
@@ -471,8 +472,8 @@
             const next = document.getElementById('cl-next-note');
             if (!next) return;
             /* ⚠️ 起點走 site.js 的 cooldownStart()，不要直接拿 lot.at。
-               有按過「物品到了」就用到貨時間，沒按才退回「打勾 + 1 天」。
-               這裡自己算一份的話，同一批箱子在這頁和賣出頁會出現兩個解鎖日。 */
+               有按過「物品到了」就用到貨時間，沒按才退回打勾時間（下界）。
+               這裡自己算一份的話，同一批箱子在這頁和賣出頁會出現兩個解鎖時刻。 */
             const starts = doneItems
                 .reduce((acc, i) => acc.concat((checkedMap[i.name].lots || [])
                     .map(l => cooldownStart(l.at, l.got))), [])
@@ -491,14 +492,20 @@
             const unfilled = doneItems.filter(i => lotsTotalQty(checkedMap[i.name]) == null).length;
             /* ⚠️ 有估計成分就要說「最快」。說死一個日期而 Steam 那邊還鎖著，
                使用者是白跑一趟——那比晚一天知道更糟。 */
+            /* ⚠️ **要連時刻一起講。** 只寫日期的話，一批當地時間 23:00 解鎖的箱子
+               看起來就像「那天可以賣」，早上跑去 Steam 會發現還鎖著——2026-08-29
+               使用者回報的「7 天好像不夠」就是這個症狀。賣出頁與行事曆都已經
+               改成講時刻，這裡要說同一件事。 */
+            const at = d => d.toLocaleString('zh-TW', {
+                month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
             const lead = anyEstimate ? '最快 ' : '最早 ';
             next.textContent = (firstUnlock && lastUnlock
-                ? (lead + firstUnlock.toLocaleDateString('zh-TW') + ' 可以賣'
-                   + (firstUnlock.toDateString() === lastUnlock.toDateString()
-                      ? '。' : '，最晚一批是 ' + lastUnlock.toLocaleDateString('zh-TW') + '。')
+                ? (lead + at(firstUnlock) + ' 可以賣'
+                   + (firstUnlock.getTime() === lastUnlock.getTime()
+                      ? '。' : '，最晚一批是 ' + at(lastUnlock) + '。')
                    + '賣出頁可以下載到期提醒。')
                 : '')
-                + (anyEstimate ? '　還沒按「物品到了」的批次，用打勾時間 + 1 天估。' : '')
+                + (anyEstimate ? '　還沒按「物品到了」的批次，算的是最快能賣的時刻。' : '')
                 + (unfilled ? `　還有 ${unfilled} 項沒填買到幾個，賣出頁先用計畫數量代替。` : '');
         }
 
