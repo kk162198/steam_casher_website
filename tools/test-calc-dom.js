@@ -55,7 +55,12 @@ function rows(withTwd) {
   ];
 }
 
-async function boot(data) {
+/* fail：模擬兩種讀取失敗。
+     'throw' → 請求本身丟例外（斷網、DNS、CORS、Supabase 不通）
+     'error' → Supabase 回 { error }（查詢送到了但被拒絕）
+   ⚠️ 兩條路都要測。2026-08-29 的 bug 就是只接了後者，前者讓整頁靜靜停在
+      「資料載入中...」——而那正是使用者看得到的那一種。 */
+async function boot(data, fail) {
   const html = fs.readFileSync(__dirname + '/../calculator.html', 'utf8')
     .replace(/<body[^>]*>/, '<body>')
     .replace(/<script src="https:\/\/cdn\.jsdelivr[^>]*><\/script>/g, '')
@@ -70,7 +75,11 @@ async function boot(data) {
     beforeParse(w) {
       w.fetch = () => Promise.resolve({ json: () => Promise.resolve({ rates: { TWD: RATE } }) });
       // Supabase client 的最小替身：只支援本頁用到的那條鏈
-      const res = Promise.resolve({ data: data, error: null });
+      const res = fail === 'throw'
+        ? Promise.reject(new Error('network down'))
+        : (fail === 'error'
+            ? Promise.resolve({ data: null, error: { message: 'boom' } })
+            : Promise.resolve({ data: data, error: null }));
       w.supabase = {
         createClient: () => ({
           from: () => ({ select: () => ({ order: () => res }) }),
@@ -151,6 +160,28 @@ async function boot(data) {
   eq('畫面上沒有 NaN', /NaN/.test(visible), false);
   eq('畫面上沒有 undefined', /undefined/.test(visible), false);
   eq('畫面上沒有 Infinity', /Infinity/.test(visible), false);
+
+  /* ── 7. 讀不到資料的時候，畫面要說話、按鈕要能再按 ──────────
+     ⚠️ 這一段是 2026-08-29 那個 bug 的回歸測試。症狀是「試算頁當掉」，
+        但程式沒有丟出任何東西給使用者看——組合表停在「資料載入中...」，
+        重試按鈕還是 disabled。**靜默的失敗比錯的數字更糟**，因為錯的
+        數字至少看得出來不對，而這個看起來就只是「網站壞了」。
+     ⚠️ 兩條失敗路徑都要測，而且要斷言的是**畫面**不是 console。 */
+  for (const mode of ['throw', 'error']) {
+    const bad = await boot([], mode);
+    const w = bad.window;
+    const body = w.document.getElementById('combo-body');
+    eq(mode + '：組合表不會停在「資料載入中」', /資料載入中/.test(body.textContent), false);
+    eq(mode + '：畫面講出「讀不到」', /讀不到目前的價格資料/.test(body.textContent), true);
+    eq(mode + '：沒有誣賴使用者篩選設錯', /放寬篩選/.test(body.textContent), false);
+
+    const btn = w.document.getElementById('reload-btn');
+    eq(mode + '：重試按鈕可以按', !btn.disabled, true);
+    btn.dispatchEvent(new w.Event('click'));
+    await new Promise(r => setTimeout(r, 120));
+    eq(mode + '：重試失敗後按鈕沒被鎖死', !btn.disabled, true);
+    eq(mode + '：重試失敗後按鈕文字回得來', btn.innerText || btn.textContent, '更新匯率與報價');
+  }
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);

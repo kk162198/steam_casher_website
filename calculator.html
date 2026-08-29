@@ -929,16 +929,38 @@
             }
         }
 
+        /* 上一次讀取價格資料失敗了沒。
+           ⚠️⚠️ 這一頁的失敗有**兩種**，2026-08-29 之前只接了一種：
+             ① Supabase 回 `{ error }`——查詢送到了但被拒絕（欄位不存在、RLS 擋住）。
+             ② 請求**丟例外**——斷網、DNS、CORS、Supabase 當下不通。
+           只接 ① 的後果不是少一行提示，是**整頁靜靜死掉**：②會讓這個 async
+           函式回傳 rejected promise，而開機那段 `Promise.all(...).then(...)`
+           當時沒有 `.catch()`，於是 `runCalculation()` 一次都不會被呼叫，
+           組合表就永遠停在初始的「資料載入中...」，畫面上一個字都不會說。
+           使用者回報的「試算頁直接當掉」就是這個——首頁同一時間會走進它自己的
+           catch 顯示「無獲取資料」，所以兩個症狀一定同時出現。
+
+           ⚠️ 修法的原則：**失敗要看得見，而且要能重試。**
+              靜默的失敗比錯誤的數字更糟——錯的數字至少看得出來不對。 */
+        let dataLoadFailed = false;
+
         async function loadCases() {
-            const { data, error } = await CLIENT
-                .from('cases_data')
-                .select('*')
-                .order('ratio', { ascending: false });
+            let data = null, error = null;
+            try {
+                ({ data, error } = await CLIENT
+                    .from('cases_data')
+                    .select('*')
+                    .order('ratio', { ascending: false }));
+            } catch (e) {
+                error = e;   // 丟例外的那條路，跟回 { error } 走同一個出口
+            }
             if (error) {
                 console.error(error);
+                dataLoadFailed = true;
                 setNavStatus('stale', '資料讀取失敗');
                 return [];
             }
+            dataLoadFailed = false;
             // 以資料庫實際欄位為準：csfloat_cost（含手續費的實際買進成本）、steam_income（扣除 Steam 手續費後的實拿金額）、csfloat_inventory（最低價位庫存上限）
             // 導覽列狀態點：用資料裡最新的抓取時間判斷
             const newestAt = (data || []).reduce((acc, it) => {
@@ -1075,9 +1097,15 @@
             const pool = usableCases();
             if (targetUsd <= 0 || pool.length === 0) {
                 // 分開講：「沒資料」與「你自己把品項篩光了」是兩個不同的問題，解法也不同
-                const emptyMsg = (pool.length === 0 && casesCache.length > 0)
-                    ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
-                    : '目前沒有可用的價格資料，或目標金額為 0';
+                /* 三種「算不出來」要分開講，因為解法完全不同：
+                   讀不到資料（重試）／自己把品項篩光了（放寬篩選）／目標是 0（填數字）。
+                   ⚠️ 讀取失敗這一條要排在最前面：它不是使用者做錯什麼，
+                      而 casesCache 是空的時候另外兩句話都會誤導他去調設定。 */
+                const emptyMsg = dataLoadFailed
+                    ? '讀不到目前的價格資料——網路或資料庫暫時連不上，不是你的設定有問題。按上面的「更新匯率與報價」再試一次。'
+                    : ((pool.length === 0 && casesCache.length > 0)
+                        ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
+                        : '目前沒有可用的價格資料，或目標金額為 0');
                 comboBody.innerHTML = `<tr><td class="c-ink3" colspan="5" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';
@@ -1279,11 +1307,21 @@
         reloadBtn.addEventListener('click', async () => {
             reloadBtn.disabled = true;
             reloadBtn.innerText = '更新中...';
-            await Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })]);
-            syncTwdNote();      // 台幣報價補齊了沒——補齊後這行提示會自己消失
-            runCalculation('target');
-            reloadBtn.disabled = false;
-            reloadBtn.innerText = '更新匯率與報價';
+            /* ⚠️ `finally` 不可以拿掉：抓價失敗時按鈕會**永遠**卡在「更新中...」
+               而且是 disabled 的，使用者連再試一次都做不到——重試按鈕自己
+               被失敗鎖死，是這一頁最不該有的狀態。 */
+            try {
+                await Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })]);
+            } catch (err) {
+                console.error(err);
+                dataLoadFailed = true;
+                casesCache = [];
+                setNavStatus('stale', '資料讀取失敗');
+            } finally {
+                paintAfterLoad();
+                reloadBtn.disabled = false;
+                reloadBtn.innerText = '更新匯率與報價';
+            }
         });
 
         capGroup.addEventListener('click', (e) => {
@@ -1345,11 +1383,25 @@
         syncCapButtons();
         syncBufferButtons();
         syncLiqButtons();
+        function paintAfterLoad() {
+            syncLiqButtons();   // 資料進來後才知道「45 個裡有幾個符合」
+            syncTwdNote();      // 台幣報價補齊了沒——補齊後這行提示會自己消失
+            runCalculation('target');
+        }
+
+        /* ⚠️⚠️ 這個 `.catch()` 不可以拿掉，而且裡面**一定要跟 .then() 做一樣的事**。
+           少了它，任何沒接住的例外都會讓組合表停在「資料載入中...」——
+           那正是 2026-08-29 使用者回報的「試算頁當掉」。
+           `paintAfterLoad()` 在失敗路徑上照樣要跑，因為畫面上那句
+           「讀不到目前的價格資料」是 runCalculation() 畫的；不跑就等於沒修。 */
         Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
-            .then(() => {
-                syncLiqButtons();   // 資料進來後才知道「45 個裡有幾個符合」
-                syncTwdNote();      // 台幣報價補齊了沒——補齊後這行提示會自己消失
-                runCalculation('target');
+            .then(paintAfterLoad)
+            .catch(err => {
+                console.error(err);
+                dataLoadFailed = true;
+                casesCache = [];
+                setNavStatus('stale', '資料讀取失敗');
+                paintAfterLoad();
             });
     
     </script>
