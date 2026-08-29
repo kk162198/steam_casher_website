@@ -114,20 +114,27 @@
             <div class="card">
                 <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
                     <div>
-                        <h2 class="t-sub">加進行事曆，不用記</h2>
+                        <h2 class="t-sub">提醒自己，不用記</h2>
                         <p class="t-aux c-ink2 flow-xs" style="max-width:38em">
-                            七天後才能賣，中間很容易忘。下載後匯入行事曆就會提醒你，<strong>不用註冊、不用留 email</strong>。
-                            提醒裡附回到這一頁的連結，換裝置也打得開。
+                            七天後才能賣，中間很容易忘。匯入行事曆就會提醒你，提醒裡附回到這一頁的連結，換裝置也打得開。
+                            不想下載檔案的話，複製一條追蹤網址傳給自己，效果一樣。<strong>不用註冊、不用留 email。</strong>
                         </p>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">
                         <button type="button" id="sl-ics-cooldown" class="btn btn-primary btn-sm" disabled>冷卻期到期提醒</button>
+                        <button type="button" id="sl-copy-url" class="btn btn-secondary btn-sm" disabled>複製追蹤網址</button>
                         <a href="sales.ics" download class="btn btn-secondary btn-sm">特賣倒數行事曆</a>
                     </div>
                 </div>
+                <!-- 複製失敗時的退路：把網址攤開讓人自己選取 -->
+                <input type="text" id="sl-url-out" class="fill-in flow-md" readonly hidden
+                       style="width:100%;font-size:12px" aria-label="追蹤網址">
                 <p class="t-note c-ink3 flow-md" id="sl-ics-note">
                     特賣倒數是整年時程，一次匯入就好；提醒設在開始前 10 天（冷卻期要 7 天）。
-                    不想下載檔案的話，<a href="checklist.html">購物清單頁</a>可以複製追蹤網址，效果一樣。
+                </p>
+                <p class="t-note c-ink3 flow-xs" id="sl-copy-note">
+                    ⚠️ 追蹤網址是<strong>當下的快照</strong>，之後改了東西要重複製一次。
+                    內容包含你買了什麼、花了多少，<strong>貼到共用行事曆或群組等於給別人看</strong>。
                 </p>
             </div>
         </section>
@@ -213,6 +220,9 @@
 
         let holdings = [];
         let fromParam = false;
+        /* 從追蹤網址進來時，網址上那個 `at`（這份資料是什麼時候的快照）。
+           自己算出來的清單是 null＝現在就是最新的。 */
+        let sourceAtSec = null;
         let priceMap = {};   // name -> { steam_price, steam_volume, steam_updated_at }
         let rate = 32.5;
 
@@ -256,6 +266,9 @@
                 const atSec = Number(params.get('at'));
                 const copiedAt = (params.get('at') && isFinite(atSec) && atSec > 0)
                     ? new Date(atSec * 1000) : null;
+                /* 這一頁自己也能複製追蹤網址，而那是**轉手**不是產生：
+                   時間要沿用，不能蓋成現在。理由見下面 sl-copy-url 那段。 */
+                sourceAtSec = copiedAt ? atSec : null;
                 document.getElementById('sl-source').textContent =
                     '這份清單來自連結（' + holdings.length + ' 批）'
                     + (copiedAt
@@ -713,6 +726,43 @@
             note.textContent = '已下載。手機上點開檔案就會問你要不要加進行事曆。';
         });
 
+        /* ── 追蹤網址：不用下載檔案的那條路 ─────────────────
+           跟購物清單頁那顆是同一件事，只是也接在這裡——`.ics` 要下載、要匯入，
+           在手機上是一道真實的摩擦，而**想把清單帶去手機的那一刻，人正在
+           看冷卻期倒數**，也就是這一頁。要他先回購物清單才複製得到，等於
+           在正確的時機給了一個「先去別的地方」。
+
+           ⚠️ **這裡不做「只帶已買到的」那層過濾。** 購物清單頁要過濾是因為
+              它同時有還沒買到的品項；這一頁的 holdings 本來就只有已買到的。
+
+           ⚠️ **`at` 要沿用網址帶進來的那個**（sourceAtSec），不要蓋成現在。
+              從別人的連結進來、再轉貼出去，資料還是原本那一刻的；刷新時間
+              等於讓一份三天前的舊資料看起來像剛剛複製的，而另一端的判斷
+              「我在看多舊的資料」完全靠它。 */
+        document.getElementById('sl-copy-url').addEventListener('click', () => {
+            const note = document.getElementById('sl-copy-note');
+            const out = document.getElementById('sl-url-out');
+            if (!holdings.length) return;
+            /* 用 URL() 而不是字串取代，因為路徑不一定以 sell.html 結尾
+               （本機開資料夾、或之後改成無副檔名的網址）。 */
+            const base = new URL('sell.html', location.href.split('?')[0]).href;
+            const url = holdingsTrackUrl(holdings, base, sourceAtSec);   // site.js
+            copyText(url).then(ok => {
+                out.value = url;
+                out.hidden = false;
+                if (ok) {
+                    note.innerHTML = '已複製。手機打開就是同一份清單，它會問你要不要存在那台裝置上。'
+                        + '<strong>之後改了東西要重複製一次。</strong>'
+                        /* 隱私那句不能因為複製成功就消失——真正會貼出去的就是這一刻。 */
+                        + '⚠️ 內容包含你買了什麼、花了多少，<strong>不要貼進共用行事曆或群組</strong>。';
+                } else {
+                    /* 複製失敗不要只說「失敗」，要把網址給他 */
+                    out.select();
+                    note.innerHTML = '瀏覽器擋掉自動複製，上面那格是網址，<strong>手動選取複製</strong>即可（已選好）。';
+                }
+            });
+        });
+
         /* ── 主流程 ────────────────────────────────────────── */
         async function main() {
             loadHoldings();
@@ -722,6 +772,7 @@
                 return;
             }
             document.getElementById('sl-ics-cooldown').disabled = false;
+            document.getElementById('sl-copy-url').disabled = false;
             try {
                 await loadPrices();
             } catch (e) {

@@ -903,11 +903,21 @@ function paramToHoldings(raw, boughtAt) {
       另一端要把它顯示出來，讓人看得到自己在看多舊的資料。
 
    ⚠️ **連結內容 = 你買了什麼、花了多少。** 貼進共用行事曆或群組聊天
-      等於把消費紀錄給別人看。介面上要講這一句。 */
-function holdingsTrackUrl(items, baseUrl) {
+      等於把消費紀錄給別人看。介面上要講這一句。
+
+   ⚠️ 第三個參數 `atSec` 是**轉手時要沿用的快照時間**（epoch 秒）。
+      賣出頁也能複製追蹤網址，而它手上那份可能本來就是從別人的連結來的
+      ——那種情況下重新蓋一個「現在」，等於讓一份三天前的舊資料看起來
+      像剛剛複製的。`at` 講的是「這份資料是什麼時候的」，不是「這條網址
+      什麼時候生出來的」。**只有資料真正的來源（購物清單頁）才有資格給
+      新的時間**，轉手的一律沿用。不給就是現在。 */
+function holdingsTrackUrl(items, baseUrl, atSec) {
   var base = (baseUrl || '').split('?')[0];
+  var at = (atSec != null && isFinite(atSec) && atSec > 0)
+    ? Math.floor(atSec)
+    : Math.floor(Date.now() / 1000);
   return base + '?items=' + encodeURIComponent(holdingsToParam(items))
-    + '&at=' + Math.floor(Date.now() / 1000);
+    + '&at=' + at;
 }
 
 /* 複製到剪貼簿。clipboard API 需要 HTTPS 與使用者手勢，兩個條件在

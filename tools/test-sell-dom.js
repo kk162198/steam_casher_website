@@ -189,6 +189,47 @@ async function boot(sold, opts) {
   eq('存進去的實付還在', saved[0].paidTwd, 280);
   eq('存進去的 closed 還在', saved[0].closed, true);
 
+  /* ── 賣出頁自己那顆「複製追蹤網址」 ─────────────────────
+     想把清單帶去手機的那一刻，人正在看冷卻期倒數，也就是這一頁。 */
+  {
+    const w = src.window, d = w.document;
+    const copied = [];
+    // clipboard 在 jsdom 沒有，補一個假的把複製到的字串接住
+    w.navigator.clipboard = { writeText: t => { copied.push(t); return Promise.resolve(); } };
+
+    eq('有清單時按鈕可以按', d.getElementById('sl-copy-url').disabled, false);
+    d.getElementById('sl-copy-url').click();
+    await new Promise(r => setTimeout(r, 0));
+    eq('真的複製出一條網址', copied.length, 1);
+
+    const back = w.paramToHoldings(
+      decodeURIComponent(copied[0].match(/items=([^&]+)/)[1]), null);
+    eq('複製的是實際件數不是計畫件數', back[0].qty, 13);
+    eq('複製帶得回計畫件數（可買到率靠它）', back[0].plannedQty, 20);
+    eq('複製帶得回實付總額', back[0].paidTwd, 280);
+    /* 複製成功之後那句隱私提醒不能消失——真正會貼出去的就是這一刻 */
+    eq('複製成功仍講出連結內容是消費紀錄',
+      d.getElementById('sl-copy-note').textContent.includes('花了多少'), true);
+    eq('複製失敗才有的退路這時也把網址攤開', d.getElementById('sl-url-out').hidden, false);
+  }
+
+  /* 從追蹤網址進來、再轉貼一次時，`at` 要沿用不能刷新——
+     刷新等於讓一份舊資料看起來像剛剛複製的，而另一端的「我在看多舊的
+     資料」完全靠這個數字。 */
+  {
+    const oldAt = Math.floor(Date.now() / 1000) - 3 * 86400;   // 三天前的快照
+    const relayUrl = src.window.holdingsTrackUrl(
+      src.window.readHoldings().items, 'https://example.test/sell.html', oldAt);
+    const relay = await boot(null, { url: relayUrl, empty: true });
+    const w = relay.window;
+    const copied = [];
+    w.navigator.clipboard = { writeText: t => { copied.push(t); return Promise.resolve(); } };
+    w.document.getElementById('sl-copy-url').click();
+    await new Promise(r => setTimeout(r, 0));
+    eq('轉手時沿用原本的快照時間，不刷新',
+      Number(copied[0].match(/[?&]at=(\d+)/)[1]), oldAt);
+  }
+
   // 手機上已經有另一份紀錄 → 一定要先警告會被取代
   const phone2 = await boot(null, { url: trackUrl });
   eq('已有紀錄：警告會被整份取代',

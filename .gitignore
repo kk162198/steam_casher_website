@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# 測試用的 jsdom（npm install jsdom），站台本身沒有相依
+node_modules/

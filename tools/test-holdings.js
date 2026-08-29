@@ -149,6 +149,16 @@ const url = ctx.holdingsTrackUrl(src, 'https://x.test/sell.html?old=1');
 eq('追蹤網址指向乾淨的 base', url.indexOf('https://x.test/sell.html?items=') === 0, true);
 eq('追蹤網址帶產生時間', /[?&]at=\d+/.test(url), true);
 
+/* 轉手（賣出頁再複製一次）時 `at` 要沿用，不能刷新成現在——
+   `at` 講的是資料是什麼時候的快照，另一端「我在看多舊的資料」全靠它。 */
+const relay = ctx.holdingsTrackUrl(src, 'https://x.test/sell.html', 1787000000);
+eq('轉手時沿用原本的快照時間', /[?&]at=1787000000(&|$)/.test(relay), true);
+eq('不給就是現在', Math.abs(Number(url.match(/[?&]at=(\d+)/)[1]) - Date.now() / 1000) < 5, true);
+/* 亂值不要當成時間用掉（0／負數／NaN 都退回現在） */
+eq('at=0 退回現在',
+  Math.abs(Number(ctx.holdingsTrackUrl(src, 'https://x.test/sell.html', 0)
+    .match(/[?&]at=(\d+)/)[1]) - Date.now() / 1000) < 5, true);
+
 const moved = ctx.paramToHoldings(
   decodeURIComponent(url.match(/items=([^&]+)/)[1]), null);
 eq('搬過去：批數', moved.length, 3);
