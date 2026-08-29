@@ -359,5 +359,74 @@ const zero = ctx.twdView({ csfloat_cost: 0.05, steam_income: 0.04, steam_income_
 eq('實拿 0 是有效值，不是沒資料', zero.isTwd, true);
 eq('實拿 0 就顯示 0', zero.steamIncomeTwd, 0);
 
+/* ── 13. 冷卻期起點：到貨時間才是起點（2026-08-29）─────────────
+   ⚠️ 這一段量的是一個**方向**問題，不是精度問題。
+      冷卻期是從「物品進到庫存」起算的（DECISIONS 4.10 兩欄都這樣寫），
+      但網站原本拿的是購物清單的勾選時間 ≈ 你在 CSFloat 下單那一刻。
+      CSFloat 是掛單制，賣家收到訂單之後才去送交易報價——不保證即時。
+      拿下單時間當起點會把解鎖日算得**太早**，使用者照著回來卻上架不了。 */
+const DAY = 86400000;
+const BUY = '2026-08-15T02:00:00.000Z';
+const GOT = '2026-08-18T02:00:00.000Z';   // 賣家拖了整整三天才轉移
+
+const csEst = ctx.cooldownStart(BUY, null);
+const csGot = ctx.cooldownStart(BUY, GOT);
+eq('沒到貨時間 → 起點是估計的', csEst.isEstimate, true);
+eq('沒到貨時間 → 起點 = 下單 + 1 天',
+  Date.parse(csEst.at) - Date.parse(BUY), DAY);
+eq('有到貨時間 → 起點就是到貨那一刻', csGot.at, GOT);
+eq('有到貨時間 → 不是估計值', csGot.isEstimate, false);
+eq('兩個都沒有 → 沒有起點', ctx.cooldownStart(null, null).at, null);
+
+/* ⚠️ 賣家拖三天的情況，兩者差的是三天不是一天——緩衝只是退路，
+      不是「反正加一天就對了」。這條擋的是「乾脆全站冷卻期改 8 天」那種修法。 */
+eq('賣家拖三天時，解鎖日跟著晚三天',
+  ctx.unlockAt(csGot.at) - ctx.unlockAt(BUY), 3 * DAY);
+
+/* holdings 要把三個欄位都帶出來，而且 boughtAt 不可以被覆蓋掉——
+   它還有另一個用途（認「這是不是這次買的」）。 */
+reset({
+  'Kilowatt Case': { lots: [{ at: BUY, got: GOT, qty: 13, paidTwd: 280 }], closed: false },
+  'Clutch Case':   { lots: [{ at: BUY, qty: 5, paidTwd: 200 }], closed: false },
+});
+h = ctx.readHoldings().items;
+const withGot = h.find(i => i.name === 'Kilowatt Case');
+const noGot   = h.find(i => i.name === 'Clutch Case');
+eq('有到貨：cooldownFrom = 到貨時間', withGot.cooldownFrom, GOT);
+eq('有到貨：不標成估計', withGot.cooldownFromIsEstimate, false);
+eq('有到貨：boughtAt 仍然是下單時間', withGot.boughtAt, BUY);
+eq('沒到貨：cooldownFrom = 下單 + 1 天',
+  Date.parse(noGot.cooldownFrom) - Date.parse(BUY), DAY);
+eq('沒到貨：標成估計', noGot.cooldownFromIsEstimate, true);
+eq('沒到貨：arrivedAt 是 null，不要填假的', noGot.arrivedAt, null);
+
+/* 文案：估計的起點不可以講死。使用者白跑一趟比晚一天知道更糟。 */
+const NOW = Date.parse('2026-08-20T00:00:00.000Z');
+eq('估計時要說「最快」',
+  /最快/.test(ctx.cooldownText(noGot.cooldownFrom, NOW, true).text), true);
+eq('確定時不要說「最快」',
+  /最快/.test(ctx.cooldownText(withGot.cooldownFrom, NOW, false).text), false);
+eq('估計且已到期 → 只能說「應該可以賣了」',
+  ctx.cooldownText(csEst.at, Date.parse('2026-09-30T00:00:00.000Z'), true).text, '應該可以賣了');
+
+/* 跨裝置：到貨時間一定要編進網址的第 9 段。
+   ⚠️ 少了它，桌機按過「物品到了」的批次到手機上會退回估計值——
+      而使用者按那顆按鈕的唯一理由就是他不要估計值。 */
+const gotParam = ctx.holdingsToParam(h);
+const gotBack = ctx.paramToHoldings(gotParam, BUY);
+const backWith = gotBack.find(i => i.name === 'Kilowatt Case');
+const backNo   = gotBack.find(i => i.name === 'Clutch Case');
+eq('往返後保住到貨時間', backWith.arrivedAt, GOT);
+eq('往返後起點仍是到貨時間', backWith.cooldownFrom, GOT);
+eq('往返後仍不是估計值', backWith.cooldownFromIsEstimate, false);
+eq('沒到貨的那批往返後仍是估計值', backNo.cooldownFromIsEstimate, true);
+
+/* 舊網址（八段，沒有第 9 段）要讀得回來，而且不可以假裝有到貨時間 */
+const eight = ctx.paramToHoldings('Kilowatt%20Case:20:21:4001:280::20:' + Math.floor(Date.parse(BUY) / 1000), null)[0];
+eq('舊八段網址 → 到貨時間是 null', eight.arrivedAt, null);
+eq('舊八段網址 → 起點退回估計值', eight.cooldownFromIsEstimate, true);
+eq('舊八段網址 → 起點 = 下單 + 1 天',
+  Date.parse(eight.cooldownFrom) - Date.parse(BUY), DAY);
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

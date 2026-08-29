@@ -355,8 +355,12 @@
         /* ── 單列樣板 ──────────────────────────────────────── */
         function renderSellRow(item, sold) {
             const p = priceMap[item.name];
-            const cd = cooldownText(item.boughtAt);
-            const u = unlockAt(item.boughtAt);
+            /* ⚠️ 冷卻期一律走 cooldownFrom，**不是 boughtAt**（site.js 第⑥節）。
+               boughtAt 是你付錢那一刻；冷卻期是從物品進到庫存才開始算的，
+               而 CSFloat 的賣家不保證馬上轉移。拿 boughtAt 會把解鎖日算得
+               太早，使用者照著回來卻上架不了。 */
+            const cd = cooldownText(item.cooldownFrom, null, item.cooldownFromIsEstimate);
+            const u = unlockAt(item.cooldownFrom);
 
             /* 掛牌價與實拿：有台幣欄位就直接用，那是 Steam 台幣市場的真實數字；
                沒有才退回「美元 × 匯率」。
@@ -370,10 +374,17 @@
                          : (p && p.steam_income ? Number(p.steam_income) * rate : null);
             const totalNet = netTwd != null ? netTwd * item.qty : null;
 
-            const cdNote = cd.state === 'locked' && u
+            /* ⚠️ 估計值要標出來，而且要講清楚是**哪一件事**在估：
+                 沒按「物品到了」→ 起點是猜的（打勾 + 1 天）
+                 舊資料沒有勾選時間 → 連下單時間都是拿試算時間近似的
+               兩者都會讓日期偏，但使用者能做的事不同——前者回購物清單按一下
+               就變準，後者只能重新確認。混成一句「日期為估算」等於兩邊都不能修。 */
+            const estNote = item.cooldownFromIsEstimate
+                ? '<span class="t-note c-warn" style="display:block">估計值・<a href="checklist.html">按「物品到了」可校正</a></span>'
+                : '';
+            const cdNote = (cd.state === 'locked' && u
                 ? '<span class="t-note c-ink3" style="display:block">' + u.toLocaleDateString('zh-TW') + ' 解鎖</span>'
-                : (item.boughtAtIsEstimate
-                    ? '<span class="t-note c-ink3" style="display:block">日期為估算</span>' : '');
+                : '') + estNote;
 
             /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
             const priceCell = askTwd == null
@@ -480,15 +491,15 @@
 
         /* ── 總覽 ──────────────────────────────────────────── */
         function renderSummary() {
-            const readyItems = holdings.filter(i => cooldownText(i.boughtAt).state === 'ready');
-            const locked = holdings.filter(i => cooldownText(i.boughtAt).state === 'locked');
+            const readyItems = holdings.filter(i => cooldownText(i.cooldownFrom).state === 'ready');
+            const locked = holdings.filter(i => cooldownText(i.cooldownFrom).state === 'locked');
 
             document.getElementById('sl-ready').textContent =
                 holdings.length ? (readyItems.length + ' / ' + holdings.length) : '--';
 
             // 最近解鎖：還在冷卻的裡面，最早解鎖的那一個
             const nextUnlock = locked
-                .map(i => unlockAt(i.boughtAt))
+                .map(i => unlockAt(i.cooldownFrom))
                 .filter(Boolean)
                 .sort((a, b) => a - b)[0];
             const nextEl = document.getElementById('sl-next');
@@ -587,11 +598,11 @@
         }
 
         function buildCooldownIcs() {
-            const locked = holdings.filter(i => cooldownText(i.boughtAt).state === 'locked');
+            const locked = holdings.filter(i => cooldownText(i.cooldownFrom).state === 'locked');
             const src = locked.length ? locked : holdings;   // 全解鎖了就把全部列進去當紀錄
             const byDay = {};
             src.forEach(i => {
-                const u = unlockAt(i.boughtAt);
+                const u = unlockAt(i.cooldownFrom);
                 if (!u) return;                              // 沒有購買時間就不編事件，寧可少一則也不要給錯日期
                 const key = localDayKey(u);
                 (byDay[key] = byDay[key] || []).push(i);
@@ -611,6 +622,11 @@
                     summary: '可以賣了：' + qty + ' 個箱子解鎖',
                     description: group.map(i => '・' + i.name + ' ×' + i.qty).join('\n')
                         + '\n\n7 天冷卻期到期，可以在 Steam 市場上架了。'
+                        /* ⚠️ 行事曆事件是**離線**的：使用者三天後看到它時不會再回到網站，
+                           所以「這個日期是估計的」必須寫進事件本文，不能只留在頁面上。 */
+                        + (group.some(i => i.cooldownFromIsEstimate)
+                            ? '\n\n⚠️ 這一則有批次沒有記錄到貨時間，日期是用「下單 + 1 天」估的，實際可能再晚一點。'
+                            : '')
                         + '\n點連結看該掛多少、實拿多少。\n' + url,
                     url: url,
                     alarmDaysBefore: 0
@@ -650,7 +666,7 @@
         async function main() {
             loadHoldings();
             if (!holdings.length) {
-                renderEmpty('先到試算頁算出組合，再到購物清單打勾、填上買到幾個。打勾的時間就是冷卻期起點。');
+                renderEmpty('先到試算頁算出組合，再到購物清單打勾、填上買到幾個。箱子到了記得回購物清單按「物品到了」——那才是冷卻期起點。');
                 renderSummary();
                 return;
             }
@@ -675,7 +691,7 @@
             /* 排序：先列可以賣的，再依解鎖日由近到遠——使用者來這頁是想知道
                「現在能做什麼」，不是想看完整庫存清單。 */
             holdings.slice().sort((a, b) => {
-                const ua = unlockAt(a.boughtAt), ub = unlockAt(b.boughtAt);
+                const ua = unlockAt(a.cooldownFrom), ub = unlockAt(b.cooldownFrom);
                 if (!ua) return 1;
                 if (!ub) return -1;
                 return ua - ub;

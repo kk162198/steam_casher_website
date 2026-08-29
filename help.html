@@ -408,6 +408,14 @@
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：最低價的掛單被別人買走，實際價格比清單上高。差幾塊錢可以接受，差太多就回試算頁重算一份。
                         </p>
+                        <!-- 2026-08-29 新增。使用者實際踩到的：付完錢以為就開始倒數了，
+                             七天後回來卻還鎖著。CSFloat 是掛單制，付款只是通知賣家去送報價。 -->
+                        <p class="t-aux c-warn flow-xs">
+                            會卡在哪：<strong class="c-ink">付完錢不等於箱子已經到手</strong>。CSFloat 是掛單制，
+                            你付款之後賣家才會去送交易報價，可能幾分鐘、也可能拖到隔天。
+                            <strong class="c-ink">7 天是從箱子真的進到你的庫存才開始算</strong>，不是從你付錢那一刻。
+                            箱子到了就回<a href="checklist.html">購物清單</a>按「物品到了」，賣出頁的倒數才會準。
+                        </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -415,6 +423,7 @@
                             </div>
                             <p class="t-aux c-ink2 flow-0">
                                 Steam 庫存裡看得到箱子，滑鼠移上去顯示「可交易日期」為 7 天後。
+                                看得到這一行，才代表交易真的完成了。
                             </p>
                         </div>
                         <div class="chk-links">
@@ -431,10 +440,14 @@
                 <div class="step">
                     <div class="step-no num">4</div>
                     <div style="flex:1">
-                        <h3 class="t-sub">等 7 天</h3>
+                        <h3 class="t-sub">等 7 天（從箱子到手那天算起）</h3>
                         <p class="t-body c-ink2 flow-xs">
                             這 7 天什麼都不用做，也什麼都做不了。不能提前賣、不能取消、不能轉移。
                             <a href="sell.html">賣出頁</a>會倒數，也可以下載到期提醒。
+                        </p>
+                        <p class="t-aux c-ink2 flow-xs">
+                            ⚠️ 沒按過「物品到了」的批次，賣出頁會用<strong class="c-ink">下單時間 + 1 天</strong>
+                            當保守估計，並且標明那是估計值——寧可讓你晚一天回來，也不要讓你白跑一趟。
                         </p>
                         <!-- 這一句原本埋在頁尾那份重複的資格清單裡（2026-08-24 刪掉）。
                              它是唯一一條會被誤解的規則，搬到這裡才有人看得到。 -->

@@ -161,6 +161,50 @@ async function boot() {
   eq('網址帶得回實付', carried[0].paidTwd, 280);
   eq('只帶已勾選的（沒買到的不該出現在賣出頁）', carried.length, 1);
 
+  /* ── 到貨時間（2026-08-29）────────────────────────────────
+     ⚠️ 打勾 ≠ 到貨。CSFloat 是掛單制，賣家收到訂單之後才去送交易報價，
+        而冷卻期是從**物品進到庫存**才開始算的。這一段守的是：
+        按鈕存在、寫進 lot.got、跨裝置的網址帶得走、沒按時退回估計值。 */
+  const gotBtn = () => rows()[0].querySelector('[data-got]');
+  eq('勾了之後有「物品到了」可以按', !!gotBtn(), true);
+  eq('還沒按之前 lot 沒有到貨時間', read()['Kilowatt Case'].lots[0].got, undefined);
+
+  gotBtn().click();
+  const gotAt = read()['Kilowatt Case'].lots[0].got;
+  eq('按下去就記下到貨時間', typeof gotAt === 'string', true);
+  eq('按過之後畫面顯示到貨日',
+    rows()[0].querySelector('[data-label="已買到"]').textContent.includes('到貨'), true);
+  eq('按過之後改成可以取消', !!rows()[0].querySelector('[data-ungot]'), true);
+
+  /* 冷卻期起點要跟著換掉——這是整個改動的重點，不是附帶效果 */
+  const csGot = dom.window.cooldownStart(read()['Kilowatt Case'].lots[0].at, gotAt);
+  eq('按過之後起點就是到貨時間', csGot.at, gotAt);
+  eq('按過之後不再是估計值', csGot.isEstimate, false);
+
+  /* 跨裝置：到貨時間要編進追蹤網址 */
+  document.getElementById('cl-copy-url').click();
+  await new Promise(r => setTimeout(r, 10));
+  const out2 = document.getElementById('cl-url-out');
+  const carried2 = dom.window.paramToHoldings(
+    decodeURIComponent(out2.value.match(/items=([^&]+)/)[1]), null);
+  /* ⚠️ 網址存的是 epoch 秒（ISO 字串編進網址要 24 個字元還會被百分號撐長），
+     所以毫秒會被截掉。比到秒就好——冷卻期是 7 天，毫秒沒有意義。 */
+  eq('追蹤網址帶得走到貨時間',
+    Math.floor(Date.parse(carried2[0].arrivedAt) / 1000),
+    Math.floor(Date.parse(gotAt) / 1000));
+  eq('另一台裝置上也不是估計值', carried2[0].cooldownFromIsEstimate, false);
+
+  /* 改回還沒到 → 退回「打勾 + 1 天」的保守估計 */
+  rows()[0].querySelector('[data-ungot]').click();
+  eq('改回還沒到就清掉到貨時間', read()['Kilowatt Case'].lots[0].got, null);
+  const lotAt = read()['Kilowatt Case'].lots[0].at;
+  const csBack = dom.window.cooldownStart(lotAt, null);
+  eq('退回後起點 = 打勾 + 1 天',
+    Date.parse(csBack.at) - Date.parse(lotAt), 86400000);
+  eq('退回後標成估計值', csBack.isEstimate, true);
+  eq('沒按時頁面要講出來是估的',
+    document.getElementById('cl-next-note').textContent.includes('+ 1 天'), true);
+
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);
 })();

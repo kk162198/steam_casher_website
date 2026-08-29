@@ -339,24 +339,74 @@ function liquidityChipHtml(volume) {
 var COOLDOWN_DAYS = 7;
 var COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
-function unlockAt(boughtAt) {
-  var t = boughtAt ? Date.parse(boughtAt) : NaN;
+/* ⚠️⚠️ 起算點是「**收到物品**」，不是「下單」。上面那張表兩欄都寫
+   「收到物品時」——但網站到 2026-08-29 為止拿的是購物清單頁的**勾選時間**，
+   而勾選時間 ≈ 你在 CSFloat 按下購買那一刻。
+
+   CSFloat 是掛單制：你付完錢之後，賣家才會去送交易報價，**不保證即時**。
+   使用者回報實際落差常常要跨到隔天。
+
+   ⚠️ 方向錯得很難看：拿下單時間當起點會把解鎖日算得**太早**，使用者照著
+      回到賣出頁，看到「可以賣了」卻上架不了。這是白跑一趟，而且會讓他
+      懷疑整站的數字。跟 CSFLOAT_BUYER_FEE_RATE 刻意高估成本同一個原則：
+      **寧可讓他晚一點來，不可讓他白跑。**
+
+   兩層修法，順序不要顛倒：
+     ① 主要解法是**記錄真正的到貨時間**（購物清單頁每一批的「已到貨」）。
+        有記錄就直接用，下面這個緩衝完全不參與。
+     ② 沒記錄時才退回「下單時間 + 緩衝」，並且**畫面上要標成估計值**。
+
+   ⚠️ 緩衝取 1 天是使用者實測回報的落差，不是量出來的分布。要動這個數字
+      之前先累積實際的「下單 → 到貨」樣本，別憑感覺加碼——加太多會讓
+      解鎖日晚到使用者不信任它，那等於把功能關掉。 */
+var TRANSFER_BUFFER_DAYS = 1;
+var TRANSFER_BUFFER_MS = TRANSFER_BUFFER_DAYS * 24 * 60 * 60 * 1000;
+
+/* 這一批的冷卻期要從哪一刻起算。回傳 { at, isEstimate }。
+
+     有到貨時間   → 就是那一刻，isEstimate = false
+     只有下單時間 → 下單 + 緩衝，isEstimate = true
+     兩個都沒有   → { at: null, isEstimate: true }
+
+   ⚠️ **全站只有這一個地方決定起點。** 賣出頁、購物清單、行事曆各判一次
+      就是 PROJECT_OVERVIEW〈三個會重複踩的坑〉第 1 條那種「各自重算、
+      邏輯分歧」——而這裡分歧的後果是同一批箱子在兩個頁面上解鎖日不同。
+   ⚠️ isEstimate 要一路帶到畫面上。使用者有權知道「這個日期是猜的」，
+      不然他會把估計值當成 Steam 的保證。 */
+function cooldownStart(boughtAt, arrivedAt) {
+  if (arrivedAt) {
+    var a = Date.parse(arrivedAt);
+    if (!isNaN(a)) return { at: new Date(a).toISOString(), isEstimate: false };
+  }
+  var b = boughtAt ? Date.parse(boughtAt) : NaN;
+  if (isNaN(b)) return { at: null, isEstimate: true };
+  return { at: new Date(b + TRANSFER_BUFFER_MS).toISOString(), isEstimate: true };
+}
+
+/* ⚠️ 參數是**冷卻期起點**（cooldownStart().at），不是下單時間。
+      直接餵下單時間進來會少算那一天的緩衝。 */
+function unlockAt(startAt) {
+  var t = startAt ? Date.parse(startAt) : NaN;
   return isNaN(t) ? null : new Date(t + COOLDOWN_MS);
 }
 
 /* 回傳 { state, days, text }。
-   state：'locked'（還在冷卻）｜'ready'（可以賣了）｜'unknown'（沒有購買時間） */
-function cooldownText(boughtAt, now) {
-  var u = unlockAt(boughtAt);
+   state：'locked'（還在冷卻）｜'ready'（可以賣了）｜'unknown'（沒有時間）
+   isEstimate：起點是估計的（沒填到貨時間），文案要講「最快」。 */
+function cooldownText(startAt, now, isEstimate) {
+  var u = unlockAt(startAt);
   if (!u) return { state: 'unknown', days: null, text: '沒有記錄購買時間' };
   var ms = u.getTime() - (now || Date.now());
-  if (ms <= 0) return { state: 'ready', days: 0, text: '可以賣了' };
+  /* ⚠️ 估計的起點就算算到 0 也只能說「應該可以賣了」。說死「可以賣了」
+     而 Steam 那邊還鎖著，使用者會覺得是網站在騙他。 */
+  if (ms <= 0) return { state: 'ready', days: 0, text: isEstimate ? '應該可以賣了' : '可以賣了' };
   var days = Math.ceil(ms / 86400000);
   var hours = Math.ceil(ms / 3600000);
+  var lead = isEstimate ? '最快' : '';
   return {
     state: 'locked',
     days: days,
-    text: hours <= 24 ? ('約 ' + hours + ' 小時後解鎖') : ('還有 ' + days + ' 天解鎖')
+    text: hours <= 24 ? (lead + '約 ' + hours + ' 小時後解鎖') : (lead + '還有 ' + days + ' 天解鎖')
   };
 }
 
@@ -564,6 +614,11 @@ function normalizeLot(raw) {
   var p = Number(raw.paidTwd);
   return {
     at: (typeof raw.at === 'string' && raw.at) ? raw.at : null,
+    /* got＝這一批真的進到庫存的時間（2026-08-29 新增）。冷卻期從這裡起算。
+       ⚠️ null 是常態不是壞資料：多數人不會回來按「已到貨」，那時走
+          cooldownStart() 的緩衝退路。**不要幫他填一個預設值**——
+          填了就分不出「他確認過」跟「我們猜的」。 */
+    got: (typeof raw.got === 'string' && raw.got) ? raw.got : null,
     qty: (raw.qty != null && raw.qty !== '' && isFinite(q) && q > 0) ? Math.round(q) : null,
     paidTwd: (raw.paidTwd != null && raw.paidTwd !== '' && isFinite(p) && p >= 0) ? p : null
   };
@@ -683,6 +738,8 @@ function holdingsFromPlan(planItems, checked, savedAt) {
     var entry = checked[i.name];
     var lotCount = entry.lots.length;
     entry.lots.forEach(function (lot, idx) {
+      var bought = lot.at || savedAt || null;
+      var cs = cooldownStart(bought, lot.got);
       items.push({
         key: lotCount > 1 ? (i.name + '#' + (lot.at || ('lot' + idx))) : i.name,
         name: i.name,
@@ -692,8 +749,15 @@ function holdingsFromPlan(planItems, checked, savedAt) {
         qtyIsEstimate: lot.qty == null,
         unitCostTwd: i.unitCostTwd,
         paidTwd: lot.paidTwd,
-        boughtAt: lot.at || savedAt || null,
+        boughtAt: bought,
         boughtAtIsEstimate: !lot.at,   // 舊資料沒有勾選時間，用試算時間近似
+        /* ⚠️ boughtAt 與 cooldownFrom 是**兩件事**，不要拿其中一個代替另一個：
+              boughtAt     你付錢那一刻，用來認「這是不是這次買的」
+              cooldownFrom 物品進到庫存那一刻，冷卻期唯一的起算點
+           賣出頁的倒數、排序、行事曆一律用 cooldownFrom。 */
+        arrivedAt: lot.got || null,
+        cooldownFrom: cs.at,
+        cooldownFromIsEstimate: cs.isEstimate,
         closed: entry.closed,
         lotIndex: idx,
         lotCount: lotCount
@@ -706,9 +770,10 @@ function holdingsFromPlan(planItems, checked, savedAt) {
 /* 跨裝置：localStorage 不跨裝置，桌機買、手機收提醒是很常見的組合。
    解法是讓行事曆事件自己攜帶品項清單，點連結時由網址參數還原。
 
-     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進時間
+     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進時間:到貨時間
 
-   第 1–4 段是原本就有的，第 5–8 段 2026-08-22 新增，舊的四段網址仍讀得回來。
+   第 1–4 段是原本就有的，第 5–8 段 2026-08-22 新增，第 9 段 2026-08-29 新增，
+   舊的四段／八段網址仍讀得回來。
 
    | 段 | 內容 | 空的時候 |
    |---|---|---|
@@ -716,6 +781,11 @@ function holdingsFromPlan(planItems, checked, savedAt) {
    | 6 | 旗標 | 見下 |
    | 7 | 計畫數量 | 與實際數量相同 |
    | 8 | 這一批的買進時間（epoch 秒） | 退回用網址的 `bought` 參數 |
+   | 9 | 這一批的**到貨時間**（epoch 秒） | 沒按過「已到貨」，冷卻期用買進時間 + 緩衝 |
+
+   ⚠️ 第 9 段一定要帶。少了它，桌機上按過「已到貨」的那批到了手機上會退回
+      「買進時間 + 1 天」的估計值——而使用者按那顆按鈕的**唯一理由**就是
+      他不想要估計值。跨裝置之後又變回估計，等於那顆按鈕在手機上不存在。
 
    旗標：`q` = 數量是估計的（沒填，用計畫數量頂替）
          `t` = 購買時間是估計的
@@ -742,6 +812,7 @@ function holdingsFromPlan(planItems, checked, savedAt) {
 function holdingsToParam(items) {
   return items.map(function (i) {
     var at = i.boughtAt ? Math.floor(Date.parse(i.boughtAt) / 1000) : '';
+    var got = i.arrivedAt ? Math.floor(Date.parse(i.arrivedAt) / 1000) : '';
     return [
       i.name,
       i.qty,
@@ -750,7 +821,8 @@ function holdingsToParam(items) {
       i.paidTwd == null ? '' : roundTwd(i.paidTwd),
       (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '') + (i.closed ? 'c' : ''),
       (i.plannedQty != null && i.plannedQty !== i.qty) ? i.plannedQty : '',
-      isFinite(at) ? at : ''
+      isFinite(at) ? at : '',
+      isFinite(got) ? got : ''
     ].map(encodeURIComponent).join(':');
   }).join(',');
 }
@@ -764,12 +836,17 @@ function paramToHoldings(raw, boughtAt) {
     var flags = seg[5] || '';
     var planned = seg[6];
     var atSec = Number(seg[7]);
+    var gotSec = Number(seg[8]);
     var qty = Number(seg[1]) || 0;
     /* 同一個網址裡同名品項出現兩次＝兩批，key 不能撞在一起 */
     var n = (seen[name] = (seen[name] || 0) + 1);
     var at = (seg[7] && isFinite(atSec) && atSec > 0)
       ? new Date(atSec * 1000).toISOString()
       : (boughtAt || null);
+    var got = (seg[8] && isFinite(gotSec) && gotSec > 0)
+      ? new Date(gotSec * 1000).toISOString()
+      : null;
+    var cs = cooldownStart(at, got);
     return {
       key: n > 1 ? (name + '#p' + n) : name,
       name: name,
@@ -784,6 +861,9 @@ function paramToHoldings(raw, boughtAt) {
       /* 舊網址沒有旗標段。沒有旗標時不要假裝時間是確定的——
          bought 參數本身可能就是從估計值編出來的。 */
       boughtAtIsEstimate: seg.length < 6 ? !at : (flags.indexOf('t') >= 0),
+      arrivedAt: got,
+      cooldownFrom: cs.at,
+      cooldownFromIsEstimate: cs.isEstimate,
       closed: flags.indexOf('c') >= 0,
       lotIndex: n - 1,
       lotCount: 1

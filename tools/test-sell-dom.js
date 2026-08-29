@@ -55,7 +55,8 @@ async function boot(sold, opts) {
       w.fetch = () => Promise.resolve({ json: () => Promise.resolve({ rates: { TWD: RATE } }) });
       if (!opts.empty) {
         w.localStorage.setItem('sah-combo-v1', JSON.stringify(COMBO));
-        w.localStorage.setItem('sah-checklist-checked-v1', JSON.stringify(CHECKED));
+        // opts.checked：覆寫勾選紀錄（測不同的冷卻期起點）
+        w.localStorage.setItem('sah-checklist-checked-v1', JSON.stringify(opts.checked || CHECKED));
       }
       if (sold) w.localStorage.setItem('sah-sold-v1', JSON.stringify(sold));
       // Supabase client 的最小替身：只支援本頁用到的那條鏈
@@ -206,6 +207,47 @@ async function boot(sold, opts) {
   const normal = await boot(null);
   eq('不是從連結進來就不跳提示',
     normal.window.document.getElementById('sl-adopt').hidden, true);
+
+  /* ── 冷卻期起點（2026-08-29）─────────────────────────────
+     ⚠️ 這一頁的倒數必須走 cooldownFrom，不是 boughtAt。
+        boughtAt 是「你付錢那一刻」，冷卻期是從「物品進到庫存」才開始算的，
+        而 CSFloat 的賣家不保證馬上轉移。用 boughtAt 會早一天說「可以賣了」，
+        使用者回來卻上架不了——白跑一趟比晚一天知道更糟。 */
+  const DAY = 86400000;
+
+  /* 六天前下單、沒按過「物品到了」：起點是「下單 + 1 天」，所以還鎖著。
+     ⚠️ 這一筆就是回歸點。改動之前它會被算成「6 天前買的、還差 1 天」，
+        看起來很像；但真正咬人的是第 7 天——舊算法會說可以賣，實際不行。 */
+  const sixDaysAgo = new Date(Date.now() - 6 * DAY).toISOString();
+  const est = await boot(null, { checked: {
+    'Kilowatt Case': { lots: [{ at: sixDaysAgo, qty: 13, paidTwd: 280 }], closed: true },
+  } });
+  const estText = est.window.document.getElementById('sl-body').textContent;
+  eq('沒按到貨：還在冷卻', /解鎖/.test(estText), true);
+  eq('沒按到貨：文案講「最快」', /最快/.test(estText), true);
+  eq('沒按到貨：畫面標成估計值', /估計值/.test(estText), true);
+  eq('沒按到貨：給得出校正的去處', /物品到了/.test(estText), true);
+
+  /* 同一筆，但按過「物品到了」而且到貨就在下單當下：起點回到下單時間，
+     不加緩衝——按過按鈕的人不該再被多罰一天。 */
+  const exact = await boot(null, { checked: {
+    'Kilowatt Case': { lots: [{ at: sixDaysAgo, got: sixDaysAgo, qty: 13, paidTwd: 280 }], closed: true },
+  } });
+  const exactText = exact.window.document.getElementById('sl-body').textContent;
+  eq('按過到貨：不再說「最快」', /最快/.test(exactText), false);
+  eq('按過到貨：不標估計值', /估計值/.test(exactText), false);
+
+  /* 賣家拖三天的那種：起點跟著晚三天，不是「反正加一天」。
+     ⚠️ 這條擋的是「乾脆把 COOLDOWN_DAYS 改成 8」那種修法——
+        那會讓真的等了三天的人早三天回來，問題原封不動。 */
+  const lateGot = new Date(Date.now() - 3 * DAY).toISOString();
+  const late = await boot(null, { checked: {
+    'Kilowatt Case': { lots: [{ at: sixDaysAgo, got: lateGot, qty: 13, paidTwd: 280 }], closed: true },
+  } });
+  eq('賣家拖三天：還鎖著，而且不是估計值',
+    /解鎖/.test(late.window.document.getElementById('sl-body').textContent), true);
+  eq('賣家拖三天：不標估計值',
+    /估計值/.test(late.window.document.getElementById('sl-body').textContent), false);
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);

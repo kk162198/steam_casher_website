@@ -145,7 +145,9 @@
                 <h2 class="t-sect">全部買完之後</h2>
                 <ol class="t-body c-ink2 flow-md" style="padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
                     <li>箱子進到 Steam 庫存後，滑鼠移上去會顯示可交易日期。</li>
-                    <li><strong>打勾的時間就是冷卻期起點</strong>，賣出頁與到期提醒都照這個算。</li>
+                    <li><strong>箱子到了就回來按「物品到了」</strong>——冷卻期是從物品進到庫存才開始算的，
+                        而 CSFloat 的賣家收到訂單之後才去送交易報價，不一定馬上。</li>
+                    <li>沒按也不會壞：賣出頁會用<strong>打勾時間 + 1 天</strong>當保守估計，並且標明那是估計值。</li>
                     <li>到期後在 Steam 市場逐一上架，賣出頁會告訴你該掛多少、實拿多少。</li>
                     <li><strong>實付總額填結帳畫面的金額，不要填單價</strong>——一次買 13 個常是好幾筆不同價格湊的，單價不存在。</li>
                 </ol>
@@ -269,6 +271,20 @@
             writeChecked();
         }
 
+        /* 到貨時間。**這是冷卻期真正的起點**（site.js 第⑥節）。
+           ⚠️ 打勾 ≠ 到貨。打勾是「我在 CSFloat 付了錢」，到貨是「箱子真的
+              進到我的 Steam 庫存」。CSFloat 是掛單制，賣家收到訂單之後才去
+              送交易報價，中間隔幾小時到隔天都是常態。
+           ⚠️ 記的是**按下去那一刻**，不讓使用者自己挑日期。挑日期要多一個
+              日期選擇器、多一種填錯的方式，而這顆按鈕的使用情境本來就是
+              「我剛剛收到」——當下按最準，事後才想起來就用估計值，也還好。 */
+        function setGot(name, idx, on) {
+            const e = checkedMap[name];
+            if (!e || !e.lots[idx]) return;
+            e.lots[idx].got = on ? new Date().toISOString() : null;
+            writeChecked();
+        }
+
         /* 這一筆是不是「上一份清單留下的」。
            ────────────────────────────────────────────────────────────
            2026-08-24：試算頁不再刪除勾選狀態（理由見 calculator.html ③ 的註解——
@@ -296,6 +312,19 @@
                 const t = l.at ? Date.parse(l.at) : NaN;
                 return !isNaN(t) && t < saved;
             });
+        }
+
+        /* 「已到貨」那一小塊，主列與分批列共用。
+           ⚠️ 兩個地方各寫一份的話，分批列很容易被忘記——而分批列正是最需要它的：
+              今天下單、明天補一批，兩批的到貨時間本來就不同。 */
+        function arrivedHtml(name, idx, lot) {
+            if (lot && lot.got) {
+                const when = new Date(lot.got).toLocaleDateString('zh-TW');
+                return `<span class="t-note c-pos" style="display:block">${escapeHtml(when)} 到貨</span>
+                        <button type="button" class="btn btn-text btn-sm" data-ungot="${escapeHtml(name)}" data-lot="${idx}" style="padding:0">改回還沒到</button>`;
+            }
+            return `<button type="button" class="btn btn-text btn-sm" data-got="${escapeHtml(name)}" data-lot="${idx}" style="padding:0">物品到了</button>
+                    <span class="t-note c-ink3" style="display:block">沒按就用 +1 天估</span>`;
         }
 
         /* 買到幾個（沒填就退回計畫數量）＋ 是否為估計值 */
@@ -365,9 +394,12 @@
                     </span>
                 </td>
                 <td data-label="已買到">
-                    <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
-                        <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(item.name)} 已買到"${isChecked ? ' checked' : ''}>
-                    </label>
+                    <span class="cell-stack">
+                        <label style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer">
+                            <input type="checkbox" style="width:20px;height:20px;accent-color:#22d3ee;cursor:pointer" aria-label="標記 ${escapeHtml(item.name)} 已買到"${isChecked ? ' checked' : ''}>
+                        </label>
+                        ${isChecked ? arrivedHtml(item.name, 0, lot) : ''}
+                    </span>
                 </td>
                 <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
         }
@@ -395,7 +427,10 @@
                     </label>
                 </td>
                 <td data-label="已買到">
-                    <button type="button" class="btn btn-text btn-sm" data-rmlot="${escapeHtml(item.name)}" data-lot="${idx}" style="padding:0">移除這批</button>
+                    <span class="cell-stack">
+                        ${arrivedHtml(item.name, idx, lot)}
+                        <button type="button" class="btn btn-text btn-sm" data-rmlot="${escapeHtml(item.name)}" data-lot="${idx}" style="padding:0">移除這批</button>
+                    </span>
                 </td>
                 <td data-label="前往交易"></td>`;
         }
@@ -435,25 +470,35 @@
                「你買了幾件」，是「所以我什麼時候該回來」。 */
             const next = document.getElementById('cl-next-note');
             if (!next) return;
-            const times = doneItems
-                .reduce((acc, i) => acc.concat((checkedMap[i.name].lots || []).map(l => l.at)), [])
-                .filter(Boolean).sort();
-            if (!times.length) {
+            /* ⚠️ 起點走 site.js 的 cooldownStart()，不要直接拿 lot.at。
+               有按過「物品到了」就用到貨時間，沒按才退回「打勾 + 1 天」。
+               這裡自己算一份的話，同一批箱子在這頁和賣出頁會出現兩個解鎖日。 */
+            const starts = doneItems
+                .reduce((acc, i) => acc.concat((checkedMap[i.name].lots || [])
+                    .map(l => cooldownStart(l.at, l.got))), [])
+                .filter(c => c.at)
+                .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+            if (!starts.length) {
                 next.textContent = '還沒有打勾的品項。打勾後這裡會顯示最早可賣出的日期。';
                 return;
             }
-            const firstUnlock = unlockAt(times[0]);
-            const lastUnlock = unlockAt(times[times.length - 1]);
+            const anyEstimate = starts.some(c => c.isEstimate);
+            const firstUnlock = unlockAt(starts[0].at);
+            const lastUnlock = unlockAt(starts[starts.length - 1].at);
             /* 還有沒填數量的項目就講一句——賣出頁的「少了多少」靠這個，
                不填的話那個數字會拿計畫值去比實際，算出來的缺口有一半
                是估計本身的誤差。 */
             const unfilled = doneItems.filter(i => lotsTotalQty(checkedMap[i.name]) == null).length;
+            /* ⚠️ 有估計成分就要說「最快」。說死一個日期而 Steam 那邊還鎖著，
+               使用者是白跑一趟——那比晚一天知道更糟。 */
+            const lead = anyEstimate ? '最快 ' : '最早 ';
             next.textContent = (firstUnlock && lastUnlock
-                ? ('最早 ' + firstUnlock.toLocaleDateString('zh-TW') + ' 可以賣'
+                ? (lead + firstUnlock.toLocaleDateString('zh-TW') + ' 可以賣'
                    + (firstUnlock.toDateString() === lastUnlock.toDateString()
                       ? '。' : '，最晚一批是 ' + lastUnlock.toLocaleDateString('zh-TW') + '。')
                    + '賣出頁可以下載到期提醒。')
                 : '')
+                + (anyEstimate ? '　還沒按「物品到了」的批次，用打勾時間 + 1 天估。' : '')
                 + (unfilled ? `　還有 ${unfilled} 項沒填買到幾個，賣出頁先用計畫數量代替。` : '');
         }
 
@@ -548,6 +593,18 @@
             });
             document.querySelectorAll('[data-forget]').forEach(el => {
                 el.addEventListener('click', () => { setChecked(el.dataset.forget, false); render(); });
+            });
+            document.querySelectorAll('[data-got]').forEach(el => {
+                el.addEventListener('click', () => {
+                    setGot(el.dataset.got, Number(el.dataset.lot), true);
+                    render();   // 「最快什麼時候可以賣」要跟著重算
+                });
+            });
+            document.querySelectorAll('[data-ungot]').forEach(el => {
+                el.addEventListener('click', () => {
+                    setGot(el.dataset.ungot, Number(el.dataset.lot), false);
+                    render();
+                });
             });
             document.querySelectorAll('[data-rmlot]').forEach(el => {
                 el.addEventListener('click', () => {
