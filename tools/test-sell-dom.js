@@ -31,7 +31,10 @@ const CHECKED = {
   'Kilowatt Case': { lots: [{ at: BOUGHT, qty: 13, paidTwd: 280 }], closed: true },
 };
 
-const ROW = { name: 'Kilowatt Case', steam_price: 0.60, steam_income: 0.52, steam_volume: 90000, steam_updated_at: new Date().toISOString() };
+/* ⚠️ CSFloat_ID 一定要在替身裡：v4 的網址在 defIndex 查得到時不帶品項名稱，
+   賣出頁是拿 defIndex 去查這個欄位把名稱還原回來的。少了它，從連結進來的
+   那幾個情境會全部認不出品項——那正是這個欄位存在的理由。 */
+const ROW = { name: 'Kilowatt Case', CSFloat_ID: 4001, steam_price: 0.60, steam_income: 0.52, steam_volume: 90000, steam_updated_at: new Date().toISOString() };
 
 /* opts.url    覆寫網址（測從追蹤網址進來的情況）
    opts.empty  把 localStorage 清空（模擬一台沒看過這個網站的手機） */
@@ -93,7 +96,10 @@ async function boot(sold, opts) {
 
   // 回填成交價：填 Steam 標價（毛額），本站扣手續費
   const input = row.querySelector('[data-sold-for]');
-  eq('回填欄的 key 用 holding key（單批時＝品項名）', input.dataset.soldFor, 'Kilowatt Case');
+  /* ⚠️ key 從 v4 起帶著單 ID：同一顆箱子出現在兩單是常態，不含單 ID 的話
+     第二單的成交價會蓋掉第一單的。舊資料（key 是純品項名）由 soldEntry() 
+     在讀的時候退回去找。 */
+  eq('回填欄的 key 帶著單 ID', input.dataset.soldFor, 'legacy::Kilowatt Case');
   /* ⚠️ 賣出頁只出 Steam。這裡的箱子已經在庫存裡，再去 CSFloat 買一次
      是完全不同的動作——那顆按鈕不該存在。 */
   eq('賣出頁有 Steam 連結', row.textContent.includes('Steam 賣'), true);
@@ -150,10 +156,10 @@ async function boot(sold, opts) {
   const ics = dom4.window.buildCooldownIcs().replace(/\r\n[ \t]/g, '');
   eq('事件標題用實際件數', /可以賣了：13 個箱子解鎖/.test(ics), true);
   eq('事件內文帶品項與件數', ics.includes('Kilowatt Case ×13'), true);
-  eq('連結帶得回實付總額', /items=[^\s]*280/.test(ics), true);
+  eq('連結帶得回實付總額', /[?&]it=[^\s]*280/.test(ics), true);
   eq('事件內文不放建議掛價', /建議掛價|實拿 NT/.test(ics), false);
-  const carried = dom4.window.paramToHoldings(
-    decodeURIComponent(ics.match(/items=([^&\s]+)/)[1]), BOUGHT);
+  const carried = dom4.window.paramToHoldingsV4(
+    ics.match(/[?&]it=([^&\s]+)/)[1], ics.match(/[?&]t0=([^&\s]+)/)[1]);
   eq('從 ics 連結還原：數量', carried[0].qty, 13);
   eq('從 ics 連結還原：實付', carried[0].paidTwd, 280);
 
@@ -202,8 +208,8 @@ async function boot(sold, opts) {
     await new Promise(r => setTimeout(r, 0));
     eq('真的複製出一條網址', copied.length, 1);
 
-    const back = w.paramToHoldings(
-      decodeURIComponent(copied[0].match(/items=([^&]+)/)[1]), null);
+    const back = w.paramToHoldingsV4(
+      copied[0].match(/[?&]it=([^&]+)/)[1], copied[0].match(/[?&]t0=([^&]+)/)[1]);
     eq('複製的是實際件數不是計畫件數', back[0].qty, 13);
     eq('複製帶得回計畫件數（可買到率靠它）', back[0].plannedQty, 20);
     eq('複製帶得回實付總額', back[0].paidTwd, 280);
@@ -234,8 +240,8 @@ async function boot(sold, opts) {
   const phone2 = await boot(null, { url: trackUrl });
   eq('已有紀錄：警告會被整份取代',
     phone2.window.document.getElementById('sl-adopt-note').textContent.includes('整份取代'), true);
-  eq('已有紀錄：講出原本有幾筆',
-    /已經有 <strong>1 個品項<\/strong>/.test(
+  eq('已有紀錄：講出原本有幾批',
+    /已經有 <strong>1 批<\/strong>/.test(
       phone2.window.document.getElementById('sl-adopt-note').innerHTML), true);
 
   // 「這次先不要」只關掉提示，不寫任何東西

@@ -559,18 +559,22 @@
                   CSFloat 的結帳紀錄不會自己回到這裡，那是重建不回來的東西。
 
               現在改由購物清單頁在渲染時標示「這筆是上一份清單留下的」，讓使用者自己決定。 */
+        /* ⚠️ 2026-08-31：改寫進「單」（site.js 的 saveOrderPlan）。
+              規則是**還沒買任何東西的那一單就是草稿，重新試算改寫草稿**；
+              已經有批次的單一律不動，這一頁碰不到它。
+
+              為什麼不是「每次試算開一張新單」：runCalculation 每拉一次滑桿、
+              每次載入都會跑，那樣會留下一堆空單。
+              為什麼不是「永遠寫同一張」：那就是 v4 之前的行為——買完第一單、
+              回來試算第二單，第一單的計畫數量被蓋掉，「還差幾個」與可買到率
+              跟著全錯，而可買到率是買入側唯一的驗證來源。 */
         function saveComboForChecklist(combo, rate) {
-            try {
-                localStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify({
-                    savedAt: new Date().toISOString(),
-                    items: combo.map(i => ({
-                        name: i.name,
-                        qty: i.qty,
-                        unitCostTwd: roundTwd(i.costUsd * rate),   // ⚠️ 不要 Math.round，購物清單顯示到分
-                        defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
-                    }))
-                }));
-            } catch (e) { /* 無痕模式等情況忽略 */ }
+            saveOrderPlan(combo.map(i => ({
+                name: i.name,
+                qty: i.qty,
+                unitCostTwd: roundTwd(i.costUsd * rate),   // ⚠️ 不要 Math.round，購物清單顯示到分
+                defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
+            })));
         }
 
         /* ④ 划算度徽章與結果摘要。只負責顯示，不參與任何價格計算公式。

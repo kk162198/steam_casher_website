@@ -13,6 +13,7 @@ const ctx = {
   // 這裡只是餵它足夠的假 DOM 讓檔案跑得完，不測畫面。
   document: { addEventListener() {}, querySelectorAll: () => [], body: { getAttribute: () => null } },
   setInterval() {}, setTimeout() {},
+  URLSearchParams,      // holdingsFromLocation() 用得到
   console,
 };
 vm.createContext(ctx);
@@ -47,7 +48,12 @@ eq('v1 數量退回計畫值', h[0].qty, 20);
 eq('v1 數量標為估計', h[0].qtyIsEstimate, true);
 eq('v1 時間標為估計', h[0].boughtAtIsEstimate, true);
 eq('v1 沒有實付', h[0].paidTwd, null);
-eq('v1 key = 品項名', h[0].key, 'Kilowatt Case');
+/* ⚠️ key 從 v4 起帶著單 ID：同一顆箱子出現在兩單是常態（倍率最高的那幾顆
+   每輪都會被選中），不含單 ID 的話第二單的成交價會蓋掉第一單的。
+   舊的純品項名 key 留在 legacyKey，讓升級前回填過的成交價還讀得到。 */
+eq('v1 key 帶著單 ID', h[0].key, 'legacy::Kilowatt Case');
+eq('v1 舊 key 仍留著（成交價不會因為升級而消失）', h[0].legacyKey, 'Kilowatt Case');
+eq('v3 資料自動歸到「舊單」底下', Object.keys(ctx.readCheckedAll()), ['legacy']);
 
 /* ── 2. v2 name → ISO ───────────────────────────────────── */
 reset({ 'Kilowatt Case': '2026-08-15T02:00:00.000Z' });
@@ -110,16 +116,28 @@ reset({
   'Clutch Case':   { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: null, paidTwd: null }], closed: false },
 });
 h = ctx.readHoldings().items;
-const param = ctx.holdingsToParam(h);
-const back = ctx.paramToHoldings(param, '2026-08-15T02:00:00.000Z');
+const p4 = ctx.holdingsToParamV4(h);
+const back = ctx.paramToHoldingsV4(p4.it, p4.t0);
 eq('往返後列數相同', back.length, h.length);
 eq('往返後數量', back.map(i => i.qty), [13, 5]);
 eq('往返後實付', back.map(i => i.paidTwd), [280, null]);
 eq('往返後保住「數量是估計」的標記', back.map(i => i.qtyIsEstimate), [false, true]);
 eq('往返後 defIndex', back.map(i => i.defIndex), ['4001', '4002']);
-eq('品項名有 : 或 , 也不會拆錯', ctx.paramToHoldings(
-  ctx.holdingsToParam([{ name: 'A:B,C', qty: 2, unitCostTwd: 1, defIndex: null, paidTwd: 9, qtyIsEstimate: false, boughtAtIsEstimate: false }]),
-  null)[0].name, 'A:B,C');
+eq('往返後單 ID 跟著回來', back.map(i => i.oid), ['legacy', 'legacy']);
+/* ⚠️ **有 defIndex 就不帶名稱**，這是新格式最大的一筆節省（名稱是網址裡最貴的
+   東西）。代價是另一端要查資料庫還原——這條測試就是那個代價本身，
+   紅了代表有人把名稱又塞回網址，或是把還原那段拿掉了。 */
+eq('有 defIndex 時網址不帶名稱', back.map(i => i.name), [null, null]);
+eq('沒有 defIndex 時一定要帶名稱（否則另一端認不出來）',
+  ctx.paramToHoldingsV4(ctx.holdingsToParamV4([{
+    name: 'A:B,C&D', qty: 2, unitCostTwd: 1, defIndex: null, paidTwd: null,
+    qtyIsEstimate: false, boughtAtIsEstimate: false }]).it, '0')[0].name, 'A:B,C&D');
+
+/* 舊網址（`items=`）的路必須留著：已經在使用者行事曆裡的 .ics 不會自己更新。 */
+eq('新舊參數各走各的路：有 it 就走新的',
+  ctx.holdingsFromLocation('?it=' + p4.it + '&t0=' + p4.t0).length, 2);
+eq('新舊參數各走各的路：只有 items 就走舊的',
+  ctx.holdingsFromLocation('?items=Kilowatt%20Case:20:21:4001').length, 1);
 
 /* 舊網址（四段，沒有實付與旗標）仍要讀得回來 */
 const old = ctx.paramToHoldings('Kilowatt%20Case:20:21:4001', '2026-08-15T02:00:00.000Z');
@@ -146,7 +164,8 @@ reset({
 });
 const src = ctx.readHoldings().items;
 const url = ctx.holdingsTrackUrl(src, 'https://x.test/sell.html?old=1');
-eq('追蹤網址指向乾淨的 base', url.indexOf('https://x.test/sell.html?items=') === 0, true);
+eq('追蹤網址指向乾淨的 base', url.indexOf('https://x.test/sell.html?it=') === 0, true);
+eq('追蹤網址帶時間基準 t0', /[?&]t0=[0-9a-z]+/.test(url), true);
 eq('追蹤網址帶產生時間', /[?&]at=\d+/.test(url), true);
 
 /* 轉手（賣出頁再複製一次）時 `at` 要沿用，不能刷新成現在——
@@ -159,8 +178,13 @@ eq('at=0 退回現在',
   Math.abs(Number(ctx.holdingsTrackUrl(src, 'https://x.test/sell.html', 0)
     .match(/[?&]at=(\d+)/)[1]) - Date.now() / 1000) < 5, true);
 
-const moved = ctx.paramToHoldings(
-  decodeURIComponent(url.match(/items=([^&]+)/)[1]), null);
+const moved = ctx.paramToHoldingsV4(url.match(/[?&]it=([^&]+)/)[1], url.match(/[?&]t0=([^&]+)/)[1]);
+/* 另一端還原名稱的那一步（賣出頁是拿 defIndex 去查 cases_data 的 CSFloat_ID）。
+   ⚠️ 還原完一定要重算 key——key 是拿名稱組出來的。 */
+const NAMES = { '4001': 'Kilowatt Case', '4002': 'Clutch Case' };
+eq('搬過去：名稱還沒還原之前是 null', moved.every(i => i.name === null), true);
+moved.forEach(i => { if (!i.name && i.defIndex != null) i.name = NAMES[String(i.defIndex)]; });
+ctx.assignHoldingKeys(moved);
 eq('搬過去：批數', moved.length, 3);
 eq('搬過去：各批數量', moved.map(i => i.qty), [13, 4, 5]);
 eq('搬過去：計畫數量沒有被實際數量取代', moved.map(i => i.plannedQty), [20, 20, 5]);
@@ -172,7 +196,7 @@ eq('搬過去：實付', moved.map(i => i.paidTwd), [280, 95, 210]);
 /* 存進新裝置之後，readHoldings() 要讀出一模一樣的東西 */
 Object.keys(store).forEach(k => delete store[k]);       // 模擬一台全新的裝置
 eq('新裝置原本是空的', ctx.countStoredHoldings(), 0);
-eq('存進去成功', ctx.saveHoldingsToDevice(moved), true);
+eq('存進去成功', ctx.saveHoldingsToDevice(moved).ok, true);
 const after = ctx.readHoldings().items;
 eq('存完：批數一樣', after.length, 3);
 eq('存完：數量一樣', after.map(i => i.qty), [13, 4, 5]);
@@ -182,21 +206,37 @@ eq('存完：實付一樣', after.map(i => i.paidTwd), [280, 95, 210]);
 eq('存完：時間一樣', after.map(i => i.boughtAt),
   ['2026-08-15T02:00:00.000Z', '2026-08-17T09:30:00.000Z', '2026-08-16T00:00:00.000Z']);
 eq('存完：closed 還在', ctx.readCheckedMap()['Kilowatt Case'].closed, true);
-eq('存完：品項數', ctx.countStoredHoldings(), 2);
+eq('存完：批數（v4 起數的是批不是品項——問句要講會蓋掉幾批）',
+  ctx.countStoredHoldings(), 3);
+/* ⚠️⚠️ 到貨時間一定要跟著搬。v3 的 saveHoldingsToDevice() 漏了 got，症狀是
+   桌機按過「物品到了」的批次一存到新裝置就退回估計值——而按那顆按鈕的
+   唯一理由就是不要估計值。 */
+const GOTBUY = '2026-08-15T02:00:00.000Z', GOTARR = '2026-08-18T02:00:00.000Z';
+Object.keys(store).forEach(k => delete store[k]);
+ctx.saveHoldingsToDevice([{
+  oid: 'o1', name: 'Kilowatt Case', qty: 13, plannedQty: 20, unitCostTwd: 21, defIndex: '4001',
+  paidTwd: 280, qtyIsEstimate: false, boughtAt: GOTBUY, arrivedAt: GOTARR, closed: false,
+}]);
+const savedGot = ctx.readHoldings().items[0];
+eq('搬家後到貨時間還在', savedGot.arrivedAt, GOTARR);
+eq('搬家後冷卻期起點仍是到貨時間', savedGot.cooldownFrom, GOTARR);
+eq('搬家後不會退回估計值', savedGot.cooldownFromIsEstimate, false);
 
 /* ⚠️ 估計值不可以在搬家過程中被洗成確定值 */
 Object.keys(store).forEach(k => delete store[k]);
-ctx.saveHoldingsToDevice(ctx.paramToHoldings(
-  ctx.holdingsToParam([{
-    name: 'A', qty: 7, plannedQty: 7, unitCostTwd: 10, defIndex: null, paidTwd: null,
-    qtyIsEstimate: true, boughtAtIsEstimate: true, boughtAt: '2026-08-15T02:00:00.000Z', closed: false,
-  }]), null));
+const estP = ctx.holdingsToParamV4([{
+  name: 'A', qty: 7, plannedQty: 7, unitCostTwd: 10, defIndex: null, paidTwd: null,
+  qtyIsEstimate: true, boughtAtIsEstimate: true, boughtAt: '2026-08-15T02:00:00.000Z', closed: false,
+}]);
+ctx.saveHoldingsToDevice(ctx.paramToHoldingsV4(estP.it, estP.t0));
 eq('搬家不會把「沒填數量」洗成確定值', ctx.readCheckedMap()['A'].lots[0].qty, null);
 eq('搬家後仍標為估計', ctx.readHoldings().items[0].qtyIsEstimate, true);
 
 /* 沒東西可存時不要寫出一個空的 combo 蓋掉現有資料 */
 reset({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } });
-eq('空清單不寫入', ctx.saveHoldingsToDevice([]), false);
+eq('空清單不寫入', ctx.saveHoldingsToDevice([]).ok, false);
+eq('名稱沒還原就不准存（否則會種下對不上 cases_data 的假品項名）',
+  ctx.saveHoldingsToDevice([{ oid: 'x', name: null, defIndex: '4001', qty: 1 }]).reason, 'names');
 eq('空清單不會蓋掉原本的紀錄', ctx.countStoredHoldings(), 1);
 
 /* ── 7c. 試算頁那張表的整批同步 ────────────────────────────
@@ -266,14 +306,23 @@ eq('負的一律當 0（金額不會是負的）', ctx.roundTwd(-5), 0);
 eq('浮點誤差收掉', ctx.roundTwd(0.1 + 0.2), 0.3);
 
 /* 網址參數也要帶得動小數——刷卡帳單上的金額本來就有角有分 */
-const decParam = ctx.holdingsToParam([{
+const decP = ctx.holdingsToParamV4([{
   name: 'Kilowatt Case', qty: 13, unitCostTwd: 16.25, defIndex: 4001,
   paidTwd: 279.5, qtyIsEstimate: false, boughtAtIsEstimate: false,
   boughtAt: '2026-08-15T02:00:00.000Z'
 }]);
-const decBack = ctx.paramToHoldings(decParam, null)[0];
+const decBack = ctx.paramToHoldingsV4(decP.it, decP.t0)[0];
 eq('往返後實付保住小數', decBack.paidTwd, 279.5);
-eq('往返後單價保住小數', decBack.unitCostTwd, 16.25);
+/* ⚠️ 有實付總額時**刻意不帶計畫單價**：那個估計值只在沒填實付時才用得到。
+   代價是使用者事後把實付清掉會只剩 0，所以賣出頁那格要說「沒有成本資料」，
+   不能印「估 NT$ 0.00」。 */
+eq('有實付時不帶計畫單價', decBack.unitCostTwd, 0);
+const noPaid = ctx.holdingsToParamV4([{
+  name: 'Kilowatt Case', qty: 13, unitCostTwd: 16.25, defIndex: 4001, paidTwd: null,
+  qtyIsEstimate: false, boughtAtIsEstimate: false, boughtAt: '2026-08-15T02:00:00.000Z'
+}]);
+eq('沒實付時計畫單價要保住小數',
+  ctx.paramToHoldingsV4(noPaid.it, noPaid.t0)[0].unitCostTwd, 16.25);
 /* ⚠️ 舊網址是整數，一定要仍然讀得回來，不要在遷移時把人家的紀錄弄丟 */
 eq('舊的整數網址照樣讀得回', ctx.paramToHoldings('A:2:21:4001:280::2:', null)[0].paidTwd, 280);
 
@@ -426,8 +475,9 @@ eq('估計且已到期 → 只能說「應該可以賣了」',
 /* 跨裝置：到貨時間一定要編進網址的第 9 段。
    ⚠️ 少了它，桌機按過「物品到了」的批次到手機上會退回估計值——
       而使用者按那顆按鈕的唯一理由就是他不要估計值。 */
-const gotParam = ctx.holdingsToParam(h);
-const gotBack = ctx.paramToHoldings(gotParam, BUY);
+const gotP = ctx.holdingsToParamV4(h);
+const gotBack = ctx.paramToHoldingsV4(gotP.it, gotP.t0);
+gotBack.forEach(i => { if (!i.name) i.name = ({ '4001': 'Kilowatt Case', '4002': 'Clutch Case' })[i.defIndex]; });
 const backWith = gotBack.find(i => i.name === 'Kilowatt Case');
 const backNo   = gotBack.find(i => i.name === 'Clutch Case');
 eq('往返後保住到貨時間', backWith.arrivedAt, GOT);
@@ -441,6 +491,113 @@ eq('舊八段網址 → 到貨時間是 null', eight.arrivedAt, null);
 eq('舊八段網址 → 起點退回估計值', eight.cooldownFromIsEstimate, true);
 eq('舊八段網址 → 起點就是下單那一刻',
   Date.parse(eight.cooldownFrom) - Date.parse(BUY), 0);
+
+
+/* ── 12. 多單（v4，2026-08-31）────────────────────────────
+   一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。加這一層之前，兩份計畫同時
+   在跑會壞在兩個地方：計畫數量被後來的試算蓋掉、還在冷卻期的批次被標成
+   「上一份留下的」。下面幾條擋的就是那兩件事回來。 */
+function fresh() { Object.keys(store).forEach(k => delete store[k]); }
+
+/* 草稿規則：還沒買東西的那一單就是草稿，重新試算改寫它，不開新單。 */
+fresh();
+const PLAN_A = [{ name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 }];
+const PLAN_B = [{ name: 'Clutch Case', qty: 5, unitCostTwd: 40, defIndex: 4002 }];
+const oidA = ctx.saveOrderPlan(PLAN_A);
+eq('試算 → 開了一單', Object.keys(ctx.readOrders()).length, 1);
+ctx.saveOrderPlan(PLAN_A.concat(PLAN_B));
+eq('再試算一次（還沒買東西）→ 仍然只有一單，不是兩單',
+  Object.keys(ctx.readOrders()).length, 1);
+
+/* 買了東西之後再試算 → 一定要開新的一單，舊單的計畫不可以被蓋掉。
+   ⚠️ 這是 v4 之前最明顯的資料損失：第一單的「計畫 20」被第二單蓋成別的數字，
+      「還差幾個」與可買到率跟著全錯，而可買到率是買入側唯一的驗證來源。 */
+ctx.writeCheckedMap({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } }, oidA);
+const oidB = ctx.saveOrderPlan([{ name: 'Kilowatt Case', qty: 7, unitCostTwd: 22, defIndex: 4001 }]);
+eq('買過東西之後再試算 → 開新的一單', Object.keys(ctx.readOrders()).length, 2);
+eq('新舊是兩個不同的 ID', oidA !== oidB, true);
+eq('舊單的計畫數量沒有被蓋掉', ctx.readOrders()[oidA].plan[0].qty, 20);
+
+/* 兩單買到同一顆箱子：實付與成交價都不可以互相汙染。 */
+ctx.writeCheckedMap({ 'Kilowatt Case': { lots: [{ at: '2026-08-20T02:00:00.000Z', qty: 7, paidTwd: 160 }], closed: false } }, oidB);
+const two = ctx.readHoldings().items;
+/* ⚠️ 用單 ID 找，不要靠陣列順序：兩單可能在同一毫秒建立，那時排序分不出先後。
+   （實務上人不可能在一毫秒內試算兩次，但測試會。） */
+const itemA = two.find(i => i.oid === oidA);
+const itemB = two.find(i => i.oid === oidB);
+eq('兩單各自一列', two.length, 2);
+eq('兩單都找得到', !!(itemA && itemB), true);
+eq('兩單的實付各自獨立', two.map(i => i.paidTwd).sort((a, b) => a - b), [160, 280]);
+eq('兩單的 key 不撞（否則第二單的成交價會蓋掉第一單的）',
+  itemA.key !== itemB.key, true);
+eq('兩單的計畫數量各自獨立', two.map(i => i.plannedQty).sort((a, b) => a - b), [7, 20]);
+
+let soldMap = {};
+ctx.setSoldValue(soldMap, itemA, '30');
+ctx.setSoldValue(soldMap, itemB, '45');
+eq('成交價各記各的', [ctx.soldEntry(soldMap, itemA).twd, ctx.soldEntry(soldMap, itemB).twd], [30, 45]);
+eq('成交價有記下成交時間（帳本要算鎖了幾天）',
+  typeof ctx.soldEntry(soldMap, itemA).at, 'string');
+/* 金額沒變就不要動成交時間 */
+const firstAt = ctx.soldEntry(soldMap, itemA).at;
+ctx.setSoldValue(soldMap, itemA, '30');
+eq('重填同一個金額不會刷新成交時間', ctx.soldEntry(soldMap, itemA).at, firstAt);
+/* v4 之前的成交價（key 是純品項名、裸數字）還要讀得到——
+   ⚠️ 這條紅了代表升級當下所有回填過的成交價會一起消失。 */
+const soldBefore = store['sah-sold-v1'];
+store['sah-sold-v1'] = JSON.stringify({ 'Kilowatt Case': 99 });
+eq('v4 之前的裸數字成交價讀得回來', ctx.soldEntry(ctx.readSoldAll(), itemA).twd, 99);
+eq('v4 之前的成交價沒有成交時間，不要編一個', ctx.soldEntry(ctx.readSoldAll(), itemA).at, null);
+if (soldBefore === undefined) delete store['sah-sold-v1']; else store['sah-sold-v1'] = soldBefore;
+
+/* 結案：不刪東西，只是從「還要處理」移到帳本。 */
+ctx.setOrderClosed(oidA, true);
+eq('結案後不再出現在持有清單', ctx.readHoldings().items.length, 1);
+eq('結案後仍然在帳本裡', ctx.readLedger().length, 2);
+eq('結案的單資料原封不動',
+  ctx.readLedger().find(o => o.oid === oidA).items[0].paidTwd, 280);
+eq('重新打開就回來', (ctx.setOrderClosed(oidA, false), ctx.readHoldings().items.length), 2);
+
+/* 匯出／匯入往返。⚠️ 這是 Safari 7 天清除之後唯一的救援路徑，
+   往返弄丟任何一個欄位＝那個欄位在使用者的帳本裡永遠消失。 */
+ctx.setOrderClosed(oidA, true);
+ctx.writeSoldAll(soldMap);
+const dump = JSON.parse(JSON.stringify(ctx.exportLedgerData()));
+fresh();
+eq('匯入回來', ctx.importLedgerData(dump).ok, true);
+eq('匯入後單數一樣', ctx.readLedger().length, 2);
+eq('匯入後結案狀態保住', !!ctx.readOrders()[oidA].closedAt, true);
+const backA = ctx.readLedger().find(o => o.oid === oidA).items[0];
+eq('匯入後實付保住', backA.paidTwd, 280);
+eq('匯入後成交價保住', ctx.soldEntry(ctx.readSoldAll(), backA).twd, 30);
+eq('別人的 JSON 不要收', ctx.importLedgerData({ foo: 1 }).ok, false);
+
+/* CSV：一批一列，開頭要有 BOM（沒有的話 Excel 開起來是亂碼）。 */
+const csv = ctx.ledgerCsv();
+eq('CSV 有 BOM', csv.charCodeAt(0), 0xFEFF);
+eq('CSV 一批一列（兩單各一批 + 表頭）', csv.trim().split('\r\n').length, 3);
+
+/* ── 13. 網址長度：新格式不可以比舊格式長 ────────────────
+   ⚠️ 這條是回歸守門。名稱、時間、單價任何一個被塞回網址都會在這裡變紅——
+      而網址是 Safari 上唯一帶得走的副本，長度直接決定它貼不貼得進
+      LINE／行事曆／記事本（那些中繼常在 2,000 字元附近截斷）。 */
+fresh();
+const many = [];
+for (let i = 0; i < 15; i++) {
+  many.push({
+    oid: 'o1', name: 'Operation Breakout Weapon Case', defIndex: String(4000 + i),
+    qty: 13, plannedQty: 20, unitCostTwd: 16.25, paidTwd: 280.55,
+    qtyIsEstimate: false, boughtAtIsEstimate: false, closed: false,
+    boughtAt: new Date(1787000000000 + i * 3600000).toISOString(),
+    arrivedAt: new Date(1787000000000 + i * 3600000 + 86400000).toISOString(),
+  });
+}
+const newUrl = ctx.holdingsTrackUrl(many, 'https://kk162198.github.io/steam_casher_website/sell.html');
+eq('15 批的追蹤網址短於 900 字元（舊格式是 1,413）', newUrl.length < 900, true);
+eq('15 批的追蹤網址短於 2,000（貼得進 LINE 與行事曆）', newUrl.length < 2000, true);
+/* 同一單的批次連在一起時，單 ID 只寫一次 */
+eq('同一單的單 ID 不重複寫',
+  (ctx.holdingsToParamV4(many).it.match(/o1/g) || []).length, 1);
 
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

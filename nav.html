@@ -142,6 +142,10 @@ nav#nav{background:#0f172a;border-bottom:1px solid #1e293b}
     <ul class="flex flex-col gap-1">
       <!-- 資格快檢：首頁的主按鈕現在指這裡，所以它得有一條回得去的路。
            放次要清單而不是主清單，因為它是做過就不用再做的事。 -->
+      <!-- 帳本放次要清單。⚠️ **桌機主清單不要加第 8 顆**：nav 的 padding 在
+           2026-08-24 已經為了第 7 顆從 16px 縮到 12px，再加一顆會在 768px
+           擠出橫向溢出。買賣動線本身不需要它——它是事後才會想看的東西。 -->
+      <li><a class="m-sub" data-page="ledger" href="ledger.html">帳本</a></li>
       <li><a class="m-sub" data-page="eligibility" href="eligibility.html">資格快檢</a></li>
       <li><a class="m-sub" data-page="risks" href="risks.html">風險說明</a></li>
       <li><a class="m-sub" data-page="transparency" href="transparency.html">資料透明</a></li>

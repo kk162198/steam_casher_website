@@ -54,7 +54,13 @@ async function boot() {
 (async () => {
   const dom = await boot();
   const { document, localStorage } = dom.window;
-  const read = () => JSON.parse(localStorage.getItem('sah-checklist-checked-v1') || '{}');
+  /* v4 起勾選紀錄多了「單」這一層：{ v:4, orders:{ "<oid>": { 品項: entry } } }。
+     這個測試只餵 sah-combo-v1，所以遷移出來的單一定是 'legacy'。 */
+  const read = () => {
+    const raw = JSON.parse(localStorage.getItem('sah-checklist-checked-v1') || '{}');
+    if (raw.v !== 4) return raw;
+    return raw.orders[Object.keys(raw.orders)[0]] || {};
+  };
   const rows = () => [...document.querySelectorAll('#cl-body tr')];
 
   eq('兩個品項各一列', rows().length, 2);
@@ -70,6 +76,8 @@ async function boot() {
   eq('勾選後寫入 lots 格式', Array.isArray(e1.lots) && e1.lots.length === 1, true);
   eq('勾選當下記下時間', typeof e1.lots[0].at === 'string', true);
   eq('勾選時數量還是 null（沒填就是不知道）', e1.lots[0].qty, null);
+  eq('舊資料自動歸到「舊單」底下',
+    Object.keys(JSON.parse(localStorage.getItem('sah-checklist-checked-v1')).orders), ['legacy']);
   eq('勾選後輸入框打開了', rows()[0].querySelector('[data-qty-for]').disabled, false);
   eq('提示未填', rows()[0].querySelector('[data-label="買到幾個"]').textContent.includes('未填'), true);
 
@@ -149,13 +157,14 @@ async function boot() {
   await new Promise(r => setTimeout(r, 10));
   const out = document.getElementById('cl-url-out');
   eq('複製失敗時把網址攤出來', out.hidden, false);
-  eq('網址指向賣出頁', out.value.includes('/sell.html?items='), true);
+  eq('網址指向賣出頁（新格式 it=）', out.value.includes('/sell.html?it='), true);
   eq('網址帶產生時間', /[?&]at=\d+/.test(out.value), true);
   eq('退路有講怎麼手動複製',
     document.getElementById('cl-copy-note').textContent.includes('手動選取'), true);
 
-  const carried = dom.window.paramToHoldings(
-    decodeURIComponent(out.value.match(/items=([^&]+)/)[1]), null);
+  const decode = v => dom.window.paramToHoldingsV4(
+    v.match(/[?&]it=([^&]+)/)[1], v.match(/[?&]t0=([^&]+)/)[1]);
+  const carried = decode(out.value);
   eq('網址帶得回實際數量', carried[0].qty, 13);
   eq('網址帶得回計畫數量', carried[0].plannedQty, 20);
   eq('網址帶得回實付', carried[0].paidTwd, 280);
@@ -167,7 +176,7 @@ async function boot() {
         按鈕存在、寫進 lot.got、跨裝置的網址帶得走、沒按時退回估計值。 */
   const gotBtn = () => rows()[0].querySelector('[data-got]');
   eq('勾了之後有「物品到了」可以按', !!gotBtn(), true);
-  eq('還沒按之前 lot 沒有到貨時間', read()['Kilowatt Case'].lots[0].got, undefined);
+  eq('還沒按之前 lot 沒有到貨時間', read()['Kilowatt Case'].lots[0].got, null);
 
   gotBtn().click();
   const gotAt = read()['Kilowatt Case'].lots[0].got;
@@ -185,13 +194,12 @@ async function boot() {
   document.getElementById('cl-copy-url').click();
   await new Promise(r => setTimeout(r, 10));
   const out2 = document.getElementById('cl-url-out');
-  const carried2 = dom.window.paramToHoldings(
-    decodeURIComponent(out2.value.match(/items=([^&]+)/)[1]), null);
-  /* ⚠️ 網址存的是 epoch 秒（ISO 字串編進網址要 24 個字元還會被百分號撐長），
-     所以毫秒會被截掉。比到秒就好——冷卻期是 7 天，毫秒沒有意義。 */
+  const carried2 = decode(out2.value);
+  /* ⚠️ 網址存的是「距 t0 幾分鐘」（base36），所以秒與毫秒會被截掉。比到分就好——
+     冷卻期是 7 天，而 .ics 事件時刻本來就會進位到下一秒，方向是安全的那一邊。 */
   eq('追蹤網址帶得走到貨時間',
-    Math.floor(Date.parse(carried2[0].arrivedAt) / 1000),
-    Math.floor(Date.parse(gotAt) / 1000));
+    Math.floor(Date.parse(carried2[0].arrivedAt) / 60000),
+    Math.floor(Date.parse(gotAt) / 60000));
   eq('另一台裝置上也不是估計值', carried2[0].cooldownFromIsEstimate, false);
 
   /* 改回還沒到 → 退回「打勾 + 1 天」的保守估計 */

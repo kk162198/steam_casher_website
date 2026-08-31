@@ -109,6 +109,18 @@
             </div>
         </section>
 
+        <!-- ①-b 進行中的單。一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。
+             只有一張時整段不出現。 -->
+        <section class="flow-md" id="sl-orders-sec" hidden>
+            <div class="card">
+                <div class="t-sub">進行中的單</div>
+                <p class="t-aux c-ink2 flow-xs" style="max-width:40em">
+                    全部賣完就把它結案，紀錄會移到<a href="ledger.html">帳本</a>（結案不刪任何東西，隨時可以打開）。
+                </p>
+                <div id="sl-orders" class="flow-md" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+        </section>
+
         <!-- ② 行事曆提醒 -->
         <section class="flow-md">
             <div class="card">
@@ -146,6 +158,8 @@
                     <div>
                         <div class="t-sub">你手上的箱子</div>
                         <div id="sl-source" class="spec c-ink3">讀取中...</div>
+                        <!-- ⚠️ 成交價寫不進去要當場講：靜默失敗的話，使用者以為自己填過了 -->
+                        <p id="sl-store-warn" class="t-note c-warn" hidden></p>
                     </div>
                     <span id="sl-chip" class="ts-chip" data-source="steam"></span>
                 </div>
@@ -216,9 +230,9 @@
               那正是 `DECISIONS.md` 4.7 踩過的坑。
            ════════════════════════════════════════════════════════════ */
 
-        const SOLD_STORAGE_KEY = 'sah-sold-v1';
-
         let holdings = [];
+        let orders = {};
+        let adoptOffered = false;
         let fromParam = false;
         /* 從追蹤網址進來時，網址上那個 `at`（這份資料是什麼時候的快照）。
            自己算出來的清單是 null＝現在就是最新的。 */
@@ -242,14 +256,20 @@
            ⚠️ 2026-08-24 起是 steamNetTwd() 不是 steamNetUsd()。台幣的手續費下限
               是 NT$1／分量，美元是 US$0.01／分量（約 NT$0.32）——**差三倍以上**，
               低價品項換算過去會高估實拿 27% 以上。 */
-        function readSold() {
-            try {
-                const raw = JSON.parse(localStorage.getItem(SOLD_STORAGE_KEY) || '{}');
-                return (raw && typeof raw === 'object') ? raw : {};
-            } catch (e) { return {}; }
-        }
+        /* 讀寫都在 site.js 第⑨節（帳本頁也要用同一份，兩邊各寫一份就會分岔）。
+           ⚠️ 2026-08-31：key 加了單 ID，因為同一顆箱子出現在兩單是常態——
+              不含單 ID 的話第二單的成交價會蓋掉第一單的。舊資料的 key 是純品項名，
+              由 soldEntry() 在**讀的時候**退回去找，寫一律寫新 key。 */
+        function readSold() { return readSoldAll(); }
         function writeSold(map) {
-            try { localStorage.setItem(SOLD_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
+            const ok = writeSoldAll(map);
+            const el = document.getElementById('sl-store-warn');
+            if (el) {
+                el.hidden = ok;
+                if (!ok) el.innerHTML = '⚠️ <strong>這台裝置存不進去</strong>（無痕模式，或瀏覽器擋掉了網站儲存）。'
+                    + '填的成交價<strong>關掉分頁就會消失</strong>。';
+            }
+            return ok;
         }
 
         /* ── 讀持有清單 ─────────────────────────────────────
@@ -257,9 +277,11 @@
            那台裝置的 localStorage 可能根本沒有東西（桌機買、手機收提醒）。 */
         function loadHoldings() {
             const params = new URLSearchParams(location.search);
-            const raw = params.get('items');
-            if (raw) {
-                holdings = paramToHoldings(raw, params.get('bought'));
+            /* 新參數 `it=` 優先，沒有才退回舊的 `items=`（已下載的 .ics 帶的是舊的，
+               永遠會回來）。⚠️ 用參數名決定版本，不要數幾段來猜。 */
+            const fromUrl = holdingsFromLocation(location.search);
+            if (fromUrl.length) {
+                holdings = fromUrl;
                 fromParam = true;
                 /* `at` 是複製／產生連結的時間。要講出來，因為連結是快照——
                    對面那台裝置後來改了什麼，這條連結完全不知道。 */
@@ -274,6 +296,12 @@
                     + (copiedAt
                         ? '・' + copiedAt.toLocaleString('zh-TW') + ' 產生，之後在原裝置改的不會反映到這裡'
                         : '');
+                /* ⚠️ 問句照樣現在就出現，但**名稱還沒還原時「存起來」是關著的**。
+                   新網址在 defIndex 查得到時不帶品項名稱（那是網址裡最貴的東西），
+                   名稱要查完資料庫才知道——沒還原就存下去，等於在紀錄裡種一個
+                   永遠對不上 `cases_data` 的假品項名。
+                   ⚠️ 但也**不要整個藏起來**：藏起來的話，資料庫連不上的時候使用者
+                      只會覺得這頁壞了，而他其實只需要晚點再開一次。 */
                 offerAdopt();
                 return;
             }
@@ -304,25 +332,31 @@
               猜錯就是默默改掉使用者自己敲進去的紀錄。
               所以把「原本有幾筆會被蓋掉」直接寫在問句裡。 */
         function offerAdopt() {
+            adoptOffered = true;
             const box = document.getElementById('sl-adopt');
             const note = document.getElementById('sl-adopt-note');
+            const yes = document.getElementById('sl-adopt-yes');
             if (!holdings.length) return;
-            const existing = countStoredHoldings();        // site.js
+            const existing = countStoredHoldings(holdings);   // site.js：只數會被蓋掉的那幾單
+            const ready = holdings.every(i => i.name);
+            yes.disabled = !ready;
             note.innerHTML = '存起來，這台裝置以後直接打開網站就看得到；不存的話，'
                 + '你在這頁填的成交價下次回來會找不到。<strong>不會上傳到任何地方。</strong>'
+                + (ready ? '' : '<br>⚠️ 品項名稱還在還原中（要連上資料庫才知道連結裡是哪幾顆箱子）。'
+                    + '連不上的話晚點再開一次這條連結，冷卻期與金額在那之前都看得到。')
                 + (existing
-                    ? '<br>⚠️ 這台裝置上已經有 <strong>' + existing + ' 個品項</strong>的紀錄，'
-                      + '存進去會<strong>整份取代</strong>，取代掉的拿不回來。'
+                    ? '<br>⚠️ 這份連結涵蓋的單，在這台裝置上已經有 <strong>' + existing + ' 批</strong>紀錄，'
+                      + '存進去會<strong>整份取代那幾單</strong>（沒被連結帶到的單不受影響），取代掉的拿不回來。'
                     : '');
             box.hidden = false;
         }
 
         document.getElementById('sl-adopt-yes').addEventListener('click', () => {
-            const ok = saveHoldingsToDevice(holdings);     // site.js
-            const box = document.getElementById('sl-adopt');
-            if (!ok) {
-                document.getElementById('sl-adopt-note').textContent =
-                    '存不進去——瀏覽器可能在無痕模式或擋掉了網站儲存。這頁還是能看，關掉就沒了。';
+            const r = saveHoldingsToDevice(holdings);     // site.js
+            if (!r.ok) {
+                document.getElementById('sl-adopt-note').textContent = r.reason === 'names'
+                    ? '品項名稱還沒還原（要先連上資料庫）。等這頁的價格載入完再按一次。'
+                    : '存不進去——瀏覽器可能在無痕模式或擋掉了網站儲存。這頁還是能看，關掉就沒了。';
                 document.getElementById('sl-adopt-yes').disabled = true;
                 return;
             }
@@ -350,19 +384,58 @@
             } catch (e) { /* 匯率抓不到就用預設 32.5，不影響主要功能 */ }
 
             if (!holdings.length) return;
-            const names = holdings.map(i => i.name);
 
             /* ⚠️ 台幣欄位要等資料庫跑過遷移才有，而 PostgREST 對不存在的欄位是
                   **整個查詢失敗**，不是回 null。沒有這個退路的話，遷移還沒跑的時候
                   整頁會變成「查不到目前價格」——比顯示美元換算過的舊值糟得多。 */
             const COLS_TWD = 'name,steam_price,steam_income,steam_price_twd,steam_income_twd,steam_volume,steam_updated_at';
             const COLS_OLD = 'name,steam_price,steam_income,steam_volume,steam_updated_at';
-            let res = await CLIENT.from('cases_data').select(COLS_TWD).in('name', names);
-            if (res.error) {
-                res = await CLIENT.from('cases_data').select(COLS_OLD).in('name', names);
+            async function query(apply, extra) {
+                const add = extra ? extra + ',' : '';
+                let r = await apply(CLIENT.from('cases_data').select(add + COLS_TWD));
+                if (r.error) r = await apply(CLIENT.from('cases_data').select(add + COLS_OLD));
+                if (r.error) throw r.error;
+                return r.data || [];
             }
-            if (res.error) throw res.error;
-            (res.data || []).forEach(row => { priceMap[row.name] = row; });
+
+            /* 有名稱的照舊用名稱查。
+               ⚠️ **沒有名稱的用 defIndex 查，這是 2026-08-31 新網址的還原路徑**：
+                  網址在 defIndex 查得到時不帶名稱（名稱是網址裡最貴的東西，而載入時
+                  本來就要查資料庫才有賣價）。查不回來的那幾列仍然顯示得出冷卻期與
+                  金額，只是認不出是哪顆箱子——見 renderSellRow 的 displayName()。 */
+            const names = holdings.filter(i => i.name).map(i => i.name);
+            const defs = [...new Set(holdings.filter(i => !i.name && i.defIndex != null)
+                .map(i => String(i.defIndex)))];
+
+            if (names.length) {
+                (await query(q => q.in('name', names))).forEach(row => { priceMap[row.name] = row; });
+            }
+            if (defs.length) {
+                /* ⚠️ `CSFloat_ID` 有大寫，PostgREST 是區分大小寫的。不確定裸寫過不過，
+                      所以裸寫失敗再試加引號的版本。
+                   ⚠️⚠️ **這段的失敗不可以拖垮整個 loadPrices()。** 上面用名稱查的那條
+                      是所有既有使用者的正常路徑；把兩者綁在同一個 throw 裡，等於讓一個
+                      只影響「從新網址進來」的問題，變成所有人都看不到價格。 */
+                let rows = null;
+                for (const col of ['CSFloat_ID', '"CSFloat_ID"']) {
+                    try { rows = await query(q => q.in('CSFloat_ID', defs), col); break; }
+                    catch (e) { console.warn('[sell] defIndex 還原失敗（' + col + '）', e); }
+                }
+                if (rows) {
+                    const byDef = {};
+                    rows.forEach(row => {
+                        priceMap[row.name] = row;
+                        if (row.CSFloat_ID != null) byDef[String(row.CSFloat_ID)] = row.name;
+                    });
+                    holdings.forEach(i => {
+                        if (!i.name && i.defIndex != null && byDef[String(i.defIndex)]) {
+                            i.name = byDef[String(i.defIndex)];
+                        }
+                    });
+                    /* ⚠️ 名稱換掉了，成交價的 key 也要跟著重算——key 是拿名稱組出來的。 */
+                    assignHoldingKeys(holdings);
+                }
+            }
         }
 
         /* 解鎖時刻的統一說法：日期 + 24 小時制的時分。
@@ -422,7 +495,10 @@
                   + (item.qty > 1 ? '／個・共 NT$ ' + fmtTwd(totalNet) : '') + '</span>'
                   + '</span>';
 
-            const soldVal = sold[item.key] != null ? sold[item.key] : '';
+            /* ⚠️ 走 soldEntry()：找不到新 key 會退回 v4 之前的純品項名 key，
+               否則升級當下所有回填過的成交價會一起消失。 */
+            const sEntry = soldEntry(sold, item);
+            const soldVal = sEntry ? sEntry.twd : '';
 
             /* 你到底賺了多少：拿**實付總額**去比**實際成交的淨額**。
                兩邊都必須是實際值，任一邊用估計就只是在量估計的誤差。
@@ -469,10 +545,15 @@
 
             /* 成本那一行用實付總額；沒填才退回試算頁的估計，並標「估」。
                ⚠️ 不要把估計值和實付值畫成一樣，使用者會拿它當結論。 */
+            /* ⚠️ 沒實付、連估計單價也沒有時要說「沒有成本資料」，不要印「估 NT$ 0.00」。
+               新網址在有實付總額時刻意不帶計畫單價（那時用不到），所以只要使用者
+               事後把實付清掉，估計值就真的是 0——印出來會被當成「這批不用錢」。 */
             const costHtml = item.paidTwd != null
                 ? '<span class="t-note c-ink3" style="display:block;font-weight:400">實付 NT$ ' + fmtTwd(item.paidTwd) + '</span>'
-                : '<span class="t-note c-ink3" style="display:block;font-weight:400">估 NT$ '
-                  + fmtTwd(item.unitCostTwd * item.qty) + '</span>';
+                : (item.unitCostTwd > 0
+                    ? '<span class="t-note c-ink3" style="display:block;font-weight:400">估 NT$ '
+                      + fmtTwd(item.unitCostTwd * item.qty) + '</span>'
+                    : '<span class="t-note c-warn" style="display:block;font-weight:400">沒有成本資料</span>');
 
             const qtyHtml = '<span class="t-note c-ink3" style="display:block;font-weight:400">'
                 + item.qty + ' 個'
@@ -480,9 +561,21 @@
                 + (item.lotCount > 1 ? '・第 ' + (item.lotIndex + 1) + ' 批' : '')
                 + '</span>';
 
+            /* 品項名稱可能還原不出來：新網址只帶 defIndex，而那顆箱子已經不在
+               `cases_data` 裡（下架、或資料庫還沒載入）。
+               ⚠️ 這時**不要給 CSFloat 連結頂替**——這一頁的「前往交易」是賣出側，
+                  給一顆買進的連結是把人推去做完全相反的事（見 FRONTEND.md〈交易連結〉）。
+                  認不出來就照實說，冷卻期與金額仍然是對的。 */
+            const nameCell = item.name
+                ? `<a href="case.html?name=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>`
+                : `<span class="c-ink3">箱子 #${escapeHtml(item.defIndex)}</span>
+                   <span class="t-note c-warn" style="display:block">查不到這個品項，只能顯示冷卻期</span>`;
+            const orderTag = (typeof orderTagFor === 'function') ? orderTagFor(item) : '';
+
             return `
                 <td class="rt-key" data-label="品項">
-                    <a href="case.html?name=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
+                    ${nameCell}
+                    ${orderTag}
                     ${qtyHtml}
                     ${costHtml}
                 </td>
@@ -495,7 +588,7 @@
                 <td data-label="建議掛價／你實拿">${priceCell}</td>
                 <td data-label="流動性">${p ? liquidityChipHtml(p.steam_volume) : '<span class="c-ink3 t-note">--</span>'}</td>
                 <td data-label="實際成交價">${soldCell}</td>
-                <td data-label="前往 Steam">${tradeLinksHtml(item.defIndex, item.name, 'sell')}</td>`;
+                <td data-label="前往 Steam">${item.name ? tradeLinksHtml(item.defIndex, item.name, 'sell') : '<span class="c-ink3 t-note">--</span>'}</td>`;
         }
 
         function renderEmpty(message) {
@@ -554,7 +647,7 @@
                 else if (p && p.steam_income) total += Number(p.steam_income) * rate * i.qty;
                 else missing++;
                 if (i.paidTwd != null) cost += i.paidTwd;
-                else { cost += i.unitCostTwd * i.qty; costComplete = false; }
+                else { cost += (i.unitCostTwd || 0) * i.qty; costComplete = false; }
                 if (i.qtyIsEstimate) qtyEst = true;
             });
             document.getElementById('sl-total').textContent =
@@ -654,8 +747,12 @@
             const events = Object.keys(byDay).sort().map(day => {
                 const group = byDay[day];
                 const qty = group.reduce((s, i) => s + i.qty, 0);
-                const url = base + '?items=' + encodeURIComponent(holdingsToParam(group))
-                          + '&bought=' + encodeURIComponent(group[0].boughtAt || '');
+                /* 2026-08-31 起編新格式（`it=` ＋ `t0=`），每批省掉約六成長度。
+                   ⚠️ 舊的 `items=` 解碼路徑不能拿掉——已經在使用者行事曆裡的 .ics
+                      帶的是舊網址，那些檔案不會自己更新。 */
+                const p4 = holdingsToParamV4(group);
+                const url = base + '?' + URL_ITEMS_PARAM + '=' + p4.it
+                          + '&' + URL_T0_PARAM + '=' + p4.t0;
 
                 /* 事件時刻 = 這一組裡**最晚**解鎖的那一刻。理由見上面的註解：
                    取最早的話事件響的時候組裡還有東西鎖著。 */
@@ -699,18 +796,60 @@
             return events.length ? icsCalendar(events, 'Steam 加值幫手｜冷卻期到期') : null;
         }
 
+        /* ── 進行中的單 ────────────────────────────────────
+           ⚠️ 結案不刪東西，只是把這一單從「還要處理」移到帳本。可逆，所以不做
+              兩段式確認；反過來說**清除**才是不可逆的，那顆留在購物清單頁。 */
+        function orderTagFor(item) {
+            const ids = openOrderIds(orders);
+            /* 只有一張單時不標——每一列都掛同一個標籤只是雜訊。 */
+            if (fromParam || ids.length < 2 || !item.oid || !orders[item.oid]) return '';
+            return '<span class="t-note c-ink3" style="display:block">'
+                + escapeHtml(orderLabel(orders[item.oid])) + '</span>';
+        }
+
+        function renderOrderBar() {
+            const sec = document.getElementById('sl-orders-sec');
+            const box = document.getElementById('sl-orders');
+            const ids = openOrderIds(orders);
+            /* 網址帶進來的清單不屬於這台裝置上的任何一單，不給結案。 */
+            if (fromParam || !ids.length) { sec.hidden = true; return; }
+            const sold = readSold();
+            sec.hidden = false;
+            box.innerHTML = ids.map(id => {
+                const rows = holdings.filter(i => i.oid === id);
+                const done = rows.filter(i => soldEntry(sold, i) != null).length;
+                const allSold = rows.length > 0 && done === rows.length;
+                return '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">'
+                    + '<span>' + escapeHtml(orderLabel(orders[id]))
+                    + '<span class="t-note c-ink3">・' + rows.length + ' 批'
+                    + (rows.length ? '・已回填成交價 ' + done + ' 批' : '・還沒買到東西') + '</span></span>'
+                    + '<button type="button" class="btn btn-sm ' + (allSold ? 'btn-primary' : 'btn-text')
+                    + '" data-close-order="' + escapeHtml(id) + '">結案</button>'
+                    + '</div>';
+            }).join('');
+            box.querySelectorAll('[data-close-order]').forEach(el => {
+                el.addEventListener('click', () => {
+                    if (!setOrderClosed(el.dataset.closeOrder, true)) return;
+                    /* 整頁重讀：結案會改變持有清單、總覽、行事曆三處，
+                       局部更新在這個規模只是多三種不同步的方式。 */
+                    location.reload();
+                });
+            });
+        }
+
         /* ── 綁定 ──────────────────────────────────────────── */
         function bindSoldInputs() {
+            const byKey = {};
+            holdings.forEach(i => { byKey[i.key] = i; });
             document.querySelectorAll('[data-sold-for]').forEach(el => {
                 el.addEventListener('change', () => {
-                    const map = readSold();
-                    const v = el.value.trim();
-                    // ⚠️ 存之前收斂到兩位小數（site.js 第⑬節）——不收的話浮點誤差
-                    //    會被原樣存起來，而它正好會落在「少了多少」那個減法裡。
-                    if (v === '') delete map[el.dataset.soldFor];
-                    else map[el.dataset.soldFor] = roundTwd(v);
-                    writeSold(map);
+                    const item = byKey[el.dataset.soldFor];
+                    if (!item) return;
+                    /* 收斂到兩位小數、記下成交時間、順手清掉舊 key，都在
+                       site.js 的 setSoldValue() 裡（帳本頁要用同一份規則）。 */
+                    writeSold(setSoldValue(readSold(), item, el.value));
                     renderRows();   // 賺賠那一行要跟著算出來
+                    renderOrderBar();
                 });
             });
         }
@@ -765,10 +904,12 @@
 
         /* ── 主流程 ────────────────────────────────────────── */
         async function main() {
+            orders = readOrders();      // site.js，含 v1/v2/v3 遷移
             loadHoldings();
             if (!holdings.length) {
                 renderEmpty('先到試算頁算出組合，再到購物清單打勾、填上買到幾個。箱子到了記得回購物清單按「物品到了」——那才是冷卻期起點。');
                 renderSummary();
+                renderOrderBar();
                 return;
             }
             document.getElementById('sl-ics-cooldown').disabled = false;
@@ -779,8 +920,13 @@
                 console.error(e);
                 document.getElementById('sl-source').textContent += '・價格讀取失敗，只顯示冷卻期';
             }
+            /* 名稱要等查完資料庫才還原得出來，而「存到這台裝置」不能在那之前問
+               （會存下 `#4001` 這種假品項名）。所以問句放在這裡，不放在 loadHoldings。 */
+            /* 名稱還原之後把問句更新一次（「存起來」那顆才會從關著變成能按）。 */
+            if (fromParam) offerAdopt();
             renderRows();
             renderSummary();
+            renderOrderBar();
             renderTimestamps(document);
         }
 

@@ -13,7 +13,7 @@
      ⑥ 冷卻期 COOLDOWN_DAYS / unlockAt() / cooldownText()
      ⑦ 特賣時程 STEAM_SALES / nextSale()
      ⑧ 行事曆 icsCalendar() / downloadIcs()
-     ⑨ 持有清單 readHoldings() / holdingsToParam() / paramToHoldings()
+     ⑨ 單與持有清單 readOrders() / readHoldings() / holdingsToParamV4() / 匯出匯入
         含買到數量與實付金額（lots），見該節開頭的格式說明
         追蹤網址 holdingsTrackUrl() / copyText() / saveHoldingsToDevice()
      ⑩ 初始設定與時間成本 isSetupDone() / opMinutes() / worthVerdict()
@@ -568,13 +568,7 @@ function icsCalendar(events, calName) {
 }
 
 function downloadIcs(text, filename) {
-  var blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
-  var a = document.createElement('a');
-  var url = URL.createObjectURL(blob);
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  downloadText(text, filename, 'text/calendar');
 }
 
 /* ── ⑨ 持有清單 ─────────────────────────────────────────────
@@ -627,8 +621,38 @@ function downloadIcs(text, filename) {
 
    舊資料沒有時間就退回用 combo 的 savedAt 當近似值，並在畫面上標示。
    **不要靜默假裝知道時間**，冷卻期算錯會讓人白等或提早去掛單。 */
-var COMBO_STORAGE_KEY = 'sah-combo-v1';
+/* ## 單（order）：2026-08-31 加的一層
+
+   ⚠️ **原本的模型假設「一次只有一個計畫」，而事實不是。**
+      `lots` 已經支援分批，但兩份計畫同時在跑會壞在兩個地方：
+        一、`sah-combo-v1` 只有一份 → 開第二單就把第一單的「計畫幾個／
+            還差幾個」蓋掉；
+        二、`isStaleEntry()` 把早於 savedAt 的批次標成舊紀錄 → 第一單還在
+            冷卻期，就被標成「上一份計畫留下的」。
+      那個標示本來就是「沒有單這一層」的補丁。加了單 ID 之後補丁整個消失，
+      清除鍵變成「結束這一單」——**把猜測換成模型**，不是加功能。
+
+   格式（v4，明碼帶版本，不用猜）：
+
+     sah-orders-v1              { v:4, orders:{ "<oid>": { createdAt, plan[], closedAt } } }
+     sah-checklist-checked-v1   { v:4, orders:{ "<oid>": { "<品項名>": { lots[], closed } } } }
+     sah-sold-v1                { v:4, sold:{ "<holding key>": { twd, at } } }
+
+   ⚠️ **版本用明碼欄位 `v`，不要靠形狀嗅探。** v3 的值是「品項 → entry」、
+      v4 是「單 → 品項 → entry」，壞資料下兩者分不出來，而分錯的後果是
+      整份買進紀錄消失。
+
+   ## 遷移
+
+   v1／v2／v3 的勾選紀錄整包當成**一張舊單**（oid = 'legacy'），計畫從
+   `sah-combo-v1` 讀。⚠️ **只讀不寫**：沒動過的裝置退回舊版仍讀得回，
+   真的有人動到資料時才落地成 v4。`sah-combo-v1` 自此只讀不寫，
+   單的計畫改由 `sah-orders-v1` 保管——**不要兩邊都寫**，那是兩個真相。 */
+var COMBO_STORAGE_KEY = 'sah-combo-v1';        /* 舊格式，只讀不寫（見上面〈遷移〉） */
 var CHECK_STORAGE_KEY = 'sah-checklist-checked-v1';
+var ORDERS_STORAGE_KEY = 'sah-orders-v1';
+var SOLD_STORAGE_KEY = 'sah-sold-v1';
+var LEGACY_ORDER_ID = 'legacy';
 
 function normalizeLot(raw) {
   if (!raw || typeof raw !== 'object') raw = { at: (typeof raw === 'string' ? raw : null) };
@@ -646,7 +670,7 @@ function normalizeLot(raw) {
   };
 }
 
-/* 把三種歷史格式都收斂成 v3。壞掉的資料當成「勾了但什麼都沒填」，
+/* 把三種歷史格式都收斂成 v3 的 entry。壞掉的資料當成「勾了但什麼都沒填」，
    不要 throw——這是在頁面初始化階段跑的，掛掉整頁就白畫了。 */
 function normalizeCheckedEntry(raw) {
   var lots;
@@ -664,46 +688,203 @@ function normalizeCheckedEntry(raw) {
   return { lots: lots, closed: !!(raw && raw.closed) };
 }
 
-function readCheckedMap() {
+/* 全部的單的勾選紀錄：{ oid: { 品項名: entry } } */
+function readCheckedAll() {
   var out = {};
-  try {
-    var raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || 'null');
-    if (Array.isArray(raw)) {                        // v1：純名稱陣列
-      raw.forEach(function (n) { out[n] = normalizeCheckedEntry(null); });
-    } else if (raw && typeof raw === 'object') {     // v2 / v3
-      Object.keys(raw).forEach(function (n) { out[n] = normalizeCheckedEntry(raw[n]); });
-    }
-  } catch (e) { /* 壞資料當成沒有 */ }
+  var raw = null;
+  try { raw = JSON.parse(localStorage.getItem(CHECK_STORAGE_KEY) || 'null'); } catch (e) { return out; }
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.v === 4
+      && raw.orders && typeof raw.orders === 'object') {
+    Object.keys(raw.orders).forEach(function (oid) {
+      var m = raw.orders[oid];
+      if (!m || typeof m !== 'object') return;
+      var one = {};
+      Object.keys(m).forEach(function (n) { one[n] = normalizeCheckedEntry(m[n]); });
+      out[oid] = one;
+    });
+    return out;
+  }
+  /* v1 / v2 / v3：整包當成一張舊單 */
+  var one = {};
+  if (Array.isArray(raw)) {
+    raw.forEach(function (n) { one[n] = normalizeCheckedEntry(null); });
+  } else if (raw && typeof raw === 'object') {
+    Object.keys(raw).forEach(function (n) { one[n] = normalizeCheckedEntry(raw[n]); });
+  }
+  if (Object.keys(one).length) out[LEGACY_ORDER_ID] = one;
   return out;
 }
-function writeCheckedMap(map) {
-  try { localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(map)); } catch (e) { /* 無痕模式 */ }
+
+/* ⚠️ 寫入會失敗（無痕模式、瀏覽器擋掉網站儲存、極少見的配額爆掉），
+      而且是**靜默**的。回傳成功與否，呼叫端要把失敗講出來——使用者剛敲進去
+      的實付金額默默消失，比一開始就說「這台裝置存不了」糟得多。 */
+function writeCheckedAll(all) {
+  try {
+    localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify({ v: 4, orders: all }));
+    return true;
+  } catch (e) { return false; }
+}
+
+function readCheckedMap(oid) {
+  var all = readCheckedAll();
+  var id = oid || activeOrderId();
+  return all[id] || {};
+}
+function writeCheckedMap(map, oid) {
+  var all = readCheckedAll();
+  var id = oid || activeOrderId();
+  all[id] = map;
+  return writeCheckedAll(all);
+}
+
+/* ── 單本身 ────────────────────────────────────────────── */
+
+function normalizeOrder(raw) {
+  var plan = [];
+  if (raw && Array.isArray(raw.plan)) {
+    raw.plan.forEach(function (i) {
+      if (!i || !i.name) return;
+      var q = Number(i.qty);
+      plan.push({
+        name: String(i.name),
+        qty: (isFinite(q) && q > 0) ? Math.round(q) : 0,
+        unitCostTwd: Number(i.unitCostTwd) || 0,
+        defIndex: (i.defIndex == null || i.defIndex === '') ? null : String(i.defIndex)
+      });
+    });
+  }
+  return {
+    createdAt: (raw && typeof raw.createdAt === 'string' && raw.createdAt) ? raw.createdAt : null,
+    plan: plan,
+    closedAt: (raw && typeof raw.closedAt === 'string' && raw.closedAt) ? raw.closedAt : null
+  };
+}
+
+function readOrders() {
+  var out = {};
+  var raw = null;
+  try { raw = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || 'null'); } catch (e) { raw = null; }
+  if (raw && typeof raw === 'object' && raw.v === 4 && raw.orders && typeof raw.orders === 'object') {
+    Object.keys(raw.orders).forEach(function (oid) { out[oid] = normalizeOrder(raw.orders[oid]); });
+    if (Object.keys(out).length) return out;
+  }
+  /* 遷移：還沒有單這一層的裝置，把 sah-combo-v1 ＋ 勾選紀錄當成一張舊單。 */
+  var combo = null;
+  try { combo = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null'); } catch (e) { combo = null; }
+  var hasPlan = !!(combo && Array.isArray(combo.items) && combo.items.length);
+  var hasChecked = !!readCheckedAll()[LEGACY_ORDER_ID];
+  if (hasPlan || hasChecked) {
+    out[LEGACY_ORDER_ID] = normalizeOrder({
+      createdAt: (combo && combo.savedAt) || null,
+      plan: hasPlan ? combo.items : [],
+      closedAt: null
+    });
+  }
+  return out;
+}
+
+function writeOrders(orders) {
+  try {
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify({ v: 4, orders: orders }));
+    return true;
+  } catch (e) { return false; }
+}
+
+function orderIsOpen(o) { return !!o && !o.closedAt; }
+
+function orderTime(o) {
+  var t = (o && o.createdAt) ? Date.parse(o.createdAt) : NaN;
+  return isFinite(t) ? t : 0;
+}
+
+/* 未結案的單，新到舊。 */
+function openOrderIds(orders) {
+  var o = orders || readOrders();
+  return Object.keys(o).filter(function (id) { return orderIsOpen(o[id]); })
+    .sort(function (a, b) { return orderTime(o[b]) - orderTime(o[a]); });
+}
+
+/* 「現在這一單」＝最新的未結案單。一張都沒有時回舊單的 ID 當落腳處，
+   讓寫入不至於無處可去（正常流程一定先試算才有得勾，不會走到）。 */
+function activeOrderId(orders) {
+  var ids = openOrderIds(orders);
+  return ids.length ? ids[0] : LEGACY_ORDER_ID;
+}
+
+/* 單 ID：epoch 分鐘的 base36 ＋ 兩碼亂數（同一分鐘建立兩單也不會撞）。
+   ⚠️ **不要用「第幾單」或陣列索引當 ID**——刪掉中間一單，後面的 ID 就
+      全部指到別人身上，而 ID 是實付金額與成交價的歸屬依據。 */
+function newOrderId() {
+  return Math.floor(Date.now() / 60000).toString(36) + Math.random().toString(36).slice(2, 4);
+}
+
+/* 試算頁要寫進哪一單。
+   規則：**還沒買任何東西的那一單就是草稿**，重新試算是改寫草稿，不是開新單。
+   ⚠️ 已經有批次的單一律不動：那裡面有實付金額與冷卻期起點，重算一次就蓋掉，
+      等於把使用者買過的東西改寫成另一份計畫。這也正是拉一次滑桿就開一張新單
+      （最後留下一堆空單）與蓋掉舊單（資料消失）兩種錯法之間唯一站得住的那條線。 */
+function draftOrderId(orders, all) {
+  var o = orders || readOrders();
+  var c = all || readCheckedAll();
+  var ids = openOrderIds(o);
+  for (var i = 0; i < ids.length; i++) {
+    var m = c[ids[i]];
+    if (!m || !Object.keys(m).length) return ids[i];
+  }
+  return null;
+}
+
+/* 試算頁呼叫：把這次的組合存成「現在這一單」的計畫。回傳 oid，存不進去回 null。 */
+function saveOrderPlan(planItems) {
+  var orders = readOrders();
+  var all = readCheckedAll();
+  var id = draftOrderId(orders, all) || newOrderId();
+  orders[id] = normalizeOrder({
+    createdAt: new Date().toISOString(),
+    plan: planItems || [],
+    closedAt: (orders[id] && orders[id].closedAt) || null
+  });
+  return writeOrders(orders) ? id : null;
+}
+
+function setOrderClosed(oid, on) {
+  var orders = readOrders();
+  if (!orders[oid]) return false;
+  orders[oid].closedAt = on ? new Date().toISOString() : null;
+  return writeOrders(orders);
+}
+
+/* 全站對「這是哪一單」的統一說法。三個頁面各寫一份的話，同一單會有三個名字。 */
+function orderLabel(order) {
+  var t = (order && order.createdAt) ? new Date(order.createdAt) : null;
+  if (!t || isNaN(t.getTime())) return '未標日期的單';
+  return t.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) + ' 這一單';
 }
 
 /* 剛勾起來、什麼都還沒填的一筆。試算頁與購物清單頁都用這個，
    不要各自手寫一份 —— 之前試算頁寫的是裸 ISO 字串（v2），
    雖然讀得回來，但會在同一份資料裡留下混格式的紀錄。 */
 function newCheckedEntry() {
-  return { lots: [{ at: new Date().toISOString(), qty: null, paidTwd: null }], closed: false };
+  return { lots: [{ at: new Date().toISOString(), got: null, qty: null, paidTwd: null }], closed: false };
 }
 
-/* 用一組「已勾選的品項名」去同步整張表：名單裡有的保留原樣、沒有的丟掉、
-   新出現的建一筆空的。試算頁那張表用得到（它一次處理整個組合）。
+/* 用一組「已勾選的品項名」去同步某一單的整張表：名單裡有的保留原樣、
+   沒有的丟掉、新出現的建一筆空的。
 
    ⚠️ **保留原樣是重點。** 既有那筆可能帶著使用者在購物清單頁敲進去的
-      買到數量與實付金額，而試算頁根本看不到那些欄位——**看不到不等於
-      可以覆蓋掉**。重建一筆新的等於把人家填的東西清掉。 */
-function syncCheckedNames(names) {
-  var prev = readCheckedMap();
+      買到數量與實付金額——**看不到不等於可以覆蓋掉**。 */
+function syncCheckedNames(names, oid) {
+  var id = oid || activeOrderId();
+  var prev = readCheckedMap(id);
   var next = {};
   (names && names.forEach ? names : []).forEach(function (n) {
     next[n] = prev[n] || newCheckedEntry();
   });
-  writeCheckedMap(next);
+  writeCheckedMap(next, id);
   return next;
 }
 
-/* 這個品項一共買到幾個 / 一共付了多少。
+/* 這個品項在這一單裡一共買到幾個 / 一共付了多少。
    ⚠️ 任何一批沒填就回 null（= 不知道），不要把沒填的當 0 加進去——
       少加一批的總額會讓「少了多少」憑空變好看。 */
 function lotsTotalQty(entry) {
@@ -725,35 +906,41 @@ function lotsTotalPaid(entry) {
   return sum;
 }
 
-/* 回傳已買到的批次，**一批一列**（不是一個品項一列）。
+/* ── 持有清單 ──────────────────────────────────────────────
+   回傳已買到的批次，**一批一列**（不是一個品項一列）。
    分批買的兩批解鎖日不同，合成一列就一定有一批的冷卻期是錯的。
 
    每一列：
-     key                 穩定識別字，回填成交價用。單批時就等於 name
-                         （所以舊的 sah-sold-v1 在最常見的情況下不用遷移）
-     name / defIndex     品項
-     plannedQty          試算頁的計畫數量（整個品項的）
+     oid                 屬於哪一單
+     key                 穩定識別字，回填成交價用（見 holdingKey）
+     legacyKey           v4 之前的識別字，只用來讀舊的成交價（見 soldEntry）
+     name / defIndex     品項。⚠️ name 可能是 null——新網址在 defIndex 查得到時
+                         不帶名稱，要等頁面查資料庫還原（見 holdingsToParamV4）
+     plannedQty          這一單的計畫數量（整個品項的）
      qty                 這一批實際買到幾個
      qtyIsEstimate       true = 沒填，qty 是退回用的計畫數量
      unitCostTwd         試算頁的**估計**單價，不是實付
      paidTwd             這一批實付總額，null = 沒填
      boughtAt / boughtAtIsEstimate
-     closed              這個品項是否已標記「買不到了，就到這裡」
+     arrivedAt / cooldownFrom / cooldownFromIsEstimate
+     closed              這個品項在這一單裡是否已標記「買不到了」
      lotIndex / lotCount */
-function readHoldings() {
-  var combo = null;
-  try { combo = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null'); } catch (e) { /* 忽略 */ }
-  if (!combo || !Array.isArray(combo.items)) return { items: [], savedAt: null };
-  return {
-    items: holdingsFromPlan(combo.items, readCheckedMap(), combo.savedAt),
-    savedAt: combo.savedAt || null
-  };
+
+/* 成交價要掛在哪個識別字上。
+   ⚠️ **一定要含 oid。** 同一顆箱子出現在兩單是常態（倍率最高的那幾顆本來
+      就每輪都會被選中），不含 oid 的話第二單的成交價會蓋掉第一單的。
+   ⚠️ 名稱還沒還原時用 '#defIndex' 頂替，**還原之後要重算 key**——
+      頁面在拿到名稱後呼叫 assignHoldingKeys()。 */
+function holdingKey(i) {
+  var ident = i.name || ('#' + (i.defIndex == null ? '?' : i.defIndex));
+  return (i.oid || '') + '::' + ident + (i.lotCount > 1 ? ('#' + i.lotIndex) : '');
+}
+function assignHoldingKeys(items) {
+  (items || []).forEach(function (i) { i.key = holdingKey(i); });
+  return items;
 }
 
-/* readHoldings() 的內臟。獨立出來是因為購物清單頁的清單可能來自**網址參數**
-   而不是 localStorage（分享用的 `?items=`），那種情況下 `sah-combo-v1` 是空的，
-   直接呼叫 readHoldings() 會拿到空陣列——按鈕就會莫名其妙一直是灰的。 */
-function holdingsFromPlan(planItems, checked, savedAt) {
+function holdingsFromPlan(planItems, checked, savedAt, oid) {
   var items = [];
   (planItems || []).forEach(function (i) {
     if (!Object.prototype.hasOwnProperty.call(checked, i.name)) return;
@@ -762,8 +949,8 @@ function holdingsFromPlan(planItems, checked, savedAt) {
     entry.lots.forEach(function (lot, idx) {
       var bought = lot.at || savedAt || null;
       var cs = cooldownStart(bought, lot.got);
-      items.push({
-        key: lotCount > 1 ? (i.name + '#' + (lot.at || ('lot' + idx))) : i.name,
+      var row = {
+        oid: oid || '',
         name: i.name,
         defIndex: i.defIndex == null ? null : i.defIndex,
         plannedQty: i.qty,
@@ -782,76 +969,274 @@ function holdingsFromPlan(planItems, checked, savedAt) {
         cooldownFromIsEstimate: cs.isEstimate,
         closed: entry.closed,
         lotIndex: idx,
-        lotCount: lotCount
-      });
+        lotCount: lotCount,
+        /* v4 之前的成交價識別字。只讀不寫，見 soldEntry()。 */
+        legacyKey: lotCount > 1 ? (i.name + '#' + (lot.at || ('lot' + idx))) : i.name
+      };
+      row.key = holdingKey(row);
+      items.push(row);
     });
   });
   return items;
 }
 
-/* 跨裝置：localStorage 不跨裝置，桌機買、手機收提醒是很常見的組合。
-   解法是讓行事曆事件自己攜帶品項清單，點連結時由網址參數還原。
+/* 某一單的持有清單。 */
+function holdingsForOrder(oid, orders, all) {
+  var o = (orders || readOrders())[oid];
+  if (!o) return [];
+  var c = (all || readCheckedAll())[oid] || {};
+  return holdingsFromPlan(o.plan, c, o.createdAt, oid);
+}
 
-     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進時間:到貨時間
+/* 所有**未結案**的單，舊單在前（讀起來像時間軸）。
+   ⚠️ 已結案的單不進來：它們沒有冷卻期也沒有提醒價值，混進來只會讓賣出頁
+      越用越長，也會讓追蹤網址跟著帳本一起變長。要看歷史請走 readLedger()。 */
+function readHoldings() {
+  var orders = readOrders();
+  var all = readCheckedAll();
+  var ids = openOrderIds(orders);
+  var items = [];
+  ids.slice().reverse().forEach(function (id) {
+    items = items.concat(holdingsForOrder(id, orders, all));
+  });
+  return {
+    items: items,
+    savedAt: ids.length ? orders[ids[0]].createdAt : null,
+    orderIds: ids
+  };
+}
 
-   第 1–4 段是原本就有的，第 5–8 段 2026-08-22 新增，第 9 段 2026-08-29 新增，
-   舊的四段／八段網址仍讀得回來。
+/* 帳本：全部的單（含已結案），新到舊。純事實，不算績效。 */
+function readLedger() {
+  var orders = readOrders();
+  var all = readCheckedAll();
+  return Object.keys(orders).sort(function (a, b) {
+    return orderTime(orders[b]) - orderTime(orders[a]);
+  }).map(function (id) {
+    return { oid: id, order: orders[id], items: holdingsForOrder(id, orders, all) };
+  });
+}
+
+/* ── 成交價（只存本機）────────────────────────────────────
+   ⚠️ 存的是**買家付的錢（毛額）、單位是新台幣**，也就是使用者在 Steam 畫面上
+      看到的那個數字。要換成賣家實拿一定要先過 steamNetTwd()（第⑮節）。
+   ⚠️ 2026-08-31 起連**成交時間**一起存：帳本要回答「資金鎖了幾天」，而
+      那是這個工具最貴的成本（7 天冷卻期＋波動）。舊資料是裸數字，讀進來時
+      補成 { twd, at:null }——**不要幫它填一個假的成交時間**。 */
+function readSoldAll() {
+  var out = {};
+  var raw = null;
+  try { raw = JSON.parse(localStorage.getItem(SOLD_STORAGE_KEY) || 'null'); } catch (e) { return out; }
+  var src = (raw && typeof raw === 'object' && raw.v === 4 && raw.sold) ? raw.sold : raw;
+  if (!src || typeof src !== 'object') return out;
+  Object.keys(src).forEach(function (k) {
+    var v = src[k];
+    if (v == null) return;
+    if (typeof v === 'object') {
+      var n = Number(v.twd);
+      if (isFinite(n)) out[k] = { twd: n, at: (typeof v.at === 'string' && v.at) ? v.at : null };
+    } else {
+      var m = Number(v);
+      if (isFinite(m)) out[k] = { twd: m, at: null };
+    }
+  });
+  return out;
+}
+function writeSoldAll(map) {
+  try {
+    localStorage.setItem(SOLD_STORAGE_KEY, JSON.stringify({ v: 4, sold: map }));
+    return true;
+  } catch (e) { return false; }
+}
+/* 讀某一批的成交價。找不到新 key 就退回 v4 之前的 key——那時候的 key
+   是純品項名，沒有單這一層。⚠️ 只在讀的時候退回，寫一律寫新 key。 */
+function soldEntry(map, item) {
+  if (!map || !item) return null;
+  if (map[item.key] != null) return map[item.key];
+  if (item.legacyKey && map[item.legacyKey] != null) return map[item.legacyKey];
+  return null;
+}
+function setSoldValue(map, item, rawValue) {
+  var v = String(rawValue == null ? '' : rawValue).trim();
+  if (item.legacyKey && item.legacyKey !== item.key) delete map[item.legacyKey];
+  if (v === '') { delete map[item.key]; return map; }
+  var prev = map[item.key];
+  var twd = roundTwd(v);
+  map[item.key] = {
+    twd: twd,
+    /* 金額沒變就不要動成交時間——重新渲染或改一個字又改回來，
+       不該讓「賣掉那一天」跟著跳。 */
+    at: (prev && prev.at && prev.twd === twd) ? prev.at : new Date().toISOString()
+  };
+  return map;
+}
+
+/* ── 跨裝置：把清單編進網址 ────────────────────────────────
+   `.ics` 與追蹤網址都靠它。localStorage 不跨裝置（桌機買、手機收提醒是很
+   常見的組合），而且 **Safari 會在連續 7 天沒有互動之後刪掉整個 origin 的
+   script-writable storage**——那正好撞上 7 天冷卻期。所以網址不只是便利，
+   在 WebKit 上它是唯一可靠的持久副本。
+
+   ## v4（參數名 `it` ＋ `t0`）
+
+     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進:到貨:單ID
 
    | 段 | 內容 | 空的時候 |
    |---|---|---|
-   | 5 | 實付總額（NT$，最多兩位小數） | 沒填 |
-   | 6 | 旗標 | 見下 |
-   | 7 | 計畫數量 | 與實際數量相同 |
-   | 8 | 這一批的買進時間（epoch 秒） | 退回用網址的 `bought` 參數 |
-   | 9 | 這一批的**到貨時間**（epoch 秒） | 沒按過「物品到了」，冷卻期退回用買進時間（下界） |
+   | 1 | 名稱（百分號編碼）| **有 defIndex 就一定是空的**，載入時查資料庫還原 |
+   | 2 | 這一批數量 | — |
+   | 3 | 計畫單價 | 有實付總額時就不需要它 |
+   | 4 | defIndex（base36）| 沒有，這時第 1 段一定有名稱 |
+   | 5 | 實付總額 | 沒填 |
+   | 6 | 旗標 `q`數量估計／`t`時間估計／`c`已收單 | 都不是 |
+   | 7 | 計畫數量 | 與實際相同（**不是**「不知道」）|
+   | 8 | 買進：距 `t0` 幾分鐘（base36）| 沒有 |
+   | 9 | 到貨：距 `t0` 幾分鐘（base36）| 沒按過「物品到了」|
+   | 10 | 單 ID | **沿用前一段**（同一單的批次連在一起，只有換單時才寫）|
 
-   ⚠️ 第 9 段一定要帶。少了它，桌機上按過「物品到了」的那批到了手機上會退回
-      「買進時間」的下界估計——而使用者按那顆按鈕的**唯一理由**就是他不想要
-      估計值。跨裝置之後又變回估計，等於那顆按鈕在手機上不存在。
+   `t0` = 全部時刻裡最早的那一分鐘（base36）。以最早的為基準，位移永遠 ≥ 0，
+   不用處理負數。
 
-   旗標：`q` = 數量是估計的（沒填，用計畫數量頂替）
-         `t` = 購買時間是估計的
-         `c` = 這個品項已標記「買不到了，就到這裡」
+   ⚠️ **名稱是冗餘的，defIndex 才是識別字。** 名稱是網址裡最貴的東西
+      （每個空白百分號編碼後三個字元），而載入時本來就要查資料庫才有賣價。
+      代價：品項若已從 `cases_data` 下架，那一列會顯示成「箱子 #4001」——
+      冷卻期與金額仍然正確，只是 Steam 市集連結給不出來（那顆需要名稱）。
+   ⚠️ **不要改用「陣列索引 0–44」當代碼**，省更多但表一重排就整批對錯箱子，
+      而且錯得無聲。defIndex 是外部穩定 ID。
+   ⚠️ **不要再套一層 encodeURIComponent 到整串上。** `:` 與 `,` 在 query 裡
+      是合法字元（RFC 3986 sub-delims），外層那次編碼會把每個 `%` 再變成
+      `%25`，長度多兩成三。**但每個欄位自己那層不能省**——箱名裡有 `&`
+      （Dreams & Nightmares Case），不編就在那裡斷成兩個參數。
+   ⚠️ **不要上壓縮（LZ-string 之類）。** 30 批也才 949 字元，離任何限制都遠，
+      換來的是多一個相依、完全不可讀、舊網址讀不回。
 
-   ⚠️ **旗標不是可有可無的。** 少了它，一個「沒填、用計畫數量頂替」的
-      數字到了手機上會變成看起來很確定的實際數量，而它正是「少了多少」
-      算錯的來源。估計值要一路帶著估計的標記。
+   ## 舊網址（參數名 `items`，四段／八段／九段）
 
-   ⚠️ **第 7、8 段是為了「存到另一台裝置」才加的。** 只給行事曆提醒看時
-      不需要它們（事件本來就按解鎖日分好組，一則事件裡的批次同一天）。
-      但追蹤網址是整份清單一起搬，所以：
-        - 沒有計畫數量，「還差幾個」與可買到率在另一台裝置上就消失了；
-        - 沒有各批自己的時間，分批買的兩批會被壓成同一個 `bought`，
-          其中一批的冷卻期一定是錯的。
-      時間用 epoch 秒而不是 ISO 字串，是因為 ISO 編進網址要 24 個字元
-      還會被百分號編碼撐得更長。
+   已經下載的 `.ics` 裡是舊網址，**永遠會回來**，所以 paramToHoldings()
+   原封不動留著。⚠️ **用參數名區分版本，不要數幾段來猜。**
 
-   ⚠️ 網址參數是使用者看得到也改得動的，所以它只攜帶「你買了什麼、
-      付了多少」這種**使用者自己的紀錄**，不攜帶任何**市場價格或計算
-      結果**——賣價、實拿、倍率一律在頁面載入時重新查。
-      實付總額屬於前者：它是使用者的支出，不是會過期的市場報價，
-      而且不帶著它，另一台裝置就完全算不出「到底少了多少」。 */
-function holdingsToParam(items) {
-  return items.map(function (i) {
-    var at = i.boughtAt ? Math.floor(Date.parse(i.boughtAt) / 1000) : '';
-    var got = i.arrivedAt ? Math.floor(Date.parse(i.arrivedAt) / 1000) : '';
+   ## 網址只帶「使用者自己的紀錄」
+
+   買了什麼、付了多少——**不帶市場價格或計算結果**，賣價、實拿、倍率一律
+   在載入時重查。界線畫在「這個數字會不會因時間經過而變錯」，不是「它是不是錢」。 */
+var URL_ITEMS_PARAM = 'it';
+var URL_T0_PARAM = 't0';
+
+function toB36(n) { return Math.round(n).toString(36); }
+function fromB36(s) {
+  if (s === '' || s == null) return NaN;
+  var n = parseInt(String(s), 36);
+  return isFinite(n) ? n : NaN;
+}
+
+function holdingsToParamV4(items) {
+  var list = items || [];
+  var mins = [];
+  list.forEach(function (i) {
+    [i.boughtAt, i.arrivedAt].forEach(function (t) {
+      var v = t ? Math.floor(Date.parse(t) / 60000) : NaN;
+      if (isFinite(v)) mins.push(v);
+    });
+  });
+  var t0 = mins.length ? Math.min.apply(null, mins) : Math.floor(Date.now() / 60000);
+  var lastOid = null;
+  var parts = list.map(function (i) {
+    var at = i.boughtAt ? Math.floor(Date.parse(i.boughtAt) / 60000) : NaN;
+    var got = i.arrivedAt ? Math.floor(Date.parse(i.arrivedAt) / 60000) : NaN;
+    var di = (i.defIndex == null || i.defIndex === '') ? NaN : Number(i.defIndex);
+    var hasDi = isFinite(di) && di >= 0;
+    var oid = i.oid || '';
+    var oidSeg = (oid && oid !== lastOid) ? oid : '';
+    if (oid) lastOid = oid;
     return [
-      i.name,
+      /* defIndex 查得回名稱就不帶名稱；帶不出 defIndex 的品項一定要帶名稱，
+         否則那一列在另一台裝置上就完全認不出來。 */
+      hasDi ? '' : encodeURIComponent(i.name || ''),
       i.qty,
-      roundTwd(i.unitCostTwd || 0),
-      i.defIndex == null ? '' : i.defIndex,
+      i.paidTwd == null ? roundTwd(i.unitCostTwd || 0) : '',
+      hasDi ? toB36(di) : '',
       i.paidTwd == null ? '' : roundTwd(i.paidTwd),
       (i.qtyIsEstimate ? 'q' : '') + (i.boughtAtIsEstimate ? 't' : '') + (i.closed ? 'c' : ''),
       (i.plannedQty != null && i.plannedQty !== i.qty) ? i.plannedQty : '',
-      isFinite(at) ? at : '',
-      isFinite(got) ? got : ''
-    ].map(encodeURIComponent).join(':');
-  }).join(',');
+      isFinite(at) ? toB36(at - t0) : '',
+      isFinite(got) ? toB36(got - t0) : '',
+      encodeURIComponent(oidSeg)
+    ].join(':');
+  });
+  return { it: parts.join(','), t0: toB36(t0) };
 }
+
+function paramToHoldingsV4(raw, t0Raw) {
+  if (!raw) return [];
+  var t0 = fromB36(t0Raw);
+  if (!isFinite(t0)) t0 = 0;
+  var seen = {};
+  var lastOid = '';
+  var out = [];
+  raw.split(',').forEach(function (part) {
+    var seg = part.split(':');
+    var qty = Number(seg[1]) || 0;
+    if (qty <= 0) return;
+    var di = fromB36(seg[3]);
+    var defIndex = isFinite(di) ? String(di) : null;
+    var name = seg[0] ? decodeURIComponent(seg[0]) : null;
+    var paid = (seg[4] == null || seg[4] === '') ? null : (Number(seg[4]) || 0);
+    var flags = seg[5] || '';
+    var planned = seg[6];
+    var atOff = fromB36(seg[7]);
+    var gotOff = fromB36(seg[8]);
+    var oid = seg[9] ? decodeURIComponent(seg[9]) : lastOid;
+    lastOid = oid || lastOid;
+    var at = isFinite(atOff) ? new Date((t0 + atOff) * 60000).toISOString() : null;
+    var got = isFinite(gotOff) ? new Date((t0 + gotOff) * 60000).toISOString() : null;
+    var cs = cooldownStart(at, got);
+    /* 同一單裡同一個品項出現兩次＝兩批，識別字不能撞。 */
+    var ident = (oid || '') + '|' + (name || ('#' + defIndex));
+    var n = (seen[ident] = (seen[ident] || 0) + 1);
+    var row = {
+      oid: oid || '',
+      name: name,
+      defIndex: defIndex,
+      qty: qty,
+      /* 第 7 段空的時候代表「計畫數量＝實際數量」，不是「不知道」 */
+      plannedQty: (planned !== undefined && planned !== '') ? (Number(planned) || qty) : qty,
+      qtyIsEstimate: flags.indexOf('q') >= 0,
+      unitCostTwd: (seg[2] == null || seg[2] === '') ? 0 : (Number(seg[2]) || 0),
+      paidTwd: paid,
+      boughtAt: at,
+      boughtAtIsEstimate: flags.indexOf('t') >= 0,
+      arrivedAt: got,
+      cooldownFrom: cs.at,
+      cooldownFromIsEstimate: cs.isEstimate,
+      closed: flags.indexOf('c') >= 0,
+      lotIndex: n - 1,
+      lotCount: 1,
+      /* 網址來的批次沒有 v4 之前的識別字可退——舊網址走 paramToHoldings()。 */
+      legacyKey: null
+    };
+    row.key = holdingKey(row);
+    out.push(row);
+  });
+  /* lotCount 要等整串讀完才知道，而 key 依賴它。 */
+  var counts = {};
+  out.forEach(function (i) { counts[i.oid + '|' + (i.name || i.defIndex)] = (counts[i.oid + '|' + (i.name || i.defIndex)] || 0) + 1; });
+  out.forEach(function (i) {
+    i.lotCount = counts[i.oid + '|' + (i.name || i.defIndex)];
+    i.key = holdingKey(i);
+  });
+  return out;
+}
+
+/* 舊網址（`items=`）的解碼器。**只讀不寫**——新網址一律走 holdingsToParamV4()。
+   留著的理由：已經下載到使用者行事曆裡的 `.ics` 帶的是這種網址，永遠會回來。
+
+     名稱:數量:計畫單價:defIndex:實付總額:旗標:計畫數量:買進時間:到貨時間
+
+   四段（最早）／八段（2026-08-22）／九段（2026-08-29）都讀得回來。 */
 function paramToHoldings(raw, boughtAt) {
   if (!raw) return [];
   var seen = {};
-  return raw.split(',').map(function (part) {
+  var rows = raw.split(',').map(function (part) {
     var seg = part.split(':').map(decodeURIComponent);
     var name = seg[0] || '未命名';
     var paid = seg[4];
@@ -869,8 +1254,8 @@ function paramToHoldings(raw, boughtAt) {
       ? new Date(gotSec * 1000).toISOString()
       : null;
     var cs = cooldownStart(at, got);
-    return {
-      key: n > 1 ? (name + '#p' + n) : name,
+    var row = {
+      oid: '',
       name: name,
       qty: qty,
       /* 第 7 段空的時候代表「計畫數量＝實際數量」，不是「不知道」 */
@@ -888,35 +1273,55 @@ function paramToHoldings(raw, boughtAt) {
       cooldownFromIsEstimate: cs.isEstimate,
       closed: flags.indexOf('c') >= 0,
       lotIndex: n - 1,
-      lotCount: 1
+      lotCount: 1,
+      /* v4 之前的成交價識別字，長這樣 */
+      legacyKey: n > 1 ? (name + '#p' + n) : name
     };
+    row.key = holdingKey(row);
+    return row;
   }).filter(function (i) { return i.qty > 0; });
+  /* lotCount 要整串讀完才知道，而 key 依賴它（同名兩批的 key 不能撞）。 */
+  var counts = {};
+  rows.forEach(function (i) { counts[i.name] = (counts[i.name] || 0) + 1; });
+  rows.forEach(function (i) { i.lotCount = counts[i.name]; i.key = holdingKey(i); });
+  return rows;
+}
+
+/* 網址進來的清單一律走這裡：新參數優先，沒有才退回舊參數。
+   ⚠️ **用參數名決定版本，不要嗅探內容。** */
+function holdingsFromLocation(search) {
+  var params = new URLSearchParams(search || '');
+  var it = params.get(URL_ITEMS_PARAM);
+  if (it) return paramToHoldingsV4(it, params.get(URL_T0_PARAM));
+  var old = params.get('items');
+  if (old) return paramToHoldings(old, params.get('bought'));
+  return [];
 }
 
 /* ── 追蹤網址：把整份清單變成一條可以貼的連結 ──────────────
-   `.ics` 要下載、要匯入，在手機上是一道真實的摩擦。同一份資料本來就
-   編得進網址，那就讓使用者直接複製一條連結，貼到自己的行事曆事件、
-   記事本、傳給自己的訊息裡——愛貼哪就貼哪。
+   `.ics` 要下載、要匯入，在手機上是一道真實的摩擦。同一份資料本來就編得進
+   網址，那就讓使用者直接複製一條連結，貼到自己的行事曆事件、記事本、傳給自己。
 
-   ⚠️ **這是快照，不是連線。** 複製完之後你在購物清單上改的任何東西，
-      那條已經貼出去的連結都不知道。所以網址帶 `at`（複製當下的時間），
-      另一端要把它顯示出來，讓人看得到自己在看多舊的資料。
+   ⚠️ **這是快照，不是連線。** 複製完之後在購物清單改的任何東西，那條已經
+      貼出去的連結都不知道。所以網址帶 `at`（複製當下的時間），另一端要把它
+      顯示出來，讓人看得到自己在看多舊的資料。
 
-   ⚠️ **連結內容 = 你買了什麼、花了多少。** 貼進共用行事曆或群組聊天
-      等於把消費紀錄給別人看。介面上要講這一句。
+   ⚠️ **連結內容 = 你買了什麼、花了多少。** 貼進共用行事曆或群組聊天等於把
+      消費紀錄給別人看。介面上要講這一句——v4 之後品項與時間變成代碼，
+      使用者更沒辦法自己看出裡面有什麼，這句話因此更重要，不是更不重要。
 
-   ⚠️ 第三個參數 `atSec` 是**轉手時要沿用的快照時間**（epoch 秒）。
-      賣出頁也能複製追蹤網址，而它手上那份可能本來就是從別人的連結來的
-      ——那種情況下重新蓋一個「現在」，等於讓一份三天前的舊資料看起來
-      像剛剛複製的。`at` 講的是「這份資料是什麼時候的」，不是「這條網址
-      什麼時候生出來的」。**只有資料真正的來源（購物清單頁）才有資格給
-      新的時間**，轉手的一律沿用。不給就是現在。 */
+   ⚠️ 第三個參數 `atSec` 是**轉手時要沿用的快照時間**（epoch 秒）。賣出頁也能
+      複製追蹤網址，而它手上那份可能本來就是從別人的連結來的——那種情況下重新
+      蓋一個「現在」，等於讓一份三天前的舊資料看起來像剛剛複製的。**只有資料
+      真正的來源（購物清單頁）才有資格給新的時間**，轉手的一律沿用。 */
 function holdingsTrackUrl(items, baseUrl, atSec) {
   var base = (baseUrl || '').split('?')[0];
   var at = (atSec != null && isFinite(atSec) && atSec > 0)
     ? Math.floor(atSec)
     : Math.floor(Date.now() / 1000);
-  return base + '?items=' + encodeURIComponent(holdingsToParam(items))
+  var p = holdingsToParamV4(items);
+  return base + '?' + URL_ITEMS_PARAM + '=' + p.it
+    + '&' + URL_T0_PARAM + '=' + p.t0
     + '&at=' + at;
 }
 
@@ -933,59 +1338,213 @@ function copyText(text) {
   return Promise.resolve(false);
 }
 
-/* 把網址還原出來的清單存進**這台裝置**。
-   給的是 paramToHoldings() 的輸出，寫回 combo + checked 兩個 key。
-
-   ⚠️ **這是取代，不是合併。** 同名品項要合併就得處理「兩邊數量不一樣
-      該聽誰的」，那個問題沒有正確答案，猜錯就是默默改掉使用者的紀錄。
-      所以取代，並且**由呼叫端在存之前先問過**——`countStoredHoldings()`
-      就是用來告訴使用者「這台裝置上原本有幾筆會被蓋掉」。 */
-function countStoredHoldings() {
-  try {
-    var checked = readCheckedMap();
-    return Object.keys(checked).length;
-  } catch (e) { return 0; }
+/* 這台裝置上「會被這份網址蓋掉」的批次有幾筆。
+   ⚠️ 只數會被動到的那幾單。v4 之前這裡數的是整台裝置，那時只有一單所以剛好
+      相等；現在整份取代改成**逐單取代**，把沒被碰到的單也數進去會嚇到人。 */
+function countStoredHoldings(items) {
+  var all = readCheckedAll();
+  var ids;
+  if (items && items.length) {
+    var set = {};
+    items.forEach(function (i) { if (i.oid) set[i.oid] = true; });
+    ids = Object.keys(set);
+    if (!ids.length) return 0;
+  } else {
+    ids = Object.keys(all);
+  }
+  var n = 0;
+  ids.forEach(function (id) {
+    var m = all[id] || {};
+    Object.keys(m).forEach(function (name) { n += (m[name].lots || []).length; });
+  });
+  return n;
 }
 
+/* 把網址還原出來的清單存進**這台裝置**。
+   給的是 holdingsFromLocation() 的輸出。
+
+   ⚠️ **這是逐單取代，不是合併。** 同一單裡同名品項要合併就得處理「兩邊數量
+      不一樣該聽誰的」，那個問題沒有正確答案，猜錯就是默默改掉使用者的紀錄。
+      所以在**單**這一層取代（網址說了算），沒出現在網址裡的單原封不動。
+      並且**由呼叫端在存之前先問過**——countStoredHoldings(items) 就是用來
+      告訴使用者「會被蓋掉幾筆」。
+
+   ⚠️ **名稱還沒還原就不能存。** 新網址在 defIndex 查得到時不帶名稱，要等
+      頁面查完資料庫才知道那是哪顆箱子。名稱沒還原就存，等於在資料庫裡種下
+      一個 `#4001` 這種永遠對不上 `cases_data` 的假品項名。
+
+   回傳 { ok:true } 或 { ok:false, reason:'names'|'storage' }。 */
 function saveHoldingsToDevice(items) {
-  if (!items || !items.length) return false;
-  var comboItems = [];
-  var checked = {};
+  if (!items || !items.length) return { ok: false, reason: 'empty' };
+  if (items.some(function (i) { return !i.name; })) return { ok: false, reason: 'names' };
+
+  var orders = readOrders();
+  var all = readCheckedAll();
+  /* 網址沒帶單 ID（舊網址）就開一張新單，不要塞進現有的任何一單。 */
+  var fallbackOid = newOrderId();
+  var touched = {};
+
   items.forEach(function (i) {
-    if (!checked[i.name]) {
-      checked[i.name] = { lots: [], closed: !!i.closed };
-      comboItems.push({
-        name: i.name,
+    var oid = i.oid || fallbackOid;
+    if (!touched[oid]) {
+      touched[oid] = true;
+      orders[oid] = {
+        createdAt: (orders[oid] && orders[oid].createdAt) || i.boughtAt || new Date().toISOString(),
+        plan: [],
+        closedAt: null
+      };
+      all[oid] = {};
+    }
+    var plan = orders[oid].plan;
+    var checked = all[oid];
+    var name = i.name;
+    if (!checked[name]) {
+      checked[name] = { lots: [], closed: !!i.closed };
+      plan.push({
+        name: name,
         qty: i.plannedQty != null ? i.plannedQty : i.qty,
         unitCostTwd: i.unitCostTwd,
         defIndex: i.defIndex
       });
     } else {
       /* 同名的第二段＝同一個品項的第二批。
-         ⚠️ 計畫數量是**品項層級**的，每一批都帶著同一個值，所以這裡要取
-            最大值，**不能相加**——相加會讓計畫 20 的品項在新裝置上變成 40，
-            「還差幾個」跟著全錯。（每批各帶一份是因為網址是平的，
-            沒有品項這一層。） */
-      var c = comboItems.filter(function (x) { return x.name === i.name; })[0];
-      var p = (i.plannedQty != null ? i.plannedQty : i.qty);
-      if (c && p > c.qty) c.qty = p;
-      if (i.closed) checked[i.name].closed = true;
+         ⚠️ 計畫數量是**品項層級**的，每一批都帶著同一個值，所以這裡要取最大值，
+            **不能相加**——相加會讓計畫 20 的品項在新裝置上變成 40，
+            「還差幾個」跟著全錯。（網址是平的，沒有品項這一層。） */
+      for (var k = 0; k < plan.length; k++) {
+        if (plan[k].name !== name) continue;
+        var p = (i.plannedQty != null ? i.plannedQty : i.qty);
+        if (p > plan[k].qty) plan[k].qty = p;
+      }
+      if (i.closed) checked[name].closed = true;
     }
-    checked[i.name].lots.push({
+    checked[name].lots.push({
       at: i.boughtAt,
+      /* ⚠️ **到貨時間一定要跟著搬。** 網址第 9 段辛苦帶過來的東西在這裡掉了，
+            重整之後冷卻期就退回估計值——而使用者按「物品到了」的唯一理由
+            就是他不要估計值。2026-08-31 修正：v3 時這裡漏了 got。 */
+      got: i.arrivedAt || null,
       /* 數量是估計的就存 null，讓它在新裝置上**繼續**是估計的。
          存成確定值等於在搬家過程中把「不知道」洗成「知道」。 */
       qty: i.qtyIsEstimate ? null : i.qty,
       paidTwd: i.paidTwd
     });
   });
-  try {
-    localStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify({
-      savedAt: new Date().toISOString(), items: comboItems
-    }));
-  } catch (e) { return false; }
-  writeCheckedMap(checked);
-  return true;
+
+  if (!writeOrders(orders)) return { ok: false, reason: 'storage' };
+  if (!writeCheckedAll(all)) return { ok: false, reason: 'storage' };
+  return { ok: true };
+}
+
+/* ── 匯出／匯入：帳本唯一可靠的持久副本 ─────────────────────
+   ⚠️⚠️ **這不是加值功能，是多單模式的前提。** localStorage 在 WebKit 上會被
+      「連續 7 天沒有互動就刪掉」清掉整包（Safari ITP 的 7-day cap，涵蓋
+      localStorage / IndexedDB / SW cache），而本站的動線正好是「買完 → 關掉
+      → 等 7 天 → 回來賣」。帳本累積得越多越值錢，被清掉的損失就越大——
+      **累積十輪的紀錄一次消失，比沒有帳本更糟。**
+   ⚠️ 匯出的是原始值（毛額／淨額分明），不是換算後的淨額——換算規則會改。 */
+function exportLedgerData() {
+  return {
+    app: 'steam-casher',
+    v: 4,
+    exportedAt: new Date().toISOString(),
+    orders: readOrders(),
+    checked: readCheckedAll(),
+    sold: readSoldAll()
+  };
+}
+
+/* 匯入＝**整份取代**，理由同 saveHoldingsToDevice：合併沒有正確答案。
+   呼叫端要先問過，並把「原本有幾單會被蓋掉」寫進問句。
+   回傳 { ok, orders, lots } 或 { ok:false, reason }。 */
+function importLedgerData(data) {
+  if (!data || typeof data !== 'object' || data.app !== 'steam-casher') {
+    return { ok: false, reason: 'format' };
+  }
+  var orders = {};
+  var checked = {};
+  var sold = {};
+  if (data.orders && typeof data.orders === 'object') {
+    Object.keys(data.orders).forEach(function (id) { orders[id] = normalizeOrder(data.orders[id]); });
+  }
+  if (data.checked && typeof data.checked === 'object') {
+    Object.keys(data.checked).forEach(function (id) {
+      var m = data.checked[id];
+      if (!m || typeof m !== 'object') return;
+      var one = {};
+      Object.keys(m).forEach(function (n) { one[n] = normalizeCheckedEntry(m[n]); });
+      checked[id] = one;
+    });
+  }
+  if (data.sold && typeof data.sold === 'object') {
+    Object.keys(data.sold).forEach(function (k) {
+      var v = data.sold[k];
+      if (v == null) return;
+      var n = Number(typeof v === 'object' ? v.twd : v);
+      if (!isFinite(n)) return;
+      sold[k] = { twd: n, at: (v && typeof v.at === 'string' && v.at) ? v.at : null };
+    });
+  }
+  if (!Object.keys(orders).length) return { ok: false, reason: 'empty' };
+  if (!writeOrders(orders)) return { ok: false, reason: 'storage' };
+  if (!writeCheckedAll(checked)) return { ok: false, reason: 'storage' };
+  writeSoldAll(sold);
+  var lots = 0;
+  Object.keys(checked).forEach(function (id) {
+    Object.keys(checked[id]).forEach(function (n) { lots += (checked[id][n].lots || []).length; });
+  });
+  return { ok: true, orders: Object.keys(orders).length, lots: lots };
+}
+
+/* CSV：給 Excel 帳本用的那一份。**一批一列**，跟賣出頁看到的東西一一對應。
+   ⚠️ 開頭要有 BOM，否則 Excel 會把中文欄位讀成亂碼。
+   ⚠️ 存原始值：實付總額、成交毛額分開兩欄，實拿由公式欄位再算——
+      把換算後的結果當成唯一紀錄，換算規則一改就回不去了。 */
+function ledgerCsv() {
+  var sold = readSoldAll();
+  var rows = [[
+    '單ID', '單建立日', '單狀態', '品項', 'defIndex', '計畫數量', '買到數量', '數量是估計',
+    '實付總額TWD', '買進時間', '到貨時間', '成交毛額每個TWD', '成交時間', '實拿合計TWD', '差額TWD'
+  ]];
+  readLedger().forEach(function (o) {
+    o.items.forEach(function (i) {
+      var s = soldEntry(sold, i);
+      var net = s ? steamNetTwd(s.twd) * i.qty : null;
+      rows.push([
+        o.oid,
+        o.order.createdAt || '',
+        o.order.closedAt ? '已結案' : '進行中',
+        i.name || ('#' + i.defIndex),
+        i.defIndex == null ? '' : i.defIndex,
+        i.plannedQty == null ? '' : i.plannedQty,
+        i.qty,
+        i.qtyIsEstimate ? 'Y' : 'N',
+        i.paidTwd == null ? '' : i.paidTwd,
+        i.boughtAt || '',
+        i.arrivedAt || '',
+        s ? s.twd : '',
+        (s && s.at) ? s.at : '',
+        net == null ? '' : roundTwd(net),
+        (net == null || i.paidTwd == null) ? '' : roundTwd(net - i.paidTwd)
+      ]);
+    });
+  });
+  return '﻿' + rows.map(function (r) {
+    return r.map(function (c) {
+      var s = String(c == null ? '' : c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',');
+  }).join('\r\n') + '\r\n';
+}
+
+function downloadText(text, filename, mime) {
+  var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+  var a = document.createElement('a');
+  var url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
 }
 
 /* ── ⑩ 初始設定狀態與操作時間模型 ─────────────────────────────

@@ -127,48 +127,77 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
       window.document.getElementById('cta-primary').getAttribute('href'), 'calculator.html');
   }
 
-  /* ── ② 購物清單：上一份清單留下的紀錄 ─────────────────── */
+  /* ── ② 購物清單：多單（2026-08-31 取代「上一份清單留下的」標示）─────
+     以前勾選紀錄是全站一張表，沒有「這批屬於哪一單」，所以只能用「每一批都
+     早於這次試算」去**猜**哪些是舊的。猜錯的方向特別糟：第一單還在冷卻期、
+     回來試算第二單，第一單整批會被標成「上一份留下的」——而那是使用者真的
+     買過、正在等的東西。
 
-  const COMBO = {
-    savedAt: '2026-08-10T00:00:00.000Z',
-    items: [
-      { name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 },
-      { name: 'Clutch Case', qty: 5, unitCostTwd: 40, defIndex: 4002 },
-    ],
+     現在每一批記在自己的單底下，舊單根本不會出現在這一單的畫面上，
+     也就沒有東西需要標示或猜測。下面幾條守的是那個取代確實成立。 */
+
+  const ORDERS_V4 = {
+    v: 4,
+    orders: {
+      o_old: { createdAt: '2026-08-01T00:00:00.000Z', closedAt: null,
+        plan: [{ name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 }] },
+      o_now: { createdAt: '2026-08-10T00:00:00.000Z', closedAt: null,
+        plan: [{ name: 'Clutch Case', qty: 5, unitCostTwd: 40, defIndex: 4002 }] },
+    },
+  };
+  const CHECKED_V4 = {
+    v: 4,
+    orders: {
+      o_old: { 'Kilowatt Case': { lots: [{ at: '2026-08-01T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } },
+      o_now: { 'Clutch Case': { lots: [{ at: '2026-08-11T00:00:00.000Z', qty: 5, paidTwd: 200 }], closed: false } },
+    },
   };
 
   {
     const { window } = boot('checklist.html', ls => {
-      ls.setItem('sah-combo-v1', JSON.stringify(COMBO));
-      ls.setItem('sah-checklist-checked-v1', JSON.stringify({
-        // 早於 savedAt → 上一份計畫留下的
-        'Kilowatt Case': { lots: [{ at: '2026-08-01T00:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false },
-        // 晚於 savedAt → 這次買的
-        'Clutch Case': { lots: [{ at: '2026-08-11T00:00:00.000Z', qty: 5, paidTwd: 200 }], closed: false },
-      }));
+      ls.setItem('sah-orders-v1', JSON.stringify(ORDERS_V4));
+      ls.setItem('sah-checklist-checked-v1', JSON.stringify(CHECKED_V4));
     });
     await tick();
     const { document, localStorage } = window;
     const rows = () => [...document.querySelectorAll('#cl-body tr')];
 
-    eq('舊紀錄被標示出來', rows()[0].textContent.includes('早於這次試算'), true);
-    eq('這次的紀錄不會被誤標', rows()[1].textContent.includes('早於這次試算'), false);
-    eq('⚠️ 只標示、不自動刪：實付金額還在',
-      JSON.parse(localStorage.getItem('sah-checklist-checked-v1'))['Kilowatt Case'].lots[0].paidTwd, 280);
+    eq('預設顯示最新的那一單', rows().length, 1);
+    eq('顯示的是新單的品項', rows()[0].textContent.includes('Clutch Case'), true);
+    eq('舊單的品項不會混進來', rows()[0].textContent.includes('Kilowatt Case'), false);
+    /* ⚠️ 這個標示應該從畫面上消失。它還在＝補丁沒被模型取代掉。
+       （只看表格，不看 document.body——頁面自己的 <script> 註解也在 body 裡。） */
+    eq('不再有「早於這次試算」這種猜測',
+      document.getElementById('cl-body').textContent.includes('早於這次試算'), false);
+    eq('舊單的實付金額原封不動',
+      JSON.parse(localStorage.getItem('sah-checklist-checked-v1'))
+        .orders.o_old['Kilowatt Case'].lots[0].paidTwd, 280);
 
-    // 使用者自己按了「不是這次買的」
-    rows()[0].querySelector('[data-forget]').dispatchEvent(new window.Event('click'));
-    const after = JSON.parse(localStorage.getItem('sah-checklist-checked-v1'));
-    eq('按了才清掉', Object.prototype.hasOwnProperty.call(after, 'Kilowatt Case'), false);
-    eq('別人的紀錄沒被牽連', after['Clutch Case'].lots[0].paidTwd, 200);
+    // 兩單並行 → 出現單選擇器，可以切回去看舊單
+    const chips = () => [...document.querySelectorAll('#cl-orders [data-order]')];
+    eq('兩單並行時出現單選擇器', chips().length, 2);
+    eq('選擇器講出每一單買了幾批',
+      chips().some(b => b.textContent.includes('1 批')), true);
+    chips().find(b => b.dataset.order === 'o_old').dispatchEvent(new window.Event('click'));
+    eq('切到舊單看得到舊單的品項', rows()[0].textContent.includes('Kilowatt Case'), true);
+    eq('切到舊單看得到舊單填的數量',
+      rows()[0].querySelector('[data-qty-for]').value, '13');
+
+    /* 結案：不刪東西，只是移出「還要處理」。 */
+    document.getElementById('cl-close-order').dispatchEvent(new window.Event('click'));
+    const afterClose = JSON.parse(localStorage.getItem('sah-orders-v1'));
+    eq('結案寫下時間', typeof afterClose.orders.o_old.closedAt, 'string');
+    eq('結案不刪任何批次',
+      JSON.parse(localStorage.getItem('sah-checklist-checked-v1'))
+        .orders.o_old['Kilowatt Case'].lots.length, 1);
+    eq('結案後選擇器只剩一單', chips().length, 0);
   }
 
-  // 清單來自網址參數時沒有 savedAt，不該亂標
+  // 清單來自網址參數時不屬於任何一單，不給選擇器也不給結案
   {
     const { window } = boot('checklist.html', ls => {
-      ls.setItem('sah-checklist-checked-v1', JSON.stringify({
-        'Kilowatt Case': { lots: [{ at: '2020-01-01T00:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false },
-      }));
+      ls.setItem('sah-orders-v1', JSON.stringify(ORDERS_V4));
+      ls.setItem('sah-checklist-checked-v1', JSON.stringify(CHECKED_V4));
     });
     window.history.replaceState({}, '', '?items=Kilowatt%20Case:20:21:4001');
     await tick();
@@ -176,8 +205,10 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const inline = [...window.document.querySelectorAll('script:not([src])')]
       .map(e => e.textContent).filter(t => t.includes('renderChecklistRow')).pop();
     window.eval(inline);
-    eq('網址參數清單：沒有 savedAt 就不比對',
-      window.document.querySelector('#cl-body tr').textContent.includes('早於這次試算'), false);
+    eq('網址參數清單：顯示的是網址裡那一項',
+      window.document.querySelector('#cl-body tr').textContent.includes('Kilowatt Case'), true);
+    eq('網址參數清單：不給單選擇器', window.document.getElementById('cl-orders').hidden, true);
+    eq('網址參數清單：不給結案鍵', window.document.getElementById('cl-close-order').hidden, true);
   }
 
   /* ── ③ 試算頁的組合表是唯讀的 ─────────────────────────── */

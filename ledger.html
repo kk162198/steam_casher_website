@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="每一單的實付、實拿與差額，全部只存在你自己的瀏覽器。可匯出成 JSON 或 CSV 留底。">
+    <title>帳本｜Steam 加值幫手</title>
+
+    <!-- SEO：canonical／社群分享卡片／favicon -->
+    <link rel="canonical" href="https://kk162198.github.io/steam_casher_website/ledger.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Steam 加值幫手">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/ledger.html">
+    <meta property="og:title" content="帳本｜Steam 加值幫手">
+    <meta property="og:description" content="每一單的實付、實拿與差額，全部只存在你自己的瀏覽器。可匯出成 JSON 或 CSV 留底。">
+    <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="帳本｜Steam 加值幫手">
+    <meta name="twitter:description" content="每一單的實付、實拿與差額，全部只存在你自己的瀏覽器。可匯出成 JSON 或 CSV 留底。">
+    <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/utilities.css">
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ledger">
+    <nav id="nav" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50"></nav>
+
+    <main class="wrap" style="padding-bottom:56px;max-width:900px">
+
+        <header style="padding-top:48px">
+            <h1 class="t-page">帳本</h1>
+            <p class="t-body c-ink2 flow-sm" style="max-width:38em">
+                每一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。這一頁只講已經發生的事：
+                實際付了多少、實際拿回多少、差多少、鎖了幾天。
+                <strong>不預測、不排名、不給下一單的建議。</strong>
+            </p>
+        </header>
+
+        <!-- ⚠️ 這一段不是免責，是這個功能的前提。放在最上面。 -->
+        <section class="flow-lg">
+            <div class="risk-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span><strong>瀏覽器不是保險箱。</strong>這些紀錄只存在這台裝置的瀏覽器裡：清掉瀏覽資料會消失，
+                    <strong>iPhone／Mac 的 Safari 更會在連續 7 天沒打開這個網站之後自動刪掉</strong>——
+                    而本站的動線正好是「買完 → 等 7 天 → 回來賣」。累積越多越值錢，也越禁不起一次清空。
+                    <strong>用下面的「匯出」留一份在自己手上。</strong></span>
+            </div>
+        </section>
+
+        <!-- 匯出／匯入 -->
+        <section class="flow-lg">
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+                    <div>
+                        <h2 class="t-sub">留一份在自己手上</h2>
+                        <p class="t-aux c-ink2 flow-xs" style="max-width:40em">
+                            <strong>JSON</strong> 可以再匯入回來（換裝置、重灌、被清掉時用）。
+                            <strong>CSV</strong> 是給 Excel 的，一批一列。都不會上傳到任何地方。
+                        </p>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                        <button type="button" id="lg-export-json" class="btn btn-primary btn-sm">匯出 JSON</button>
+                        <button type="button" id="lg-export-csv" class="btn btn-secondary btn-sm">匯出 CSV</button>
+                        <button type="button" id="lg-import-btn" class="btn btn-text btn-sm">匯入 JSON</button>
+                        <input type="file" id="lg-import" accept="application/json,.json" hidden>
+                    </div>
+                </div>
+                <p class="t-note c-ink3 flow-md" id="lg-io-note">
+                    ⚠️ 匯入是<strong>整份取代</strong>，不是合併——同一單兩邊不一樣時該聽誰的沒有正確答案，
+                    猜錯就是默默改掉你自己的紀錄。按下去之前會先告訴你會蓋掉幾單。
+                </p>
+            </div>
+        </section>
+
+        <!-- 合計 -->
+        <section class="flow-lg" id="lg-sum-sec" hidden>
+            <div class="card">
+                <div style="display:flex;flex-wrap:wrap;gap:24px">
+                    <div class="stat">
+                        <div class="stat-label">已結案的單</div>
+                        <div id="lg-sum-orders" class="stat-value stat-value-md">--</div>
+                        <div class="stat-note" id="lg-sum-orders-note"></div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">實付合計</div>
+                        <div id="lg-sum-paid" class="stat-value stat-value-md">--</div>
+                        <div class="stat-note">你真的刷出去的錢</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">實拿合計</div>
+                        <div id="lg-sum-net" class="stat-value stat-value-md">--</div>
+                        <div class="stat-note">已扣 Steam 手續費的餘額</div>
+                    </div>
+                </div>
+                <p class="t-note c-ink3 flow-md" id="lg-sum-note"></p>
+            </div>
+        </section>
+
+        <!-- 每一單 -->
+        <section class="flow-md" id="lg-list"></section>
+
+        <section class="flow-lg">
+            <div class="risk-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span>餘額不可提領，只能在 Steam 內消費。這一頁的「實拿」是<strong>Steam 錢包餘額</strong>，不是現金。<a href="risks.html">看完整風險說明</a></span>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
+
+    <script src="assets/site.js"></script>
+    <script>
+        /* ════════════════════════════════════════════════════════════
+           帳本頁（2026-08-31）。
+
+           ⚠️ **這一頁不連資料庫。** 它顯示的每一個數字都來自使用者自己填的東西
+              （實付總額、成交價），沒有一個需要即時市價。不連線的好處不只是快：
+              帳本在斷網、在資料庫掛掉、在品項下架之後都還讀得出來。
+              **不要為了顯示「現在值多少」把 Supabase 接進來**——那會讓一份
+              歷史紀錄變成會隨市場變動的東西，而歷史不該變。
+
+           ⚠️ **只做事實，不做績效。** 每一單：實付、實拿、差額、鎖了幾天。
+              不做年化、不做累計報酬率曲線、不排名、不建議下一單買什麼——
+              那是飾品投資，`STRATEGY.md` 已經把它排除在定位之外。
+           ════════════════════════════════════════════════════════════ */
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        const DAY = 86400000;
+
+        /* 一單的結算。
+           ⚠️ **任一邊不完整就要標出來，不要混在一起講得像實際損益。**
+              成本用估計值、數量用計畫值、成交價只填了一半——三種都會讓差額失真，
+              而它們是使用者能各自去補的三件不同的事。 */
+        function summarize(entry, sold) {
+            let paid = 0, paidComplete = true;
+            let net = 0, soldCount = 0, qty = 0;
+            let qtyEst = false;
+            let firstBuy = null, lastSold = null;
+            entry.items.forEach(i => {
+                qty += i.qty;
+                if (i.qtyIsEstimate) qtyEst = true;
+                if (i.paidTwd != null) paid += i.paidTwd;
+                else { paid += i.unitCostTwd * i.qty; paidComplete = false; }
+                const s = soldEntry(sold, i);
+                if (s) {
+                    soldCount++;
+                    net += steamNetTwd(s.twd) * i.qty;   // ⚠️ 台幣進台幣出，不要繞美元
+                    if (s.at) {
+                        const t = Date.parse(s.at);
+                        if (isFinite(t) && (lastSold == null || t > lastSold)) lastSold = t;
+                    }
+                }
+                const b = i.boughtAt ? Date.parse(i.boughtAt) : NaN;
+                if (isFinite(b) && (firstBuy == null || b < firstBuy)) firstBuy = b;
+            });
+            const soldComplete = entry.items.length > 0 && soldCount === entry.items.length;
+            return {
+                lots: entry.items.length,
+                names: new Set(entry.items.map(i => i.name || ('#' + i.defIndex))).size,
+                qty, qtyEst, paid, paidComplete, net, soldCount, soldComplete,
+                exact: paidComplete && soldComplete && !qtyEst,
+                firstBuy, lastSold
+            };
+        }
+
+        function daysText(s) {
+            if (s.firstBuy == null) return '';
+            if (s.soldComplete && s.lastSold != null) {
+                return '鎖了 ' + Math.max(0, Math.round((s.lastSold - s.firstBuy) / DAY)) + ' 天';
+            }
+            /* ⚠️ 沒賣完就不能說「鎖了幾天」——那個數字還在長。 */
+            return '已經 ' + Math.max(0, Math.round((Date.now() - s.firstBuy) / DAY)) + ' 天（還沒賣完）';
+        }
+
+        function gapHtml(s) {
+            if (!s.soldCount) return '<span class="c-ink3 t-note">還沒回填成交價</span>';
+            const gap = s.net - s.paid;
+            const pct = s.paid > 0 ? (gap / s.paid) * 100 : null;
+            const cls = gap >= 0 ? 'c-pos' : 'c-neg';
+            return '<span class="' + cls + '" style="font-weight:700">'
+                + (gap >= 0 ? '+' : '−') + 'NT$ ' + fmtTwd(Math.abs(gap))
+                + (pct != null ? '（' + (gap >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%）' : '')
+                + '</span>'
+                + (s.exact ? '' : '<span class="t-note c-warn" style="display:block">'
+                    + [
+                        s.paidComplete ? null : '部分成本是試算估計值',
+                        s.qtyEst ? '部分數量用計畫值' : null,
+                        s.soldComplete ? null : ('只回填了 ' + s.soldCount + ' / ' + s.lots + ' 批')
+                      ].filter(Boolean).join('・')
+                    + '，這個差額不是實際損益</span>');
+        }
+
+        function lotRows(entry, sold) {
+            return entry.items.map(i => {
+                const s = soldEntry(sold, i);
+                const net = s ? steamNetTwd(s.twd) * i.qty : null;
+                const cost = i.paidTwd != null ? i.paidTwd : i.unitCostTwd * i.qty;
+                return '<tr>'
+                    + '<td class="rt-key" data-label="品項">' + escapeHtml(i.name || ('箱子 #' + i.defIndex))
+                    + '<span class="t-note c-ink3" style="display:block">' + i.qty + ' 個'
+                    + (i.qtyIsEstimate ? '（計畫值）' : '') + '</span></td>'
+                    + '<td data-label="實付">NT$ ' + fmtTwd(cost)
+                    + (i.paidTwd == null ? '<span class="t-note c-warn" style="display:block">估</span>' : '') + '</td>'
+                    + '<td data-label="成交價／個">' + (s ? 'NT$ ' + fmtTwd(s.twd) : '<span class="c-ink3">--</span>') + '</td>'
+                    + '<td data-label="實拿">' + (net == null ? '<span class="c-ink3">--</span>' : 'NT$ ' + fmtTwd(net)) + '</td>'
+                    + '<td data-label="買進">' + (i.boughtAt ? escapeHtml(new Date(i.boughtAt).toLocaleDateString('zh-TW')) : '--') + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function render() {
+            const sold = readSoldAll();
+            const ledger = readLedger();          // site.js：全部的單，新到舊
+            const list = document.getElementById('lg-list');
+
+            if (!ledger.length) {
+                document.getElementById('lg-sum-sec').hidden = true;
+                list.innerHTML = '<div class="card" style="text-align:center;padding:40px 16px">'
+                    + '<div class="t-sub">還沒有任何一單</div>'
+                    + '<p class="t-aux c-ink2" style="margin:8px auto 0;max-width:28em">'
+                    + '先到試算頁算出組合，到購物清單打勾，賣掉之後回賣出頁填成交價——'
+                    + '這一頁就會有東西。</p>'
+                    + '<div class="flow-md"><a href="calculator.html" class="btn btn-primary btn-sm">去試算</a></div></div>';
+                return;
+            }
+
+            list.innerHTML = ledger.map(entry => {
+                const s = summarize(entry, sold);
+                const closed = !!entry.order.closedAt;
+                return '<div class="card flow-md">'
+                    + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between">'
+                    + '<div><span class="t-sub">' + escapeHtml(orderLabel(entry.order)) + '</span>'
+                    + '<span class="t-note c-ink3">・' + (closed ? '已結案' : '進行中')
+                    + '・' + s.names + ' 個品項／' + s.lots + ' 批／' + s.qty + ' 件'
+                    + (daysText(s) ? '・' + daysText(s) : '') + '</span></div>'
+                    + '<button type="button" class="btn btn-text btn-sm" data-toggle="' + escapeHtml(entry.oid) + '">'
+                    + (closed ? '重新打開' : '結案') + '</button>'
+                    + '</div>'
+                    + '<div class="flow-sm" style="display:flex;flex-wrap:wrap;gap:24px;align-items:baseline">'
+                    + '<span>實付 <strong>NT$ ' + fmtTwd(s.paid) + '</strong></span>'
+                    + '<span>實拿 <strong>NT$ ' + fmtTwd(s.net) + '</strong></span>'
+                    + '<span>' + gapHtml(s) + '</span>'
+                    + '</div>'
+                    + '<div class="flow-md" style="overflow-x:auto"><table class="rt"><thead><tr>'
+                    + '<th scope="col">品項</th><th scope="col">實付</th><th scope="col">成交價／個</th>'
+                    + '<th scope="col">實拿</th><th scope="col">買進</th>'
+                    + '</tr></thead><tbody>' + lotRows(entry, sold) + '</tbody></table></div>'
+                    + '</div>';
+            }).join('');
+
+            list.querySelectorAll('[data-toggle]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const oid = el.dataset.toggle;
+                    const cur = readOrders()[oid];
+                    if (!cur) return;
+                    if (!setOrderClosed(oid, !cur.closedAt)) {
+                        document.getElementById('lg-io-note').innerHTML =
+                            '⚠️ <strong>存不進去</strong>（無痕模式，或瀏覽器擋掉了網站儲存），狀態沒有改變。';
+                        return;
+                    }
+                    render();
+                });
+            });
+
+            /* 合計：只加**已結案**的單。進行中的單還會變，加進來等於把一個
+               還沒發生完的數字寫成結論。 */
+            const done = ledger.filter(e => e.order.closedAt).map(e => summarize(e, sold));
+            const sec = document.getElementById('lg-sum-sec');
+            if (!done.length) { sec.hidden = true; return; }
+            sec.hidden = false;
+            const paid = done.reduce((a, x) => a + x.paid, 0);
+            const net = done.reduce((a, x) => a + x.net, 0);
+            const allExact = done.every(x => x.exact);
+            document.getElementById('lg-sum-orders').textContent = done.length + ' 單';
+            document.getElementById('lg-sum-orders-note').textContent =
+                (ledger.length - done.length) + ' 單進行中，沒算進合計';
+            document.getElementById('lg-sum-paid').textContent = 'NT$ ' + fmtTwd(paid);
+            document.getElementById('lg-sum-net').textContent = 'NT$ ' + fmtTwd(net);
+            const gap = net - paid;
+            document.getElementById('lg-sum-note').innerHTML =
+                '差額 ' + (gap >= 0 ? '+' : '−') + 'NT$ ' + fmtTwd(Math.abs(gap))
+                + (paid > 0 ? '（' + (gap >= 0 ? '+' : '−') + Math.abs((gap / paid) * 100).toFixed(1) + '%）' : '')
+                + '。這是<strong>已經發生的事的加總</strong>，不是報酬率，也不預測下一單。'
+                + (allExact ? '' : '<br>⚠️ 有單的成本或成交價不完整，合計會跟著失真——'
+                    + '要準的話回賣出頁把成交價補完、回購物清單把實付總額補完。');
+        }
+
+        /* ── 匯出／匯入 ─────────────────────────────────────
+           ⚠️ 檔名帶日期，因為使用者一定會匯出很多次，而「哪一份比較新」
+              要看得出來，不能靠他自己記。 */
+        function stamp() {
+            const d = new Date();
+            const p = n => String(n).padStart(2, '0');
+            return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+        }
+
+        document.getElementById('lg-export-json').addEventListener('click', () => {
+            downloadText(JSON.stringify(exportLedgerData(), null, 2),
+                'steam-casher-' + stamp() + '.json', 'application/json');
+            document.getElementById('lg-io-note').innerHTML =
+                '已下載。<strong>放到雲端硬碟或傳給自己一份</strong>——留在同一台裝置上，'
+                + '它跟瀏覽器裡那份會一起消失。';
+        });
+
+        document.getElementById('lg-export-csv').addEventListener('click', () => {
+            downloadText(ledgerCsv(), 'steam-casher-' + stamp() + '.csv', 'text/csv');
+            document.getElementById('lg-io-note').textContent =
+                '已下載。CSV 是給 Excel 看的，一批一列；要能匯入回來請用 JSON。';
+        });
+
+        document.getElementById('lg-import-btn').addEventListener('click', () => {
+            document.getElementById('lg-import').click();
+        });
+
+        document.getElementById('lg-import').addEventListener('change', (ev) => {
+            const file = ev.target.files && ev.target.files[0];
+            const note = document.getElementById('lg-io-note');
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                let data = null;
+                try { data = JSON.parse(String(reader.result)); }
+                catch (e) { note.textContent = '這個檔案不是本站匯出的 JSON（讀不出來）。'; return; }
+                const before = Object.keys(readOrders()).length;
+                /* ⚠️ 先問再蓋。整份取代，蓋掉的拿不回來——而使用者手上這台裝置
+                   可能才是比較新的那一份。 */
+                if (before && !window.confirm(
+                        '這台裝置上目前有 ' + before + ' 單，匯入會整份取代（蓋掉的拿不回來）。要繼續嗎？')) {
+                    ev.target.value = '';
+                    return;
+                }
+                const r = importLedgerData(data);
+                ev.target.value = '';
+                if (!r.ok) {
+                    note.textContent = r.reason === 'format' ? '這個檔案不是本站匯出的 JSON。'
+                        : r.reason === 'empty' ? '這個檔案裡沒有任何一單。'
+                        : '存不進去——瀏覽器可能在無痕模式或擋掉了網站儲存。';
+                    return;
+                }
+                note.textContent = '已匯入 ' + r.orders + ' 單、' + r.lots + ' 批。';
+                render();
+            };
+            reader.readAsText(file);
+        });
+
+        /* nav / footer 由 site.js 依 <body data-page> 自動載入，這裡不用自己呼叫。 */
+        render();
+    </script>
+</body>
+</html>

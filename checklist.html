@@ -68,11 +68,21 @@
                         <div id="cl-progress" class="stat-value stat-value-md">--</div>
                         <div id="cl-progress-note" class="stat-note">還沒有清單</div>
                     </div>
-                    <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除全部紀錄</button>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                        <button type="button" id="cl-close-order" class="btn btn-text btn-sm" hidden>結束這一單</button>
+                        <button type="button" id="cl-reset" class="btn btn-text btn-sm">清除這一單的紀錄</button>
+                    </div>
                 </div>
                 <div class="flow-md" style="height:8px;border-radius:999px;background:var(--line);overflow:hidden">
                     <div id="cl-bar" style="width:0%;height:8px;border-radius:999px;background:var(--pos);transition:width .2s"></div>
                 </div>
+                <!-- 多單：一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。
+                     只有一張進行中的單時整條不出現——沒有選擇的時候給選擇器只是雜訊。 -->
+                <div id="cl-orders" class="flow-md" hidden style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
+                <!-- ⚠️ 寫不進 localStorage 要講出來。靜默吞掉的話，使用者一筆一筆敲進去的
+                     實付金額會在關掉分頁時消失，而他到那時才會發現。 -->
+                <p id="cl-store-warn" class="t-note c-warn flow-md" hidden></p>
+                <p id="cl-order-note" class="t-note c-ink3 flow-md" hidden></p>
             </div>
         </section>
 
@@ -185,7 +195,10 @@
 
         let items = [];
         let savedAt = null;
-        let checkedMap = {};        // name -> { lots:[{at,qty,paidTwd}], closed }
+        let orders = {};
+        let orderId = null;         // 現在在買哪一單（site.js 第⑨節）
+        let fromParam = false;      // 清單來自網址參數（分享用的 ?items=）
+        let checkedMap = {};        // name -> { lots:[{at,got,qty,paidTwd}], closed }
         const checked = { has: n => Object.prototype.hasOwnProperty.call(checkedMap, n) };
 
         function escapeHtml(str) {
@@ -193,33 +206,96 @@
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        function readCombo() {
-            const params = new URLSearchParams(location.search);
-            const raw = params.get('items');
-            if (raw) {
-                items = raw.split(',').map(part => {
-                    const [name, qty, unit, defIndex] = part.split(':');
-                    return {
-                        name: name || '未命名',
-                        qty: Number(qty) || 0,
-                        unitCostTwd: Number(unit) || 0,
-                        defIndex: (defIndex !== undefined && defIndex !== '') ? defIndex : null
-                    };
-                }).filter(i => i.qty > 0);
-                document.getElementById('cl-source').textContent = '這份清單來自網址參數';
-                return;
-            }
-            try {
-                const stored = JSON.parse(localStorage.getItem(COMBO_STORAGE_KEY) || 'null');
-                if (stored && Array.isArray(stored.items)) {
-                    items = stored.items;
-                    savedAt = stored.savedAt || null;
-                }
-            } catch (e) { /* 忽略 */ }
+        /* 這一頁的 `?items=` 是**計畫**格式（名稱:數量:單價:defIndex），跟賣出頁
+           那個持有清單網址不是同一種東西——不要拿 holdingsFromLocation() 來讀。 */
+        function readPlanFromUrl() {
+            const raw = new URLSearchParams(location.search).get('items');
+            if (!raw) return null;
+            return raw.split(',').map(part => {
+                const [name, qty, unit, defIndex] = part.split(':');
+                return {
+                    name: name || '未命名',
+                    qty: Number(qty) || 0,
+                    unitCostTwd: Number(unit) || 0,
+                    defIndex: (defIndex !== undefined && defIndex !== '') ? defIndex : null
+                };
+            }).filter(i => i.qty > 0);
         }
 
-        function readChecked() { checkedMap = readCheckedMap(); }   // site.js，含舊格式相容
-        function writeChecked() { writeCheckedMap(checkedMap); }
+        /* 開場：決定「現在在買哪一單」。
+           ⚠️ 預設是**最新的未結案單**，不是最後看的那一單——使用者剛試算完就
+              過來的動線是最常見的，讓他先看到剛算出來的那張。要看別單按上面的鈕。 */
+        function loadOrders() {
+            orders = readOrders();                      // site.js，含 v1/v2/v3 遷移
+            const urlPlan = readPlanFromUrl();
+            if (urlPlan) {
+                fromParam = true;
+                items = urlPlan;
+                orderId = activeOrderId(orders);        // 勾選仍記在現在這一單底下
+                savedAt = null;
+                return;
+            }
+            const ids = openOrderIds(orders);
+            const want = new URLSearchParams(location.search).get('order');
+            orderId = (want && orders[want]) ? want : (ids[0] || null);
+            selectOrder(orderId, true);
+        }
+
+        function selectOrder(id, quiet) {
+            orderId = id;
+            const o = id ? orders[id] : null;
+            items = o ? o.plan : [];
+            savedAt = o ? o.createdAt : null;
+            readChecked();
+            if (!quiet) render();
+        }
+
+        function readChecked() { checkedMap = orderId ? readCheckedMap(orderId) : {}; }
+        function writeChecked() {
+            const ok = orderId ? writeCheckedMap(checkedMap, orderId) : false;
+            noteStorage(ok);
+            return ok;
+        }
+
+        /* ⚠️ 存不進去是靜默失敗。要在**當下**講，而且要給一條出路——
+           追蹤網址不需要 localStorage，是無痕模式下唯一帶得走的東西。 */
+        function noteStorage(ok) {
+            const el = document.getElementById('cl-store-warn');
+            if (!el) return;
+            if (ok) { el.hidden = true; return; }
+            el.hidden = false;
+            el.innerHTML = '⚠️ <strong>這台裝置存不進去</strong>（無痕模式，或瀏覽器擋掉了網站儲存）。'
+                + '你填的東西<strong>關掉分頁就會消失</strong>——先用下面的「複製追蹤網址」把它帶走。';
+        }
+
+        function countOrderLots(id) {
+            const m = readCheckedAll()[id] || {};
+            return Object.keys(m).reduce((s, n) => s + (m[n].lots || []).length, 0);
+        }
+
+        /* 未結案的單超過一張才出現。⚠️ 網址帶進來的清單不屬於任何一單，不給選。 */
+        function renderOrderBar() {
+            const bar = document.getElementById('cl-orders');
+            const closeBtn = document.getElementById('cl-close-order');
+            const ids = openOrderIds(orders);
+            closeBtn.hidden = fromParam || !(orderId && orders[orderId]);
+            /* ⚠️ 藏起來的時候要一併清空。留著上一輪的按鈕，下次顯示時會閃一下
+               舊的單，而且測試與輔助技術讀得到不該存在的東西。 */
+            if (fromParam || ids.length < 2) { bar.hidden = true; bar.innerHTML = ''; return; }
+            bar.hidden = false;
+            bar.innerHTML = '<span class="t-note c-ink3">進行中的單：</span>'
+                + ids.map(id => {
+                    const on = id === orderId;
+                    const n = countOrderLots(id);
+                    return '<button type="button" class="btn btn-sm '
+                        + (on ? 'btn-primary' : 'btn-secondary') + '" data-order="' + escapeHtml(id) + '">'
+                        + escapeHtml(orderLabel(orders[id])) + '・' + (n ? n + ' 批' : '還沒買')
+                        + '</button>';
+                }).join('');
+            bar.querySelectorAll('[data-order]').forEach(el => {
+                el.addEventListener('click', () => selectOrder(el.dataset.order));
+            });
+        }
 
         function setChecked(name, on) {
             if (on) {
@@ -286,34 +362,15 @@
             writeChecked();
         }
 
-        /* 這一筆是不是「上一份清單留下的」。
-           ────────────────────────────────────────────────────────────
-           2026-08-24：試算頁不再刪除勾選狀態（理由見 calculator.html ③ 的註解——
-           那段刪除跑在 runCalculation 裡，使用者只是回去拉一下滑桿，就會靜默清掉
-           他在這一頁一筆一筆敲進去的實付金額，而那是重建不回來的東西）。
+        /* 「上一份清單留下的」那個標示 2026-08-31 拿掉了。
 
-           代價是殘留：某個品項曾經勾過、後來掉出組合、之後又被選進來，
-           它會帶著舊的購買時間重新出現，看起來像是這次買的——而購買時間就是
-           冷卻期起點，錯了整條賣出流程都會錯。
+           它原本在補一個模型上的洞：勾選紀錄是全站一張表，沒有「這批屬於哪一單」
+           這件事，所以只能用「每一批都早於這次試算」去**猜**哪些是舊的。猜錯的
+           方向還特別糟——第一單還在冷卻期、回來試算第二單，第一單整批會被標成
+           「上一份留下的」，而那是使用者真的買過、正在等的東西。
 
-           判準：正常流程一定是「先試算（savedAt）→ 才來這裡勾（lot.at）」，
-           所以**每一批都早於 savedAt 的，就是上一份計畫留下的**。
-
-           ⚠️ 只標示、不自動刪。裡面有冷卻期起點與實付金額，猜錯就是把使用者
-              真的買過的東西清掉。要不要清由他自己按。
-           ⚠️ 清單來自網址參數時 savedAt 是 null，這時一律不判——那份清單本來就
-              不是這台裝置算出來的，比對沒有意義。 */
-        function isStaleEntry(name) {
-            if (!savedAt) return false;
-            const e = checkedMap[name];
-            if (!e || !e.lots || !e.lots.length) return false;
-            const saved = Date.parse(savedAt);
-            if (isNaN(saved)) return false;
-            return e.lots.every(l => {
-                const t = l.at ? Date.parse(l.at) : NaN;
-                return !isNaN(t) && t < saved;
-            });
-        }
+           現在每一批都記在自己的單底下（site.js 第⑨節的 oid），舊紀錄不會混進
+           這一單的畫面，也就沒有東西需要標示或猜測。**補丁換成模型。** */
 
         /* 「已到貨」那一小塊，主列與分批列共用。
            ⚠️ 兩個地方各寫一份的話，分批列很容易被忘記——而分批列正是最需要它的：
@@ -355,15 +412,8 @@
                        <button type="button" class="btn btn-text btn-sm" data-addlot="${escapeHtml(item.name)}" style="padding:0">再買一批</button>`;
             }
 
-            /* 上一份清單留下的紀錄。時間直接寫出來，因為使用者要判斷的就是
-               「這個日期是不是我這次買的」。 */
-            const staleHtml = (isChecked && isStaleEntry(item.name))
-                ? `<span class="short-note" style="display:block">這筆是 ${escapeHtml(new Date(e.lots[0].at).toLocaleDateString('zh-TW'))} 勾的，早於這次試算</span>
-                   <button type="button" class="btn btn-text btn-sm" data-forget="${escapeHtml(item.name)}" style="padding:0">不是這次買的，清掉</button>`
-                : '';
-
             return `
-                <td class="rt-key" data-label="品項">${escapeHtml(item.name)}${staleHtml}</td>
+                <td class="rt-key" data-label="品項">${escapeHtml(item.name)}</td>
                 <td data-label="計畫">
                     <span class="cell-stack">
                         <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
@@ -538,10 +588,13 @@
             if (savedAt) {
                 chip.setAttribute('data-updated', savedAt);
                 chip.style.display = '';
-                document.getElementById('cl-source').textContent = '這份清單來自你上次的試算結果';
+                document.getElementById('cl-source').textContent =
+                    (orderId && orders[orderId] ? orderLabel(orders[orderId]) + '的計畫' : '這份清單來自你上次的試算結果');
             } else {
                 chip.style.display = 'none';
+                if (fromParam) document.getElementById('cl-source').textContent = '這份清單來自網址參數';
             }
+            renderOrderBar();
 
             body.innerHTML = '';
             items.forEach(item => {
@@ -598,9 +651,6 @@
             document.querySelectorAll('[data-addlot]').forEach(el => {
                 el.addEventListener('click', () => { addLot(el.dataset.addlot); render(); });
             });
-            document.querySelectorAll('[data-forget]').forEach(el => {
-                el.addEventListener('click', () => { setChecked(el.dataset.forget, false); render(); });
-            });
             document.querySelectorAll('[data-got]').forEach(el => {
                 el.addEventListener('click', () => {
                     setGot(el.dataset.got, Number(el.dataset.lot), true);
@@ -629,7 +679,7 @@
            （分享用的 ?items=），那種情況下 sah-combo-v1 是空的，
            readHoldings() 會回空陣列，按鈕就會莫名其妙一直是灰的。 */
         function currentHoldings() {
-            return holdingsFromPlan(items, checkedMap, savedAt);   // site.js
+            return holdingsFromPlan(items, checkedMap, savedAt, orderId || '');   // site.js
         }
 
         function updateCopyButton() {
@@ -678,14 +728,14 @@
                     btn.style.color = 'var(--neg)';
                     timer = setTimeout(() => {
                         armed = false;
-                        btn.textContent = '清除全部紀錄';
+                        btn.textContent = '清除這一單的紀錄';
                         btn.style.color = '';
                     }, 4000);
                     return;
                 }
                 clearTimeout(timer);
                 armed = false;
-                btn.textContent = '清除全部紀錄';
+                btn.textContent = '清除這一單的紀錄';
                 btn.style.color = '';
                 checkedMap = {};
                 writeChecked();
@@ -693,8 +743,26 @@
             });
         })();
 
-        readCombo();
-        readChecked();
+        /* ── 結束這一單 ───────────────────────────────────
+           ⚠️ 這是**可逆的**（帳本頁可以重新打開），所以不做兩段式確認——
+              兩段式是留給不可逆的清除鍵的。把「去哪裡找回來」寫在旁邊，
+              比多按一次更有用。
+           ⚠️ 結案不刪任何東西：批次、實付金額、成交價原封不動，只是不再出現在
+              購物清單與賣出頁，也不再進追蹤網址。 */
+        document.getElementById('cl-close-order').addEventListener('click', () => {
+            if (!orderId || !orders[orderId]) return;
+            const note = document.getElementById('cl-order-note');
+            if (!setOrderClosed(orderId, true)) { noteStorage(false); return; }
+            orders = readOrders();
+            const ids = openOrderIds(orders);
+            selectOrder(ids[0] || null, true);
+            note.hidden = false;
+            note.innerHTML = '已結案，紀錄都還在，移到<a href="ledger.html">帳本</a>了'
+                + '（在那裡可以重新打開）。';
+            render();
+        });
+
+        loadOrders();
         render();
     
     </script>
