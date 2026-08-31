@@ -125,5 +125,90 @@ eq('沒有任何一單時給出路',
   empty.window.document.getElementById('lg-list').textContent.includes('還沒有任何一單'), true);
 eq('空的時候不顯示合計', empty.window.document.getElementById('lg-sum-sec').hidden, true);
 
+/* ── 刪除 ──────────────────────────────────────────────────
+   ⚠️ 這一頁唯一不可逆的地方。守三件事：兩段式（第一下不能刪）、武裝時要把
+      具體會失去什麼講出來、只刪那一單。 */
+{
+  const d = boot();
+  const doc2 = d.window.document;
+  const cardOf = oid => [...doc2.querySelectorAll('#lg-list [data-del]')]
+    .find(b => b.dataset.del === oid);
+  const note = () => doc2.getElementById('lg-io-note').textContent;
+  const click = el => el.dispatchEvent(new d.window.Event('click'));
+
+  eq('每張卡都有刪除鍵', doc2.querySelectorAll('#lg-list [data-del]').length, 2);
+  eq('結案與刪除是兩顆不同的按鈕（不可逆的那顆不要混進可逆的那顆）',
+    doc2.querySelectorAll('#lg-list [data-toggle]').length, 2);
+
+  click(cardOf('o_done'));
+  eq('第一下不刪任何東西', Object.keys(JSON.parse(
+    doc2.defaultView.localStorage.getItem('sah-orders-v1')).orders).sort(), ['o_done', 'o_open']);
+  eq('第一下改成「再按一次」', cardOf('o_done').textContent.includes('再按一次'), true);
+  /* ⚠️ 只說「確定嗎」沒有用。按錯的成本不是抽象的，要把金額講出來。 */
+  eq('武裝時講出幾批', note().includes('1 批'), true);
+  eq('武裝時講出實付多少', note().includes('280.00'), true);
+  eq('武裝時講出回填了幾筆成交價', note().includes('成交價 1 筆'), true);
+  eq('武裝時講明不能復原', note().includes('不能復原'), true);
+  eq('武裝時把「先匯出」擺在同一句', note().includes('匯出'), true);
+
+  click(cardOf('o_done'));
+  const after = JSON.parse(doc2.defaultView.localStorage.getItem('sah-orders-v1')).orders;
+  eq('第二下才真的刪', Object.keys(after), ['o_open']);
+  eq('只刪那一單，別單的批次原封不動',
+    JSON.parse(doc2.defaultView.localStorage.getItem('sah-checklist-checked-v1'))
+      .orders.o_open['Clutch Case'].lots[0].paidTwd, 200);
+  eq('那一單的成交價也一起走',
+    JSON.parse(doc2.defaultView.localStorage.getItem('sah-sold-v1')).sold['o_done::Kilowatt Case'],
+    undefined);
+  eq('刪完畫面只剩一張卡', doc2.querySelectorAll('#lg-list .card').length, 1);
+}
+
+/* 整批刪除：兩顆的範圍不一樣 */
+{
+  const d = boot();
+  const w = d.window, doc2 = w.document;
+  const click = id => doc2.getElementById(id).dispatchEvent(new w.Event('click'));
+  w.localStorage.setItem('sah-setup-v1', JSON.stringify({ steps: {}, doneAt: '2026-08-20T00:00:00.000Z' }));
+
+  click('lg-wipe-records');
+  eq('整批刪除也是兩段式：第一下不刪',
+    !!w.localStorage.getItem('sah-orders-v1'), true);
+  eq('武裝時講出會刪掉幾單幾批',
+    doc2.getElementById('lg-wipe-note').textContent.includes('2 單、2 批'), true);
+  click('lg-wipe-records');
+  eq('第二下刪掉全部交易紀錄', w.localStorage.getItem('sah-orders-v1'), null);
+  eq('成交價一起走', w.localStorage.getItem('sah-sold-v1'), null);
+  /* ⚠️ 範圍要對：交易紀錄與「這台不是我的電腦」是兩個不同的需求 */
+  eq('設定不在這顆的範圍裡', !!w.localStorage.getItem('sah-setup-v1'), true);
+  eq('刪完畫面回到空狀態',
+    doc2.getElementById('lg-list').textContent.includes('還沒有任何一單'), true);
+}
+
+{
+  const d = boot();
+  const w = d.window, doc2 = w.document;
+  const click = id => doc2.getElementById(id).dispatchEvent(new w.Event('click'));
+  w.localStorage.setItem('sah-setup-v1', JSON.stringify({ steps: {}, doneAt: '2026-08-20T00:00:00.000Z' }));
+  w.localStorage.setItem('sah-cap-pct-v1', '0.25');
+  click('lg-wipe-all');
+  eq('清空全部：第一下也不動', !!w.localStorage.getItem('sah-orders-v1'), true);
+  click('lg-wipe-all');
+  eq('清空全部：交易紀錄沒了', w.localStorage.getItem('sah-orders-v1'), null);
+  eq('清空全部：設定也沒了', w.localStorage.getItem('sah-setup-v1'), null);
+  eq('清空全部：偏好也沒了', w.localStorage.getItem('sah-cap-pct-v1'), null);
+}
+
+/* ⚠️ 取代與刪除都不用 confirm()：它會擋住畫面，而使用者這一刻要看的就是
+   背後那幾張卡。匯入用的是頁面上的確認條。 */
+{
+  const d = boot();
+  eq('匯入的確認在頁面上，不是 confirm()',
+    !!d.window.document.getElementById('lg-import-confirm'), true);
+  eq('確認條預設是收起來的',
+    d.window.document.getElementById('lg-import-confirm').hidden, true);
+  eq('確認條有「取消」這條路',
+    !!d.window.document.getElementById('lg-import-no'), true);
+}
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

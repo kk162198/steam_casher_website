@@ -718,30 +718,17 @@
            購買時間一起丟——那些是使用者一筆一筆敲進去、而且**重建不回來**
            的東西（CSFloat 的結帳紀錄不會自己回到這裡）。誤觸一次就沒了。
            用兩段式而不是 confirm()，是為了不擋住畫面。 */
-        (function bindReset() {
-            const btn = document.getElementById('cl-reset');
-            let armed = false, timer = null;
-            btn.addEventListener('click', () => {
-                if (!armed) {
-                    armed = true;
-                    btn.textContent = '再按一次確定清除';
-                    btn.style.color = 'var(--neg)';
-                    timer = setTimeout(() => {
-                        armed = false;
-                        btn.textContent = '清除這一單的紀錄';
-                        btn.style.color = '';
-                    }, 4000);
-                    return;
-                }
-                clearTimeout(timer);
-                armed = false;
-                btn.textContent = '清除這一單的紀錄';
-                btn.style.color = '';
-                checkedMap = {};
-                writeChecked();
-                render();
-            });
-        })();
+        /* 清除鍵是**兩段式**的。以前它只丟掉幾個勾勾，現在會連實付金額和購買時間
+           一起丟——那些是使用者一筆一筆敲進去、而且**重建不回來**的東西
+           （CSFloat 的結帳紀錄不會自己回到這裡）。誤觸一次就沒了。
+           ⚠️ 兩段式的實作在 site.js（armTwoStep），全站共用一份：帳本頁的刪除鍵
+              也是同一個機制，兩邊各寫一份的話行為會慢慢分岔。
+           ⚠️ 只清這一單。別單的紀錄不該被這顆按鈕碰到。 */
+        armTwoStep(document.getElementById('cl-reset'), '再按一次確定清除', () => {
+            checkedMap = {};
+            writeChecked();
+            render();
+        });
 
         /* ── 結束這一單 ───────────────────────────────────
            ⚠️ 這是**可逆的**（帳本頁可以重新打開），所以不做兩段式確認——

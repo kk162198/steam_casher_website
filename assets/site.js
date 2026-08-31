@@ -766,7 +766,10 @@ function readOrders() {
   try { raw = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || 'null'); } catch (e) { raw = null; }
   if (raw && typeof raw === 'object' && raw.v === 4 && raw.orders && typeof raw.orders === 'object') {
     Object.keys(raw.orders).forEach(function (oid) { out[oid] = normalizeOrder(raw.orders[oid]); });
-    if (Object.keys(out).length) return out;
+    /* ⚠️ **空的也要回空的。** 有 v4 這個容器就代表這台裝置已經遷移過，裡面沒東西
+       是「使用者把單刪光了」——這時再掉進下面的遷移，被刪掉的單會從 sah-combo-v1
+       復活，而使用者按刪除的理由常常是「不想留在這台電腦上」。 */
+    return out;
   }
   /* 遷移：還沒有單這一層的裝置，把 sah-combo-v1 ＋ 勾選紀錄當成一張舊單。 */
   var combo = null;
@@ -1535,6 +1538,94 @@ function ledgerCsv() {
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     }).join(',');
   }).join('\r\n') + '\r\n';
+}
+
+/* ── 刪除 ──────────────────────────────────────────────────
+   ⚠️ **本站所有 localStorage key 的唯一清單。新增 key 一定要加進來。**
+      漏掉一個，「清空全部」就是一句謊話——而使用者按那顆的理由常常是
+      「這台不是我的電腦」。分三組是因為它們消失的代價完全不同：
+        records   重建不回來（CSFloat 的結帳紀錄不會自己回來）
+        settings  重做一次就有
+        prefs     介面偏好，消失了也沒人會發現
+   ⚠️ 寫成函式而不是常數物件：SETUP／ELIG 兩個 key 在檔案後面才宣告，
+      用常數物件會在載入時就取到 undefined。 */
+function siteStorageKeys() {
+  return {
+    records: [ORDERS_STORAGE_KEY, CHECK_STORAGE_KEY, SOLD_STORAGE_KEY, COMBO_STORAGE_KEY],
+    settings: [SETUP_STORAGE_KEY, ELIG_STORAGE_KEY],
+    prefs: ['sah-cap-pct-v1', 'sah-buffer-tier-v1', 'sah-liq-filter-v1', 'sah-marketlist-sort-v1']
+  };
+}
+
+function removeStorageKeys(keys) {
+  var ok = true;
+  keys.forEach(function (k) {
+    try { localStorage.removeItem(k); } catch (e) { ok = false; }
+  });
+  return ok;
+}
+
+/* 刪掉一整單：計畫、批次、成交價一起走。
+   ⚠️ **成交價一定要一起刪。** 不刪的話會留下一批永遠對不上任何一單的孤兒 key，
+      而它們帶著金額——使用者以為刪乾淨了，其實沒有。
+   ⚠️ **只動這一單。** 其他單原封不動，這是刪除與「清空全部」的分界。
+   ⚠️ 舊單（legacy）的計畫住在 sah-combo-v1，要一起清掉，否則按完刪除，
+      資料還躺在磁碟上。 */
+function deleteOrder(oid) {
+  var orders = readOrders();
+  if (!orders[oid]) return false;
+  delete orders[oid];
+  var all = readCheckedAll();
+  delete all[oid];
+  var sold = readSoldAll();
+  Object.keys(sold).forEach(function (k) {
+    if (k.indexOf(oid + '::') === 0) delete sold[k];
+  });
+  if (!writeOrders(orders)) return false;
+  if (!writeCheckedAll(all)) return false;
+  writeSoldAll(sold);
+  if (oid === LEGACY_ORDER_ID) removeStorageKeys([COMBO_STORAGE_KEY]);
+  return true;
+}
+
+/* 刪掉全部交易紀錄，留下設定與介面偏好。 */
+function clearRecords() {
+  return removeStorageKeys(siteStorageKeys().records);
+}
+
+/* 清空這台裝置上的所有本站資料（含設定與偏好）。 */
+function clearAllLocalData() {
+  var k = siteStorageKeys();
+  return removeStorageKeys(k.records.concat(k.settings, k.prefs));
+}
+
+/* 兩段式確認：第一下改文案並武裝，第二下才真的做，4 秒沒動作自動解除。
+   ⚠️ **用這個而不是 confirm()。** confirm 會擋住整個畫面，而使用者這一刻最需要
+      看到的就是「我要刪的是什麼」——那些數字就在對話框背後那張卡上。
+   onArm 是武裝當下的回呼：拿來把「會失去什麼」寫出來，並提醒先匯出。 */
+function armTwoStep(btn, armedLabel, action, onArm) {
+  if (!btn) return;
+  var idle = btn.textContent;
+  var armed = false;
+  var timer = null;
+  function disarm() {
+    armed = false;
+    btn.textContent = idle;
+    btn.style.color = '';
+  }
+  btn.addEventListener('click', function () {
+    if (!armed) {
+      armed = true;
+      btn.textContent = armedLabel;
+      btn.style.color = 'var(--neg)';
+      timer = setTimeout(disarm, 4000);
+      if (onArm) onArm();
+      return;
+    }
+    clearTimeout(timer);
+    disarm();
+    action();
+  });
 }
 
 function downloadText(text, filename, mime) {

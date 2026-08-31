@@ -8,6 +8,7 @@ const ctx = {
   localStorage: {
     getItem: k => (k in store ? store[k] : null),
     setItem: (k, v) => { store[k] = String(v); },
+    removeItem: k => { delete store[k]; },
   },
   // site.js 在載入時會跑一次 renderTimestamps / 綁 DOMContentLoaded，
   // 這裡只是餵它足夠的假 DOM 讓檔案跑得完，不測畫面。
@@ -598,6 +599,87 @@ eq('15 批的追蹤網址短於 2,000（貼得進 LINE 與行事曆）', newUrl.
 /* 同一單的批次連在一起時，單 ID 只寫一次 */
 eq('同一單的單 ID 不重複寫',
   (ctx.holdingsToParamV4(many).it.match(/o1/g) || []).length, 1);
+
+
+/* ── 14. 刪除（2026-08-31）────────────────────────────────
+   ⚠️ 刪除是這個站唯一不可逆的動作，而且刪的是重建不回來的東西
+      （CSFloat 的結帳紀錄不會自己回來）。下面幾條守的是「刪對範圍」。 */
+fresh();
+const dA = ctx.saveOrderPlan([{ name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 }]);
+ctx.writeCheckedMap({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } }, dA);
+const dB = ctx.saveOrderPlan([{ name: 'Clutch Case', qty: 5, unitCostTwd: 40, defIndex: 4002 }]);
+ctx.writeCheckedMap({ 'Clutch Case': { lots: [{ at: '2026-08-20T02:00:00.000Z', qty: 5, paidTwd: 200 }], closed: false } }, dB);
+let sm = {};
+ctx.readHoldings().items.forEach((i, n) => ctx.setSoldValue(sm, i, String(30 + n)));
+ctx.writeSoldAll(sm);
+eq('刪之前兩單', ctx.readLedger().length, 2);
+
+eq('刪掉不存在的單回 false（不要假裝成功）', ctx.deleteOrder('沒有這一單'), false);
+eq('刪掉一單', ctx.deleteOrder(dA), true);
+eq('刪完只剩一單', ctx.readLedger().map(o => o.oid), [dB]);
+eq('被刪那單的批次也走了', ctx.readCheckedAll()[dA], undefined);
+/* ⚠️ 成交價一定要一起刪。留著就是一批永遠對不上任何一單、卻帶著金額的孤兒 key，
+   使用者以為刪乾淨了，其實沒有。 */
+eq('被刪那單的成交價一起走',
+  Object.keys(ctx.readSoldAll()).some(k => k.indexOf(dA + '::') === 0), false);
+eq('沒被刪的那單成交價還在',
+  Object.keys(ctx.readSoldAll()).some(k => k.indexOf(dB + '::') === 0), true);
+eq('沒被刪的那單實付還在', ctx.readLedger()[0].items[0].paidTwd, 200);
+
+/* ⚠️⚠️ 刪光之後不可以從舊 key 復活。readOrders() 的遷移退路只在「這台裝置
+   還沒有 v4 容器」時才該生效——有容器但空的，代表使用者把單刪光了，
+   而他按刪除的理由常常正是「不想留在這台電腦上」。 */
+eq('刪掉最後一單', ctx.deleteOrder(dB), true);
+eq('刪光之後就是空的', ctx.readLedger().length, 0);
+store['sah-combo-v1'] = COMBO;                    // 舊 key 還在也不能復活
+eq('舊的 sah-combo-v1 不會讓刪掉的單復活', ctx.readLedger().length, 0);
+
+/* 舊單（legacy）的計畫住在 sah-combo-v1，刪除要一起清掉——
+   不清的話按完「刪除」，資料還躺在磁碟上。 */
+reset({ 'Kilowatt Case': { lots: [{ at: '2026-08-15T02:00:00.000Z', qty: 13, paidTwd: 280 }], closed: false } });
+eq('遷移出來的舊單在', ctx.readLedger().length, 1);
+eq('刪掉舊單', ctx.deleteOrder('legacy'), true);
+eq('舊單的計畫也從 sah-combo-v1 清掉', store['sah-combo-v1'], undefined);
+eq('刪完真的空了', ctx.readLedger().length, 0);
+
+/* 兩種整批刪除的範圍不一樣 */
+function seedEverything() {
+  fresh();
+  ctx.saveOrderPlan([{ name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 }]);
+  store['sah-sold-v1'] = JSON.stringify({ v: 4, sold: {} });
+  store['sah-setup-v1'] = JSON.stringify({ steps: {}, doneAt: '2026-08-20T00:00:00.000Z' });
+  store['sah-eligibility-v2'] = JSON.stringify({ authenticator: 'yes' });
+  store['sah-cap-pct-v1'] = '0.25';
+}
+seedEverything();
+eq('刪掉全部交易紀錄', ctx.clearRecords(), true);
+eq('紀錄沒了', ctx.readLedger().length, 0);
+eq('設定留著（重做一次就有的東西不必一起殺）', typeof store['sah-setup-v1'], 'string');
+eq('偏好留著', store['sah-cap-pct-v1'], '0.25');
+
+seedEverything();
+eq('清空全部', ctx.clearAllLocalData(), true);
+eq('清空後一個 key 都不剩', Object.keys(store).length, 0);
+
+/* ⚠️ 靜態檢查：所有 `sah-` 開頭的 key 都要在 siteStorageKeys() 裡。
+   漏掉一個，「清空這台裝置上的所有本站資料」就是一句謊話——而使用者按那顆
+   的理由常常是「這台不是我的電腦」。新增 key 忘了登記時這條會紅。 */
+{
+  const keys = ctx.siteStorageKeys();
+  const known = new Set(keys.records.concat(keys.settings, keys.prefs));
+  const used = new Set();
+  fs.readdirSync(__dirname + '/..')
+    .filter(f => f.endsWith('.html'))
+    .concat(['assets/site.js'])
+    .forEach(f => {
+      const text = fs.readFileSync(__dirname + '/../' + f, 'utf8');
+      (text.match(/'sah-[a-z0-9-]+'/g) || []).forEach(m => used.add(m.slice(1, -1)));
+    });
+  const missing = [...used].filter(k => !known.has(k)).sort();
+  eq('沒有漏登記的 localStorage key', missing, []);
+  eq('登記的 key 都真的有人用',
+    [...known].filter(k => !used.has(k)).sort(), []);
+}
 
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

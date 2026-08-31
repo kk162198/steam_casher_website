@@ -71,6 +71,17 @@
                     ⚠️ 匯入是<strong>整份取代</strong>，不是合併——同一單兩邊不一樣時該聽誰的沒有正確答案，
                     猜錯就是默默改掉你自己的紀錄。按下去之前會先告訴你會蓋掉幾單。
                 </p>
+                <!-- 匯入的確認。⚠️ 不用 confirm()：它會擋住畫面，而使用者這一刻要看的
+                     就是背後那幾張卡（他正要用檔案取代掉的東西）。 -->
+                <div id="lg-import-confirm" class="flow-md" hidden
+                     style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;
+                            border:1px solid var(--neg);border-radius:8px">
+                    <span id="lg-import-msg" class="t-note"></span>
+                    <span style="display:flex;gap:8px;margin-left:auto">
+                        <button type="button" id="lg-import-yes" class="btn btn-primary btn-sm">取代</button>
+                        <button type="button" id="lg-import-no" class="btn btn-text btn-sm">取消</button>
+                    </span>
+                </div>
             </div>
         </section>
 
@@ -100,6 +111,26 @@
 
         <!-- 每一單 -->
         <section class="flow-md" id="lg-list"></section>
+
+        <!-- 刪除。放在最下面、跟其他東西隔開，因為它是這一頁唯一不可逆的地方。 -->
+        <section class="flow-lg">
+            <div class="card">
+                <h2 class="t-sub">刪除資料</h2>
+                <p class="t-aux c-ink2 flow-xs" style="max-width:40em">
+                    刪掉就<strong>不能復原</strong>——這些紀錄沒有備份在任何伺服器上，
+                    CSFloat 的結帳紀錄也不會自己回到這裡。<strong>要留底請先匯出。</strong>
+                </p>
+                <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
+                    <button type="button" id="lg-wipe-records" class="btn btn-text btn-sm">刪掉全部交易紀錄</button>
+                    <button type="button" id="lg-wipe-all" class="btn btn-text btn-sm">清空這台裝置上的所有本站資料</button>
+                </div>
+                <p class="t-note c-ink3 flow-md" id="lg-wipe-note">
+                    「全部交易紀錄」＝所有的單、批次、實付金額與成交價。
+                    「所有本站資料」還包含初始設定、資格快檢的答案與試算頁的篩選偏好。
+                    單獨刪掉某一單請用上面每張卡右上角的「刪除」。
+                </p>
+            </div>
+        </section>
 
         <section class="flow-lg">
             <div class="risk-bar">
@@ -216,6 +247,8 @@
             }).join('');
         }
 
+        function ioNote(html) { document.getElementById('lg-io-note').innerHTML = html; }
+
         function render() {
             const sold = readSoldAll();
             const ledger = readLedger();          // site.js：全部的單，新到舊
@@ -241,8 +274,14 @@
                     + '<span class="t-note c-ink3">・' + (closed ? '已結案' : '進行中')
                     + '・' + s.names + ' 個品項／' + s.lots + ' 批／' + s.qty + ' 件'
                     + (daysText(s) ? '・' + daysText(s) : '') + '</span></div>'
+                    + '<span style="display:flex;gap:8px;align-items:baseline">'
                     + '<button type="button" class="btn btn-text btn-sm" data-toggle="' + escapeHtml(entry.oid) + '">'
                     + (closed ? '重新打開' : '結案') + '</button>'
+                    /* ⚠️ 結案與刪除必須看起來像兩件事：結案可逆、刪除不可逆。
+                       文案分別是「結案／重新打開」與「刪除」，而刪除要走兩段式
+                       並且在武裝的當下把「會失去什麼」寫出來。 */
+                    + '<button type="button" class="btn btn-text btn-sm" data-del="' + escapeHtml(entry.oid) + '">刪除</button>'
+                    + '</span>'
                     + '</div>'
                     + '<div class="flow-sm" style="display:flex;flex-wrap:wrap;gap:24px;align-items:baseline">'
                     + '<span>實付 <strong>NT$ ' + fmtTwd(s.paid) + '</strong></span>'
@@ -255,6 +294,30 @@
                     + '</tr></thead><tbody>' + lotRows(entry, sold) + '</tbody></table></div>'
                     + '</div>';
             }).join('');
+
+            /* ── 刪掉一整單 ─────────────────────────────────
+               ⚠️ 武裝的當下要把**具體會失去什麼**講出來（幾批、實付多少、回填了
+                  幾筆成交價），不要只說「確定嗎」。使用者按錯的成本不是抽象的，
+                  講出金額才看得見。順便把「先匯出」擺在同一句裡。 */
+            list.querySelectorAll('[data-del]').forEach(el => {
+                const oid = el.dataset.del;
+                armTwoStep(el, '再按一次，永久刪除', () => {
+                    if (!deleteOrder(oid)) {
+                        ioNote('⚠️ <strong>刪不掉</strong>（無痕模式，或瀏覽器擋掉了網站儲存），資料沒有變動。');
+                        return;
+                    }
+                    render();
+                    ioNote('已刪除那一單。');
+                }, () => {
+                    const e = readLedger().find(x => x.oid === oid);
+                    if (!e) return;
+                    const s2 = summarize(e, readSoldAll());
+                    ioNote('⚠️ 要刪的是「' + escapeHtml(orderLabel(e.order)) + '」：'
+                        + s2.lots + ' 批、實付 NT$ ' + fmtTwd(s2.paid)
+                        + '、回填成交價 ' + s2.soldCount + ' 筆。<strong>刪掉不能復原</strong>，'
+                        + '要留底請先按上面的「匯出 JSON」。（4 秒內不按第二下就取消）');
+                });
+            });
 
             list.querySelectorAll('[data-toggle]').forEach(el => {
                 el.addEventListener('click', () => {
@@ -320,35 +383,98 @@
             document.getElementById('lg-import').click();
         });
 
+        /* 匯入：先讀檔、把「會蓋掉幾單」講出來，再等第二個動作。
+           ⚠️ 不用 confirm()（見 site.js 的 armTwoStep）。這裡用兩顆明確的按鈕而不是
+              「再按一次」，因為取代與刪除不同——使用者需要看得到「取消」這條路。 */
+        let pendingImport = null;
+
+        function showImportConfirm(data, orders, lots) {
+            pendingImport = data;
+            const before = Object.keys(readOrders()).length;
+            document.getElementById('lg-import-msg').innerHTML =
+                '這個檔案有 <strong>' + orders + ' 單、' + lots + ' 批</strong>。'
+                + (before
+                    ? '匯入會<strong>整份取代</strong>這台裝置上現有的 ' + before + ' 單，蓋掉的拿不回來。'
+                      + '要留底請先按「匯出 JSON」。'
+                    : '這台裝置上目前沒有任何一單。');
+            document.getElementById('lg-import-confirm').hidden = false;
+        }
+
+        function hideImportConfirm() {
+            pendingImport = null;
+            document.getElementById('lg-import-confirm').hidden = true;
+        }
+
         document.getElementById('lg-import').addEventListener('change', (ev) => {
             const file = ev.target.files && ev.target.files[0];
-            const note = document.getElementById('lg-io-note');
             if (!file) return;
             const reader = new FileReader();
             reader.onload = () => {
+                ev.target.value = '';
                 let data = null;
                 try { data = JSON.parse(String(reader.result)); }
-                catch (e) { note.textContent = '這個檔案不是本站匯出的 JSON（讀不出來）。'; return; }
-                const before = Object.keys(readOrders()).length;
-                /* ⚠️ 先問再蓋。整份取代，蓋掉的拿不回來——而使用者手上這台裝置
-                   可能才是比較新的那一份。 */
-                if (before && !window.confirm(
-                        '這台裝置上目前有 ' + before + ' 單，匯入會整份取代（蓋掉的拿不回來）。要繼續嗎？')) {
-                    ev.target.value = '';
+                catch (e) { ioNote('這個檔案不是本站匯出的 JSON（讀不出來）。'); return; }
+                if (!data || data.app !== 'steam-casher' || !data.orders
+                    || !Object.keys(data.orders).length) {
+                    ioNote('這個檔案不是本站匯出的 JSON，或裡面沒有任何一單。');
                     return;
                 }
-                const r = importLedgerData(data);
-                ev.target.value = '';
-                if (!r.ok) {
-                    note.textContent = r.reason === 'format' ? '這個檔案不是本站匯出的 JSON。'
-                        : r.reason === 'empty' ? '這個檔案裡沒有任何一單。'
-                        : '存不進去——瀏覽器可能在無痕模式或擋掉了網站儲存。';
-                    return;
-                }
-                note.textContent = '已匯入 ' + r.orders + ' 單、' + r.lots + ' 批。';
-                render();
+                let lots = 0;
+                Object.keys(data.checked || {}).forEach(id => {
+                    Object.keys(data.checked[id] || {}).forEach(n => {
+                        lots += ((data.checked[id][n] || {}).lots || []).length;
+                    });
+                });
+                showImportConfirm(data, Object.keys(data.orders).length, lots);
             };
             reader.readAsText(file);
+        });
+
+        document.getElementById('lg-import-no').addEventListener('click', () => {
+            hideImportConfirm();
+            ioNote('已取消，沒有動到任何東西。');
+        });
+
+        document.getElementById('lg-import-yes').addEventListener('click', () => {
+            const data = pendingImport;
+            hideImportConfirm();
+            if (!data) return;
+            const r = importLedgerData(data);
+            if (!r.ok) {
+                ioNote(r.reason === 'format' ? '這個檔案不是本站匯出的 JSON。'
+                    : r.reason === 'empty' ? '這個檔案裡沒有任何一單。'
+                    : '存不進去——瀏覽器可能在無痕模式或擋掉了網站儲存。');
+                return;
+            }
+            ioNote('已匯入 ' + r.orders + ' 單、' + r.lots + ' 批。');
+            render();
+        });
+
+        /* ── 整批刪除 ───────────────────────────────────────
+           兩顆分開，因為它們的範圍不一樣，而使用者按下去的理由也不一樣：
+           前者是「這些單我不要了」，後者是「這台不是我的電腦」。 */
+        function wipeNote(html) { document.getElementById('lg-wipe-note').innerHTML = html; }
+
+        armTwoStep(document.getElementById('lg-wipe-records'), '再按一次，全部刪除', () => {
+            if (!clearRecords()) { wipeNote('⚠️ <strong>刪不掉</strong>，瀏覽器擋掉了網站儲存。'); return; }
+            render();
+            wipeNote('已刪掉全部交易紀錄。初始設定與資格快檢的答案還在。');
+        }, () => {
+            const l = readLedger();
+            const lots = l.reduce((a, e) => a + e.items.length, 0);
+            wipeNote('⚠️ 會刪掉 <strong>' + l.length + ' 單、' + lots + ' 批</strong>'
+                + '（含實付金額與成交價），<strong>不能復原</strong>。'
+                + '要留底請先按上面的「匯出 JSON」。（4 秒內不按第二下就取消）');
+        });
+
+        armTwoStep(document.getElementById('lg-wipe-all'), '再按一次，全部清空', () => {
+            if (!clearAllLocalData()) { wipeNote('⚠️ <strong>清不掉</strong>，瀏覽器擋掉了網站儲存。'); return; }
+            render();
+            wipeNote('已清空。這台裝置上不再留有本站的任何資料，網站會像第一次來一樣。');
+        }, () => {
+            wipeNote('⚠️ 會清掉<strong>全部交易紀錄、初始設定、資格快檢的答案與試算頁偏好</strong>，'
+                + '也就是本站在這台裝置上留下的所有東西，<strong>不能復原</strong>。'
+                + '要留底請先按上面的「匯出 JSON」。（4 秒內不按第二下就取消）');
         });
 
         /* nav / footer 由 site.js 依 <body data-page> 自動載入，這裡不用自己呼叫。 */
