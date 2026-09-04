@@ -963,13 +963,16 @@
             }
             const targetUsd = plannedTargetTwd(Number(targetInput.value) || 0) / usdToTwd;
             const minTwd = minIncomeUsdPerItem(targetUsd) * usdToTwd;
-            /* ⚠️ 走 minutesText()，不要自己 Math.round。它刻意取整到 5 分鐘，
-                  因為這是估計值——顯示成「37 分鐘」會讓人以為它量過。 */
-            const timeText = minutesText(opMinutes(q.max).round);
+            /* ⚠️⚠️ **這裡不報時間。** 曾經寫成 minutesText(opMinutes(q.max).round)，
+                  結果同一個畫面上出現兩個「這一輪要花多久」而且不一樣：
+                  這裡報的是**上限**的時間（100 件 → 55 分），結果面板報的是
+                  **實際組合**的時間（33 件 → 30 分）。上限只是天花板，實際組合
+                  幾乎永遠比它少——而使用者沒有理由知道哪一個才算數。
+                  時間只由結果面板講，那裡用的是真的要買的件數。 */
             const head = minTwd > 0
                 ? `只留下單件到手 ≥ NT$ ${fmtTwd(minTwd)} 的品項（目標 ÷ ${q.max}）。`
                 : `只留下單件到手夠高的品項。`;
-            qtyNote.textContent = `${head}這一輪${timeText}。`
+            qtyNote.textContent = `${head}`
                 + `代價有兩個：倍率會略降，而且單價越高的箱子流動性越低——賣得比較慢。`;
         }
 
@@ -1563,19 +1566,47 @@
             runCalculation('target');
         }
 
-        /* ⚠️⚠️ 這個 `.catch()` 不可以拿掉，而且裡面**一定要跟 .then() 做一樣的事**。
-           少了它，任何沒接住的例外都會讓組合表停在「資料載入中...」——
-           那正是 2026-08-29 使用者回報的「試算頁當掉」。
-           `paintAfterLoad()` 在失敗路徑上照樣要跑，因為畫面上那句
-           「讀不到目前的價格資料」是 runCalculation() 畫的；不跑就等於沒修。 */
+        /* 抓資料失敗 → 照樣要畫，因為「讀不到目前的價格資料」那句是 runCalculation()
+           畫的；不畫就等於沒修（2026-08-29 使用者回報的「試算頁當掉」就是這個）。 */
+        function noteLoadFailed(err) {
+            console.error(err);
+            dataLoadFailed = true;
+            casesCache = [];
+            setNavStatus('stale', '資料讀取失敗');
+        }
+
+        /* ⚠️⚠️ **渲染時丟的例外不是「資料讀取失敗」**（2026-09-04）。
+
+           舊寫法是 `.then(paintAfterLoad).catch(...)`，於是 paintAfterLoad **自己**
+           丟出來的例外也掉進同一個 catch，畫面就說「資料讀取失敗」——**而資料明明
+           讀到了**。使用者（和作者）會照著那句話去查網路與資料庫，查不到東西。
+
+           實際發生過：2026-09-04 加了 site.js 的 twdFallbackUsable() 之後，
+           瀏覽器拿到**新的 calculator.html 配舊的、還在快取裡的 site.js**
+           （GitHub Pages 給 assets 的是 `Cache-Control: max-age=600`），
+           `usableCases()` 一呼叫就 ReferenceError → 整頁報成「資料讀取失敗」。
+           十分鐘後快取過期，它自己好了——**自己好的 bug 最難查**。
+
+           所以兩種錯要分開講，因為使用者能做的事完全不同：
+             抓不到資料 → 按「更新匯率與報價」重試，或等一下再來。
+             程式丟例外 → **強制重新整理**（十之八九是剛更新過、檔案版本不一致）。
+
+           ⚠️ paintAfterLoad 只在這裡呼叫一次，且用 try 包住。失敗路徑上再呼叫一次
+              的舊寫法會讓同一個例外連丟兩遍，第二遍沒人接。 */
+        function showCodeError(err) {
+            console.error(err);
+            setNavStatus('stale', '請重新整理');
+            comboBody.innerHTML = `<tr><td class="c-warn" colspan="5" style="padding:32px 0;text-align:center">`
+                + `這一頁的程式檔案版本不一致，通常是本站剛更新過、而瀏覽器還留著舊的一份。<br>`
+                + `<strong>強制重新整理一次就好</strong>：Windows 按 Ctrl + Shift + R，Mac 按 ⌘ + Shift + R。`
+                + `</td></tr>`;
+        }
+
         Promise.all([loadExchangeRate(), loadCases().then(data => { casesCache = data; })])
-            .then(paintAfterLoad)
-            .catch(err => {
-                console.error(err);
-                dataLoadFailed = true;
-                casesCache = [];
-                setNavStatus('stale', '資料讀取失敗');
-                paintAfterLoad();
+            .catch(noteLoadFailed)
+            .then(() => {
+                try { paintAfterLoad(); }
+                catch (err) { showCodeError(err); }
             });
     
     </script>

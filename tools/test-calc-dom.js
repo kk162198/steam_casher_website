@@ -60,14 +60,18 @@ function rows(withTwd) {
      'error' → Supabase 回 { error }（查詢送到了但被拒絕）
    ⚠️ 兩條路都要測。2026-08-29 的 bug 就是只接了後者，前者讓整頁靜靜停在
       「資料載入中...」——而那正是使用者看得到的那一種。 */
-async function boot(data, fail) {
+async function boot(data, fail, stripFn) {
   const html = fs.readFileSync(__dirname + '/../calculator.html', 'utf8')
     .replace(/<body[^>]*>/, '<body>')
     .replace(/<script src="https:\/\/cdn\.jsdelivr[^>]*><\/script>/g, '')
     /* ⚠️ site.js 的註解裡有 </script> 字樣，直接內嵌會把 script 提早關掉。跳脫。 */
-    .replace('<script src="assets/site.js"></script>', () =>
-      '<script>' + fs.readFileSync(__dirname + '/../assets/site.js', 'utf8')
-        .replace(/<\/script/gi, '<\\/script') + '</script>');
+    .replace('<script src="assets/site.js"></script>', () => {
+      let src = fs.readFileSync(__dirname + '/../assets/site.js', 'utf8');
+      /* stripFn 模擬「瀏覽器還留著舊版 site.js」：把某個新加的函式改名，
+         呼叫端就會 ReferenceError——這正是 2026-09-04 線上發生的事。 */
+      if (stripFn) src = src.replace('function ' + stripFn + '(', 'function __gone_' + stripFn + '(');
+      return '<script>' + src.replace(/<\/script/gi, '<\\/script') + '</script>';
+    });
 
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -210,6 +214,11 @@ async function boot(data, fail) {
   eq('25 件上限：只留下單件夠貴的（小箱倍率較高也照樣篩掉）',
     pool25.map(c => c.name), ['Big Case']);
 
+  /* ⚠️ 件數上限那行**不可以報時間**：它只知道上限，而實際組合幾乎永遠比上限少。
+     兩個「這一輪要花多久」擺在同一個畫面上，使用者沒有理由知道哪個算數。
+     時間只由結果面板講（那裡用的是真的要買的件數）。 */
+  eq('件數上限的註解不報時間', /分鐘|小時/.test(qd.getElementById('qty-note').textContent), false);
+
   const combo25 = qw.buildCombo(plannedUsd(), pool25, 1);
   const total25 = combo25.combo.reduce((n, i) => n + i.qty, 0);
   eq('25 件上限：總件數真的 ≤ 25', total25 <= 25, true);
@@ -268,6 +277,27 @@ async function boot(data, fail) {
     eq(mode + '：重試失敗後按鈕沒被鎖死', !btn.disabled, true);
     eq(mode + '：重試失敗後按鈕文字回得來', btn.innerText || btn.textContent, '更新匯率與報價');
   }
+
+  /* ── 7. 渲染例外 ≠ 資料讀取失敗（2026-09-04）──────────────
+     ⚠️ 實際發生過：新的 calculator.html 配上還在快取裡的舊 site.js
+        （GitHub Pages 給 assets 的是 max-age=600），usableCases() 一呼叫
+        就 ReferenceError，整頁報成「資料讀取失敗」——**而資料明明讀到了**。
+        使用者會照著那句話去查網路與資料庫，查不到東西；十分鐘後快取過期
+        它自己好了。**自己好的 bug 最難查。**
+        兩種錯使用者能做的事完全不同，所以畫面上必須分得開。 */
+  /* ⚠️ fixture 一定要有**缺台幣報價**的品項，否則 usableCases() 裡
+        `c.incomeTwd > 0 || twdFallbackUsable(...)` 會短路，函式根本不會被呼叫，
+        測試就變成什麼都沒測。真實世界的觸發條件也是這一條——2026-09-04 當天
+        正好有 1 個品項還沒有台幣報價，所以才炸得出來。 */
+  const broken = await boot(rows(false), null, 'twdFallbackUsable');
+  const brokenText = broken.window.document.getElementById('combo-body').textContent;
+  eq('渲染丟例外時不要說成資料讀取失敗', /讀不到目前的價格資料/.test(brokenText), false);
+  eq('而是叫使用者強制重新整理', /重新整理/.test(brokenText), true);
+  /* ⚠️ 不要 grep 整個 body：nav 的其他文字裡也有「資料讀取失敗」這幾個字，
+        grep body 永遠是 true。也不要找 #data-status——測試環境沒有載入 nav.html，
+        那顆節點不存在。看 setNavStatus() 存下來的待補狀態，那才是真正的判斷結果。 */
+  eq('導覽列狀態燈不說資料讀取失敗',
+    (broken.window._pendingNavStatus || {}).text, '請重新整理');
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);
