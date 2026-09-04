@@ -230,16 +230,20 @@ async function boot() {
   };
   const kilo = rowText('Kilowatt Case');
   eq('有掛牌價時會出現求購訂單那一行', /求購訂單/.test(kilo), true);
-  eq('上限價用掛牌價（US$0.61）', /上限 US\$0\.61/.test(kilo), true);
+  eq('上限價用掛牌價（US$0.61）', /別超過 US\$0\.61/.test(kilo), true);
+  /* ⚠️ 措辭是「別超過」不是「上限」：2026-09-04 實測證明求購訂單是掛單等，
+        寫成「上限 US$x」會被讀成「要填這個價」，而那個價低於最低掛牌價時
+        只會排隊、不會成交。它的角色是天花板，不是目標價。 */
+  eq('措辭是天花板不是目標價', /別超過/.test(kilo), true);
   eq('數量帶的是計畫數量', /×20/.test(kilo), true);
   /* 21 是 unitCostTwd。它不可以出現在「上限」後面——出現就代表填錯欄位了。 */
-  eq('上限價沒有拿 unitCostTwd 頂替', /上限 US\$21/.test(kilo), false);
+  eq('上限價沒有拿 unitCostTwd 頂替', /US\$21/.test(kilo), false);
 
   const clutch = rowText('Clutch Case');
   eq('舊單沒有掛牌價時整行不出現', /求購訂單/.test(clutch), false);
   /* ⚠️ 「不出現」比「顯示一個反推值」重要：反推值看起來跟真值一樣可信，
         而它要同時除掉兩個常數，等於把常數複製到第三個地方。 */
-  eq('而且沒有偷偷反推一個上限價出來', /上限 US\$/.test(clutch), false);
+  eq('而且沒有偷偷反推一個上限價出來', /US\$/.test(clutch), false);
 
   const nameCopyBtns = [...document.querySelectorAll('[data-copyname]')];
   eq('複製鍵帶的是精確品項名', nameCopyBtns.map(b => b.dataset.copyname), ['Kilowatt Case']);

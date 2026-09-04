@@ -56,9 +56,12 @@
                     買不到全部很常見，填了賣出頁才算得出賺多少。進度存在這台瀏覽器裡。
                 </p>
                 <p class="t-note c-ink3 flow-sm">
-                    不必同一顆箱子點 18 次：CSFloat 有<strong>求購訂單</strong>，一張就能設數量與
-                    上限價，成交價低於上限時以較低價成交。每一列都附了它要的三個值。
-                    <span class="c-warn">⚠️ 本站作者還沒實際下過一張，實際流程以 CSFloat 畫面為準。</span>
+                    CSFloat 的<strong>求購訂單</strong>可以一張設好數量與上限價，不用同一顆箱子點 18 次。
+                    <span class="c-warn">⚠️ 但它是<strong>掛單等</strong>，不是立刻買</span>——
+                    上限價低於目前最低掛牌價時只會排隊，等別人掛出便宜貨才成交
+                    （實測：填到求購訂單排行榜的最高價，仍然只是排隊）。
+                    要今天就買到，上限價得下在<strong>目前最低掛牌價</strong>，或者直接到市場一件一件買。
+                    每一列附的上限價是本站最近一次抓到的最低掛牌價，<strong>價格會動，以 CSFloat 畫面為準</strong>。
                 </p>
             </div>
             <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
@@ -488,7 +491,7 @@
             if (!(Number(item.listUsd) > 0)) return '';
             const limit = Number(item.listUsd).toFixed(2);   // CSFloat 的增量在 $5 以下是 $0.01
             return `<span class="t-note c-ink3" style="display:block;margin-top:4px">
-                        求購訂單：×${item.qty}・上限 US$${limit}
+                        求購訂單：×${item.qty}・<span title="超過這個價就不是你試算的那筆生意了">別超過 US$${limit}</span>
                         <button type="button" class="btn btn-text btn-sm" style="padding:0 0 0 4px"
                                 data-copyname="${escapeHtml(item.name)}">複製品項名</button>
                     </span>`;
