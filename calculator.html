@@ -771,8 +771,10 @@
               而總額那邊 totalCostTwd 已經乘過一次 buyRate 了，這裡再乘就是重複計算。
 
            ⚠️ steam_income_twd 缺席（遷移還沒跑、或那一輪台幣沒抓到）時**原樣退回美元路徑**。
-              退回會在低價品項上高估實拿，這是已知且暫時的——
-              但不要為了「看起來一致」把有台幣價的品項也一起退回去。 */
+              但退回**不代表照樣推薦**：低價品項的退回值是錯的，由 usableCases()
+              用 twdFallbackUsable()（site.js ⑮-b）把它們擋在候選池外。
+              這裡只負責換算，不負責篩選——
+              也不要為了「看起來一致」把有台幣價的品項也一起退回去。 */
         function applyTwdIncome(list) {
             const rate = Number(usdToTwd);
             if (!(rate > 0)) return list;
@@ -790,17 +792,33 @@
            ⚠️ 這是暫時狀態：資料庫跑過遷移、抓價腳本跑完一輪（約 3 小時）之後
               就會歸零，提示也跟著自己消失。**不要為此做一個常駐的說明區塊。** */
         function twdFallbackCount() {
-            return casesCache.filter(c => !(c.incomeTwd > 0)).length;
+            const missing = casesCache.filter(c => !(c.incomeTwd > 0));
+            return {
+                dropped: missing.filter(c => !twdFallbackUsable(c.incomeUsd)).length,
+                approx:  missing.filter(c => twdFallbackUsable(c.incomeUsd)).length
+            };
         }
 
+        /* ⚠️ 這兩件事要分開講，因為使用者要做的事不一樣：
+             dropped = 已經幫他擋掉了，他**不必做任何事**，只要知道清單短了一截。
+             approx  = 還在清單裡、用的是近似值，他**可以自己決定要不要等**。
+           合成一句「N 個品項還沒有台幣報價」會讓前者聽起來像個待處理的問題。 */
         function syncTwdNote() {
-            const n = twdFallbackCount();
+            const { dropped, approx } = twdFallbackCount();
             const el = document.getElementById('twd-fallback-note');
             if (!el) return;
-            if (n === 0) { el.style.display = 'none'; return; }
+            if (dropped === 0 && approx === 0) { el.style.display = 'none'; return; }
             el.style.display = '';
-            el.textContent = `${n} 個品項還沒有台幣報價，暫時用美元換算——`
-                + `低價品項的實拿會被高估，等下一輪抓價（約 3 小時）就會校正。`;
+            const parts = [];
+            if (dropped > 0) {
+                parts.push(`${dropped} 個低價品項還沒有台幣報價，已先排除`
+                    + `——台幣的手續費下限是 NT$1／分量，這個價位算出來的實拿會被高估。`);
+            }
+            if (approx > 0) {
+                parts.push(`另有 ${approx} 個品項用美元換算，這個價位的誤差在 1% 上下。`);
+            }
+            parts.push('下一輪抓價（約 3 小時）之後會自己校正。');
+            el.textContent = parts.join('');
         }
 
         /* 實際拿去湊組合的品項清單。
@@ -813,6 +831,13 @@
         function usableCases() {
             const min = currentLiqFilter().minVolume;
             const pool = applyTwdIncome(casesCache)
+                /* ⚠️⚠️ 沒有台幣報價、且價位低到讓美元近似失效的品項，**擋在這裡**
+                       （site.js ⑮-b）。這一條要排在 ratio 過濾之前，因為被灌水的
+                       正是 ratio 本身——先排序再擋，等於讓錯的值決定順序。
+                   ⚠️ 這不是「多一層保險」，它有實際案例：2026-09-04 線上有一顆
+                      NT$1.93、沒有台幣報價的品項排到第一，拿走 20% 的金額。
+                      當時黃字警語有響，但響了照樣推薦——**警語不是防線。** */
+                .filter(c => c.incomeTwd > 0 || twdFallbackUsable(c.incomeUsd))
                 .filter(c => c.ratio > 1)
                 .sort((a, b) => b.ratio - a.ratio);
             if (min === null) return pool;
@@ -1105,11 +1130,18 @@
                    讀不到資料（重試）／自己把品項篩光了（放寬篩選）／目標是 0（填數字）。
                    ⚠️ 讀取失敗這一條要排在最前面：它不是使用者做錯什麼，
                       而 casesCache 是空的時候另外兩句話都會誤導他去調設定。 */
+                /* ⚠️ 第四種原因（2026-09-04）：品項都在，但全都沒有台幣報價而被
+                      ⑮-b 擋掉。這時叫使用者「放寬篩選」是錯的指示——篩選沒有
+                      擋任何東西，放寬也不會多出品項來。 */
+                const allDroppedByTwd = casesCache.length > 0
+                    && !casesCache.some(c => c.incomeTwd > 0 || twdFallbackUsable(c.incomeUsd));
                 const emptyMsg = dataLoadFailed
                     ? '讀不到目前的價格資料——網路或資料庫暫時連不上，不是你的設定有問題。按上面的「更新匯率與報價」再試一次。'
-                    : ((pool.length === 0 && casesCache.length > 0)
-                        ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
-                        : '目前沒有可用的價格資料，或目標金額為 0');
+                    : (allDroppedByTwd
+                        ? '目前的品項都還沒有台幣報價，算出來的實拿會失準，所以先不給你組合。下一輪抓價（約 3 小時）之後再回來。'
+                        : ((pool.length === 0 && casesCache.length > 0)
+                            ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
+                            : '目前沒有可用的價格資料，或目標金額為 0'));
                 comboBody.innerHTML = `<tr><td class="c-ink3" colspan="5" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';

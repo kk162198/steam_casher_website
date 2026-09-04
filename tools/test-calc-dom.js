@@ -116,18 +116,41 @@ async function boot(data, fail) {
         （看起來會賺 4.5%），台幣路徑上是 0.84——**賣掉其實虧 16%**。
         兩條路徑給的不是「準一點」的差別，是**相反的結論**。
         它不該進候選池，更不該被演算法優先挑走。 */
-  eq('美元路徑：便宜箱還在池子裡', pU.names.includes('Cheap Case'), true);
   eq('台幣路徑：便宜箱被踢掉了', pT.names.includes('Cheap Case'), false);
   eq('台幣路徑只剩貴箱', pT.names, ['Pricey Case']);
+
+  /* ⚠️⚠️ 2026-09-04 補：**退回路徑也要踢掉它**（site.js ⑮-b）。
+     舊版只在「有台幣報價」時擋，沒有台幣報價時照樣放進池子、另外顯示一行黃字。
+     但誤差與推薦順序同向，警語響的當下畫面上佔比最高的正好是錯得最厲害的那顆
+     ——線上實測一顆 NT$1.93 的品項拿走 20% 金額與 267 件中的 236 件。
+     **警語不是防線。** */
+  eq('退回路徑：便宜箱也被踢掉了', pU.names.includes('Cheap Case'), false);
+  eq('退回路徑：貴箱留著（US$0.50 以上誤差 ≤1.2%，不該連坐）',
+    pU.names.includes('Pricey Case'), true);
+  eq('退回路徑的門檻對得上費率規則',
+    usd.window.TWD_FALLBACK_SAFE_GROSS_USD, 0.50);
 
   /* ── 3. 貴箱兩條路徑幾乎一樣（下限只咬低價的）────────────── */
   const rT = pT.ratios[pT.names.indexOf('Pricey Case')];
   const rU = pU.ratios[pU.names.indexOf('Pricey Case')];
   eq('貴箱兩條路徑差 < 2%', Math.abs(rT / rU - 1) < 0.02, true);
 
-  /* ── 4. 便宜箱的高估幅度確實在 20% 以上 ─────────────────── */
-  eq('退回路徑把便宜箱的倍率灌水 > 15%',
-    (pU.cheap.ratio / (6 / RATE / 0.22) - 1) > 0.15, true);
+  /* ── 4. 便宜箱的高估幅度確實在 20% 以上 ───────────────────
+     ⚠️ 這一條**不能再從候選池裡讀**——便宜箱現在兩條路徑都被踢掉了，
+        池子裡本來就沒有它。改成直接驗算固定資料本身，這樣它證明的是
+        「當初為什麼挑這組數字當 fixture」，比從池子裡撈回來更貼題。 */
+  const inflated = (0.23 / 0.22);          // 退回路徑會算出來的倍率
+  const truth    = (6 / RATE / 0.22);      // 台幣規則下的真實倍率
+  eq('退回路徑把便宜箱的倍率灌水 > 15%', (inflated / truth - 1) > 0.15, true);
+  eq('而且方向是「看起來賺、其實虧」', inflated > 1 && truth < 1, true);
+
+  /* ── 4b. 黃字警語要說對它擋掉了幾個、近似了幾個（2026-09-04）──
+     ⚠️ 兩個數字要分開：dropped 使用者不必做任何事，approx 他可以自己決定
+        要不要等下一輪。合成一個數字會讓前者聽起來像個待處理的問題。 */
+  eq('退回路徑：一個被擋掉、一個仍可近似',
+    usd.window.twdFallbackCount(), { dropped: 1, approx: 1 });
+  eq('台幣路徑：沒有東西需要退回',
+    twd.window.twdFallbackCount(), { dropped: 0, approx: 0 });
 
   /* ── 5. 池子一定是由倍率高到低排好的 ────────────────────
      ⚠️ 組合演算法是「由倍率最高往下取」，它**假設**輸入已經排好。
