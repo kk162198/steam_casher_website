@@ -1553,7 +1553,7 @@ function siteStorageKeys() {
   return {
     records: [ORDERS_STORAGE_KEY, CHECK_STORAGE_KEY, SOLD_STORAGE_KEY, COMBO_STORAGE_KEY],
     settings: [SETUP_STORAGE_KEY, ELIG_STORAGE_KEY],
-    prefs: ['sah-cap-pct-v1', 'sah-buffer-tier-v1', 'sah-liq-filter-v1', 'sah-marketlist-sort-v1']
+    prefs: ['sah-cap-pct-v1', 'sah-buffer-tier-v1', 'sah-liq-filter-v1', 'sah-qty-cap-v1', 'sah-marketlist-sort-v1']
   };
 }
 

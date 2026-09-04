@@ -237,6 +237,21 @@
                                 <p id="liq-note" class="t-note c-ink3 flow-0"></p>
                             </div>
 
+                            <!-- 件數上限（2026-09-04）。方向跟前三組一致：不限在最左、越往右越嚴。
+                                 ⚠️ 這一組是唯一「使用者出的是時間、不是錢」的控制項，
+                                    所以底下那行註解要同時講兩個代價（倍率略降、賣得比較慢），
+                                    不要只講省時間——它會讓人以為這是純好處。 -->
+                            <div class="calc-field">
+                                <span class="t-aux c-ink2">最多買幾件（省點擊次數）</span>
+                                <div id="qty-group" role="group" aria-label="件數上限" style="display:flex;flex-wrap:wrap;gap:8px">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-qty="all">不限</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-qty="100">100 件</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-qty="50">50 件</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-qty="25">25 件</button>
+                                </div>
+                                <p id="qty-note" class="t-note c-ink3 flow-0"></p>
+                            </div>
+
                             <!-- ⚠️ 2026-08-24 改名。原本叫「重新載入最新資料」，實測有使用者
                                  以為那是**把試算重置**——「重新」＋「載入」讀起來就像清空重來，
                                  而它其實只是去重抓匯率與市場報價，填的金額與選的檔位完全不動。
@@ -629,7 +644,9 @@
 
             /* 第一句：把「省下多少」和「要花多少時間」擺在一起。
                件數要講出來——它是時間的來源，也是使用者唯一能調整的變數。 */
-            const timeLine = `要買 ${qty} 件，約花${minutesText(v.roundMin)}`
+            /* ⚠️ 不要寫成「約花${...}」：minutesText() 自己回傳的字串就以「約 」開頭，
+                  兩個疊起來畫面上會變成「約花約 25 分鐘」。 */
+            const timeLine = `要買 ${qty} 件，花${minutesText(v.roundMin)}`
                 + `（時薪 NT$196 計 ≈ NT$ ${fmtTwd(v.roundCost)}）`;
 
             let head;
@@ -689,6 +706,8 @@
         const bufferNote = document.getElementById('buffer-note');
         const liqGroup = document.getElementById('liq-group');
         const liqNote = document.getElementById('liq-note');
+        const qtyGroup = document.getElementById('qty-group');
+        const qtyNote = document.getElementById('qty-note');
         const liqCost = document.getElementById('liq-cost');
         const thinNote = document.getElementById('thin-note');
         const floorStat = document.getElementById('floor-stat');
@@ -744,6 +763,52 @@
 
         function currentLiqFilter() {
             return LIQ_FILTERS.find(f => f.id === liqFilterId) || LIQ_FILTERS[0];
+        }
+
+        /* ── 件數上限（2026-09-04）───────────────────────────────
+           在這之前，**件數是輸出不是輸入**：使用者只能設金額，件數由演算法決定，
+           而演算法只看倍率。倍率最高的往往是最便宜的品項，於是 NT$3,000 會被
+           排成兩三百件——**而點兩百次的成本從來沒有進入那個決定**。
+
+           ⚠️ 這個上限**不是**在 buildCombo 裡硬切件數。硬切會讓演算法照樣先挑
+              最便宜的，把件數預算花在最不值錢的東西上，然後回報「湊不到目標」。
+              正確的做法是把件數預算翻譯成**每件至少要值多少**：
+
+                每件至少到手 = 目標（含緩衝）÷ 件數上限
+
+              只留下單件到手 ≥ 這個數的品項，剩下的照原本的倍率排序去湊。
+              這樣「最多 N 件」是**構造上成立**的，不是事後檢查。
+
+           ⚠️ 代價要講出來：門檻拉高會篩掉一些高倍率的便宜品項，倍率因此略降。
+              而 4.8 量到單價越高流動性越低——**件數少的組合賣得比較慢**。
+              這兩件事方向相反，畫面上都要說，不要只講省時間。
+
+           ⚠️ 不做「自動幫你選一個件數上限」。省下的錢與花掉的時間怎麼換，
+              是使用者的事（護欄 3 的同一條理由：門檻不由我們替他調）。 */
+        const QTY_STORAGE_KEY = 'sah-qty-cap-v1';
+        const QTY_CAPS = [
+            { id: 'all', label: '不限', max: Infinity },
+            { id: '100', label: '100 件', max: 100 },
+            { id: '50',  label: '50 件',  max: 50 },
+            { id: '25',  label: '25 件',  max: 25 }
+        ];
+        const QTY_DEFAULT = 'all';
+        let qtyCapId = QTY_DEFAULT;
+        try {
+            const saved = localStorage.getItem(QTY_STORAGE_KEY);
+            if (saved && QTY_CAPS.some(q => q.id === saved)) qtyCapId = saved;
+        } catch (e) { /* 無痕模式等情況忽略 */ }
+
+        function currentQtyCap() {
+            return QTY_CAPS.find(q => q.id === qtyCapId) || QTY_CAPS[0];
+        }
+
+        /* 這一輪的「每件至少到手」門檻（美元）。targetUsd 是**含緩衝**的目標。
+           ⚠️ 回傳 0 代表不設限，呼叫端不要拿 0 去比大小以外的用途。 */
+        function minIncomeUsdPerItem(targetUsd) {
+            const max = currentQtyCap().max;
+            if (!isFinite(max) || !(targetUsd > 0)) return 0;
+            return targetUsd / max;
         }
 
         /* 台幣實拿套進來（2026-08-24，DECISIONS 4.17）。
@@ -828,8 +893,15 @@
               loadCases() 排的是資料庫裡的美元倍率，而演算法是「由倍率最高往下取」，
               沿用舊順序等於拿舊的判斷去做新的決定；而倍率掉到 1 以下的品項
               代表現在賣掉是虧的，本來就不該進池子。 */
-        function usableCases() {
+        /* ⚠️ targetUsd 是**含緩衝**的目標，只用來算件數上限的「每件至少到手」門檻。
+              不傳＝不套件數上限（syncLiqButtons 數品項數時就是這樣用的）。
+           ⚠️ 二分逼近會用不同的 targetUsd 反覆呼叫這裡，池子因此會隨 target 變動。
+              這不會弄壞 costTwdForTarget：target 變大 → 門檻變高 → 池子只會變小
+              → 成本只會更高，cost(target) 仍然單調不遞減，二分搜尋照樣成立。
+              （件數本來就是整數，cost(target) 一直都是階梯函數。） */
+        function usableCases(targetUsd) {
             const min = currentLiqFilter().minVolume;
+            const minIncome = minIncomeUsdPerItem(targetUsd);
             const pool = applyTwdIncome(casesCache)
                 /* ⚠️⚠️ 沒有台幣報價、且價位低到讓美元近似失效的品項，**擋在這裡**
                        （site.js ⑮-b）。這一條要排在 ratio 過濾之前，因為被灌水的
@@ -839,10 +911,23 @@
                       當時黃字警語有響，但響了照樣推薦——**警語不是防線。** */
                 .filter(c => c.incomeTwd > 0 || twdFallbackUsable(c.incomeUsd))
                 .filter(c => c.ratio > 1)
+                /* 件數上限 → 每件至少到手。放在 ratio 過濾之後：這一條是使用者的
+                   偏好，不是正確性問題，不該影響「這個品項現在賣掉是不是虧的」。 */
+                .filter(c => minIncome <= 0 || c.incomeUsd >= minIncome)
                 .sort((a, b) => b.ratio - a.ratio);
             if (min === null) return pool;
             // volume 為 null 一律排除：沒資料不等於流動性夠
             return pool.filter(c => c.volume !== null && c.volume >= min);
+        }
+
+        /* 池子空掉是不是件數上限造成的。
+           ⚠️ 用「拿掉這一條之後還有沒有品項」去判斷，不要用「有沒有設上限」——
+              設了上限但池子是被流動性篩光的，指示會叫錯人。 */
+        function emptiedByQtyCap(targetUsd) {
+            if (minIncomeUsdPerItem(targetUsd) <= 0) return false;
+            const withCap = usableCases(targetUsd).length;
+            const without = usableCases().length;
+            return withCap === 0 && without > 0;
         }
 
         function syncLiqButtons() {
@@ -859,6 +944,33 @@
         }
 
         function capLabel(p) { return p >= 1 ? '不限' : `${Math.round(p * 100)}%`; }
+
+        /* ⚠️ 兩個代價都要講：
+             ① 門檻拉高會篩掉高倍率的便宜品項 → 倍率略降。
+             ② 4.8：單價越高流動性越低 → 件數少的組合**賣得比較慢**。
+           只講「省時間」會讓這一組看起來是純好處，而它不是。 */
+        function syncQtyButtons() {
+            const q = currentQtyCap();
+            qtyGroup.querySelectorAll('button[data-qty]').forEach(btn => {
+                const active = btn.dataset.qty === q.id;
+                btn.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`;
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            if (!isFinite(q.max)) {
+                qtyNote.textContent = '不限件數，倍率最高優先。便宜的箱子倍率好，但同樣金額要買很多件。';
+                return;
+            }
+            const targetUsd = plannedTargetTwd(Number(targetInput.value) || 0) / usdToTwd;
+            const minTwd = minIncomeUsdPerItem(targetUsd) * usdToTwd;
+            /* ⚠️ 走 minutesText()，不要自己 Math.round。它刻意取整到 5 分鐘，
+                  因為這是估計值——顯示成「37 分鐘」會讓人以為它量過。 */
+            const timeText = minutesText(opMinutes(q.max).round);
+            const head = minTwd > 0
+                ? `只留下單件到手 ≥ NT$ ${fmtTwd(minTwd)} 的品項（目標 ÷ ${q.max}）。`
+                : `只留下單件到手夠高的品項。`;
+            qtyNote.textContent = `${head}這一輪${timeText}。`
+                + `代價有兩個：倍率會略降，而且單價越高的箱子流動性越低——賣得比較慢。`;
+        }
 
         function syncCapButtons() {
             capGroup.querySelectorAll('button[data-cap]').forEach(btn => {
@@ -897,7 +1009,8 @@
 
         function costTwdForTarget(targetTwd) {
             if (!(targetTwd > 0) || casesCache.length === 0) return 0;
-            const { totalCostUsd } = buildCombo(plannedTargetTwd(targetTwd) / usdToTwd, usableCases(), capPct);
+            const plannedUsd = plannedTargetTwd(targetTwd) / usdToTwd;
+            const { totalCostUsd } = buildCombo(plannedUsd, usableCases(plannedUsd), capPct);
             return totalCostUsd * buyRate(usdToTwd);   // 成本側含 1.5% 國外交易費，見 site.js 第⑭節
         }
 
@@ -1112,6 +1225,7 @@
         // 這時不要回頭覆寫投入現金欄位，否則使用者打字打到一半會被改掉
         function runCalculation(source) {
             const targetTwd = Number(targetInput.value) || 0;   // 使用者要的餘額＝保底金額
+            syncQtyButtons();   // 註解裡的「每件至少到手」會隨目標金額變，每次重算都要重畫
             const tier = currentTier();
             const plannedTwd = plannedTargetTwd(targetTwd);      // 實際拿去湊組合的目標（含緩衝）
             const targetUsd = plannedTwd / usdToTwd;
@@ -1123,7 +1237,7 @@
             liqCost.style.display = 'none';
             thinNote.style.display = 'none';
 
-            const pool = usableCases();
+            const pool = usableCases(targetUsd);
             if (targetUsd <= 0 || pool.length === 0) {
                 // 分開講：「沒資料」與「你自己把品項篩光了」是兩個不同的問題，解法也不同
                 /* 三種「算不出來」要分開講，因為解法完全不同：
@@ -1139,9 +1253,12 @@
                     ? '讀不到目前的價格資料——網路或資料庫暫時連不上，不是你的設定有問題。按上面的「更新匯率與報價」再試一次。'
                     : (allDroppedByTwd
                         ? '目前的品項都還沒有台幣報價，算出來的實拿會失準，所以先不給你組合。下一輪抓價（約 3 小時）之後再回來。'
-                        : ((pool.length === 0 && casesCache.length > 0)
-                            ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
-                            : '目前沒有可用的價格資料，或目標金額為 0'));
+                        : (emptiedByQtyCap(targetUsd)
+                            ? `最多 ${currentQtyCap().label}的話，每件至少要到手 NT$ ${fmtTwd(minIncomeUsdPerItem(targetUsd) * usdToTwd)}，`
+                                + `而目前沒有那麼貴的品項。放寬件數上限，或調高目標金額。`
+                            : ((pool.length === 0 && casesCache.length > 0)
+                                ? `沒有品項符合「${escapeHtml(currentLiqFilter().label)}」。放寬篩選再試。`
+                                : '目前沒有可用的價格資料，或目標金額為 0')));
                 comboBody.innerHTML = `<tr><td class="c-ink3" colspan="5" style="padding:32px 0;text-align:center">${emptyMsg}</td></tr>`;
                 resultCost.innerText = '--';
                 resultValue.innerText = '--';
@@ -1388,6 +1505,17 @@
             runCalculation('target');
         });
 
+        qtyGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-qty]');
+            if (!btn) return;
+            qtyCapId = btn.dataset.qty;
+            try { localStorage.setItem(QTY_STORAGE_KEY, qtyCapId); } catch (err) { /* 無痕模式等情況忽略 */ }
+            /* ⚠️ 這裡不自己呼叫 syncQtyButtons()——它的註解裡有「目標 ÷ N」這個
+                  隨目標金額變動的數字，所以統一由 runCalculation() 重畫，
+                  否則改金額時按鈕註解會停在舊的門檻上。 */
+            runCalculation('target');
+        });
+
         /* ⑤ 結果面板垂直置中
            ────────────────────────────────────────────────────────────
            只在 ≥900px 有作用——窄螢幕的 .calc-result 不是 sticky，top 會被忽略。
@@ -1419,6 +1547,7 @@
         syncCapButtons();
         syncBufferButtons();
         syncLiqButtons();
+        syncQtyButtons();
         function paintAfterLoad() {
             syncLiqButtons();   // 資料進來後才知道「45 個裡有幾個符合」
             syncTwdNote();      // 台幣報價補齊了沒——補齊後這行提示會自己消失

@@ -166,6 +166,69 @@ async function boot(data, fail) {
     mp.every((c, i) => i === 0 || mp[i - 1].ratio >= c.ratio), true);
   eq('倍率 ≤ 1 的一律不進池子', mp.every(c => c.ratio > 1), true);
 
+  /* ── 5b. 件數上限：把「最多幾件」翻譯成「每件至少值多少」（2026-09-04）
+     ⚠️ 這一組不變式守的是**實作方式**，不只是結果。件數上限有兩種寫法：
+        (a) 在 buildCombo 裡硬切件數 —— 演算法照樣先挑最便宜的，把件數預算
+            花在最不值錢的東西上，然後回報「湊不到目標」。
+        (b) 翻譯成「每件至少到手 = 目標 ÷ 上限」再去篩池子 —— 上限是**構造上**
+            成立的，不是事後檢查。
+        測「總件數 ≤ 上限」兩種寫法都會過，所以下面同時測「小箱被篩掉了」，
+        那一條只有 (b) 會過。 */
+  const qtyRows = [
+    { name: 'Small Case', CSFloat_ID: 5001, csfloat_cost: 0.60, csfloat_inventory: 999,
+      steam_price: 0.81, steam_income: 0.70, ratio: 1.167, diff: 0.10,
+      steam_price_twd: 26, steam_income_twd: 22,
+      steam_volume: 50000, csfloat_updated_at: new Date().toISOString() },
+    { name: 'Big Case', CSFloat_ID: 5002, csfloat_cost: 3.60, csfloat_inventory: 999,
+      steam_price: 4.60, steam_income: 4.00, ratio: 1.111, diff: 0.40,
+      steam_price_twd: 150, steam_income_twd: 130,
+      steam_volume: 50000, csfloat_updated_at: new Date().toISOString() },
+  ];
+  const q = await boot(qtyRows);
+  const qw = q.window, qd = q.window.document;
+  const setTarget = async v => {
+    const t = qd.getElementById('target-input');
+    t.value = String(v); t.dispatchEvent(new qw.Event('input'));
+    await new Promise(r => setTimeout(r, 60));
+  };
+  const clickQty = async id => {
+    qd.querySelector(`#qty-group button[data-qty="${id}"]`).click();
+    await new Promise(r => setTimeout(r, 60));
+  };
+  const plannedUsd = () => qw.plannedTargetTwd(Number(qd.getElementById('target-input').value) || 0) / RATE;
+
+  await setTarget(3000);
+  await clickQty('all');
+  const poolAll = qw.usableCases(plannedUsd());
+  eq('不限：小箱大箱都在池子裡', poolAll.map(c => c.name).sort(), ['Big Case', 'Small Case']);
+  eq('不限：小箱倍率高，排在前面', poolAll[0].name, 'Small Case');
+
+  await clickQty('25');
+  const pool25 = qw.usableCases(plannedUsd());
+  /* 目標 3,000 ÷ 25 = 每件至少到手 NT$120。小箱 NT$22 不合格、大箱 NT$130 合格。
+     ⚠️ 小箱倍率**比較高**卻被篩掉——這正是這個功能在做的取捨。 */
+  eq('25 件上限：只留下單件夠貴的（小箱倍率較高也照樣篩掉）',
+    pool25.map(c => c.name), ['Big Case']);
+
+  const combo25 = qw.buildCombo(plannedUsd(), pool25, 1);
+  const total25 = combo25.combo.reduce((n, i) => n + i.qty, 0);
+  eq('25 件上限：總件數真的 ≤ 25', total25 <= 25, true);
+  eq('25 件上限：而且還湊得到目標', combo25.reached, true);
+
+  const comboAll = qw.buildCombo(plannedUsd(), poolAll, 1);
+  const totalAll = comboAll.combo.reduce((n, i) => n + i.qty, 0);
+  eq('不限的件數明顯比較多（這才是這個功能存在的理由）', totalAll > total25 * 2, true);
+
+  /* 門檻高到沒有品項合格時，要講「放寬件數上限」，不是「放寬篩選」——
+     篩選沒有擋任何東西，叫他去放寬篩選是指錯路。 */
+  await setTarget(10000);
+  await clickQty('25');
+  eq('門檻過高時池子是空的', qw.usableCases(plannedUsd()).length, 0);
+  eq('而且知道是件數上限造成的', qw.emptiedByQtyCap(plannedUsd()), true);
+  const emptyText = qd.getElementById('combo-body').textContent;
+  eq('畫面講的是件數上限', /件數上限/.test(emptyText), true);
+  eq('畫面沒有誣賴流動性篩選', /放寬篩選/.test(emptyText), false);
+
   /* ── 6. 畫面上不能出現 NaN / undefined ────────────────── */
   const doc = twd.window.document;
   const target = doc.getElementById('target-input');
