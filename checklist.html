@@ -52,8 +52,13 @@
             <div>
                 <h1 class="t-page">購物清單</h1>
                 <p class="t-aux c-ink2 flow-xs" style="max-width:34em">
-                    照清單到 CSFloat 一項一項買，買到就打勾，填上<strong>實際買到幾個、實付多少</strong>。
+                    照清單到 CSFloat 買，買到就打勾，填上<strong>實際買到幾個、實付多少</strong>。
                     買不到全部很常見，填了賣出頁才算得出賺多少。進度存在這台瀏覽器裡。
+                </p>
+                <p class="t-note c-ink3 flow-sm">
+                    不必同一顆箱子點 18 次：CSFloat 有<strong>求購訂單</strong>，一張就能設數量與
+                    上限價，成交價低於上限時以較低價成交。每一列都附了它要的三個值。
+                    <span class="c-warn">⚠️ 本站作者還沒實際下過一張，實際流程以 CSFloat 畫面為準。</span>
                 </p>
             </div>
             <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
@@ -418,6 +423,7 @@
                     <span class="cell-stack">
                         <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
                         <span class="t-note c-ink3">估 NT$ ${fmtTwd(item.unitCostTwd)}／個・NT$ ${fmtTwd(planSubtotal)}</span>
+                        ${buyOrderHtml(item)}
                     </span>
                 </td>
                 <td data-label="買到幾個">
@@ -453,6 +459,39 @@
                     </span>
                 </td>
                 <td data-label="前往交易">${tradeLinksHtml(item.defIndex, item.name)}</td>`;
+        }
+
+        /* 求購訂單那一行（2026-09-04）。
+
+           CSFloat 的求購訂單吃「品項名 + 數量 + 上限價」三個值，一張訂單就能
+           收 N 件，取代「同一顆箱子點 18 次」。這一行只是把使用者**已經有的**
+           三個數字擺在一起，讓他不用在兩個畫面之間來回抄。
+
+           ⚠️⚠️ **上限價是掛牌價（listUsd），不是 unitCostTwd。**
+              unitCostTwd 含 7.5% 入金費與 1.5% 刷卡費，那是「你這一輪要準備多少
+              現金」；求購訂單的價格欄要的是**掛牌價**，因為入金費是入金時收一次、
+              不是每件收。填錯的方向是**每件多付 9%**，而且不會有任何提示。
+              這正是 PROJECT_OVERVIEW 坑 #1 的形狀，只是換了一個欄位。
+
+           ⚠️ 用美元不用台幣：CSFloat 的價格增量規則是用美元定義的（<$5 → $0.01），
+              而它顯示台幣時用的是**它自己的換算率**，我們不知道那個數字。
+              印一個我們算的台幣值出去，對不上的時候使用者會不知道是誰算錯。
+
+           ⚠️ 舊的單沒有 listUsd（欄位是 2026-09-04 才加的），那時整行不出現，
+              **不要拿 unitCostTwd 反推**——那要同時除掉 7.5% 與 1.5%，
+              等於把兩個常數複製到第三個地方，而且反推值看起來跟真值一樣可信。
+
+           ⚠️ 這裡不寫「怎麼建立求購訂單」的步驟。作者還沒實際下過一張，
+              而 DECISIONS 已經有先例（CSFloat 只放首頁、不放沒查證過的深層路徑）：
+              **猜的流程比不給更糟。** 實測過再補進 help.html。 */
+        function buyOrderHtml(item) {
+            if (!(Number(item.listUsd) > 0)) return '';
+            const limit = Number(item.listUsd).toFixed(2);   // CSFloat 的增量在 $5 以下是 $0.01
+            return `<span class="t-note c-ink3" style="display:block;margin-top:4px">
+                        求購訂單：×${item.qty}・上限 US$${limit}
+                        <button type="button" class="btn btn-text btn-sm" style="padding:0 0 0 4px"
+                                data-copyname="${escapeHtml(item.name)}">複製品項名</button>
+                    </span>`;
         }
 
         /* 第 2 批以後的附屬列。獨立一列是因為每一批有自己的購買時間，
@@ -650,6 +689,20 @@
             });
             document.querySelectorAll('[data-addlot]').forEach(el => {
                 el.addEventListener('click', () => { addLot(el.dataset.addlot); render(); });
+            });
+            /* 複製品項名。CSFloat 的搜尋要打精確的英文名（實測：搜尋還需要先登入），
+               而箱名是使用者唯一沒辦法從畫面直接讀出來就用的東西。
+               ⚠️ 複製失敗要講出來並把名字印在旁邊，不要靜靜地什麼都沒發生——
+                  使用者會以為複製成功，貼上去才發現是舊的剪貼簿內容。 */
+            document.querySelectorAll('[data-copyname]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const name = el.dataset.copyname;
+                    copyText(name).then(ok => {          // site.js
+                        el.textContent = ok ? '已複製' : '複製不了，長按選取';
+                        if (!ok) el.insertAdjacentText('beforebegin', name + ' ');
+                        if (ok) setTimeout(() => { el.textContent = '複製品項名'; }, 1600);
+                    });
+                });
             });
             document.querySelectorAll('[data-got]').forEach(el => {
                 el.addEventListener('click', () => {

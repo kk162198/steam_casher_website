@@ -588,6 +588,7 @@
                 name: i.name,
                 qty: i.qty,
                 unitCostTwd: roundTwd(i.costUsd * rate),   // ⚠️ 不要 Math.round，購物清單顯示到分
+                listUsd: i.listUsd ?? null,    // 掛牌價（美元）——求購訂單的價格欄用，不是「要付多少」
                 defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
             })));
         }
@@ -1129,6 +1130,14 @@
                     // 賣出側的成交量。⚠️ 用 ?? 而不是 ||，否則成交量真的是 0 會被當成「沒資料」
                     volume: (item.steam_volume === null || item.steam_volume === undefined)
                         ? null : Number(item.steam_volume),
+                    /* ⚠️⚠️ CSFloat 的**掛牌價**（美元、不含入金費）。
+                       坑 #1 就是這個欄位：`csfloat_price` 只有抓價腳本內部該用，
+                       「你要付多少」一律走 csfloat_cost。這裡把它帶下來是為了
+                       **求購訂單的價格欄**——那一欄填的是掛牌價，而入金費是
+                       入金時收一次、不是每件收。名字刻意叫 listUsd 不叫 price，
+                       就是為了在別的地方誤用時看起來很怪。
+                       ⚠️ 不參與任何計算，只往下傳到購物清單頁顯示。 */
+                    listUsd: Number(item.csfloat_price) > 0 ? Number(item.csfloat_price) : null,
                     updatedAt: item.csfloat_updated_at || null, // 新增：只給資料時間戳章顯示用，不參與計算
                     defIndex: item.CSFloat_ID ?? null           // 新增：只給「前往購買」連結用，不參與計算
                 }))
@@ -1208,7 +1217,7 @@
             const combo = state
                 .filter(i => i.used > 0)
                 .sort((a, b) => b.ratio - a.ratio)
-                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, volume: i.volume, updatedAt: i.updatedAt, defIndex: i.defIndex }));
+                .map(i => ({ name: i.name, costUsd: i.costUsd, incomeUsd: i.incomeUsd, ratio: i.ratio, qty: i.used, inventory: i.inventory, volume: i.volume, updatedAt: i.updatedAt, defIndex: i.defIndex, listUsd: i.listUsd ?? null }));
 
             const totalCostUsd = combo.reduce((s, i) => s + i.costUsd * i.qty, 0);
             const totalIncomeUsd = combo.reduce((s, i) => s + i.incomeUsd * i.qty, 0);

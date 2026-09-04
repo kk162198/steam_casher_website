@@ -22,7 +22,11 @@ function eq(label, got, want) {
 const COMBO = {
   savedAt: '2026-08-01T00:00:00.000Z',
   items: [
-    { name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, defIndex: 4001 },
+    /* ⚠️ listUsd（掛牌價，美元）與 unitCostTwd（含入金費與刷卡費的台幣）刻意
+          差很多，而且不成任何簡單比例——這樣「求購訂單上限價印錯欄位」
+          會直接被下面那條測出來，不會剛好對上。 */
+    { name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, listUsd: 0.61, defIndex: 4001 },
+    /* 舊單：2026-09-04 之前存的計畫沒有 listUsd。整行要消失，不可以反推。 */
     { name: 'Clutch Case',   qty: 5,  unitCostTwd: 40, defIndex: 4002 },
   ],
 };
@@ -215,6 +219,30 @@ async function boot() {
   /* ⚠️ 解鎖是一個時刻不是一天。只寫日期就是 2026-08-29 那個誤會的來源。 */
   eq('可賣時間要連時刻一起講',
     /\d{1,2}:\d{2}/.test(document.getElementById('cl-next-note').textContent), true);
+
+  /* ── 求購訂單那一行（2026-09-04）────────────────────────
+     ⚠️⚠️ 這一組守的是 PROJECT_OVERVIEW 坑 #1 換了一個欄位之後的版本：
+        求購訂單的價格欄要的是**掛牌價**，而 unitCostTwd 含 7.5% 入金費與
+        1.5% 刷卡費。填錯的方向是每件多付約 9%，**而且畫面上不會有任何提示**。 */
+  const rowText = n => {
+    const tr = [...document.querySelectorAll('tr')].find(r => r.textContent.includes(n));
+    return tr ? tr.textContent.replace(/\s+/g, ' ') : '';
+  };
+  const kilo = rowText('Kilowatt Case');
+  eq('有掛牌價時會出現求購訂單那一行', /求購訂單/.test(kilo), true);
+  eq('上限價用掛牌價（US$0.61）', /上限 US\$0\.61/.test(kilo), true);
+  eq('數量帶的是計畫數量', /×20/.test(kilo), true);
+  /* 21 是 unitCostTwd。它不可以出現在「上限」後面——出現就代表填錯欄位了。 */
+  eq('上限價沒有拿 unitCostTwd 頂替', /上限 US\$21/.test(kilo), false);
+
+  const clutch = rowText('Clutch Case');
+  eq('舊單沒有掛牌價時整行不出現', /求購訂單/.test(clutch), false);
+  /* ⚠️ 「不出現」比「顯示一個反推值」重要：反推值看起來跟真值一樣可信，
+        而它要同時除掉兩個常數，等於把常數複製到第三個地方。 */
+  eq('而且沒有偷偷反推一個上限價出來', /上限 US\$/.test(clutch), false);
+
+  const nameCopyBtns = [...document.querySelectorAll('[data-copyname]')];
+  eq('複製鍵帶的是精確品項名', nameCopyBtns.map(b => b.dataset.copyname), ['Kilowatt Case']);
 
   console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
   process.exit(fail ? 1 : 0);

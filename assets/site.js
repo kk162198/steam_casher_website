@@ -749,6 +749,14 @@ function normalizeOrder(raw) {
         name: String(i.name),
         qty: (isFinite(q) && q > 0) ? Math.round(q) : 0,
         unitCostTwd: Number(i.unitCostTwd) || 0,
+        /* ⚠️⚠️ listUsd 是 CSFloat 的**掛牌價**（美元、不含任何費用），
+              **不是**「你要付多少」——那永遠是 unitCostTwd（PROJECT_OVERVIEW 坑 #1，
+              前端已經寫錯過三頁裡的兩頁）。它存在的唯一理由是：CSFloat 求購訂單
+              的價格欄要填的就是掛牌價，而入金費是入金時收一次、不是每件收。
+           ⚠️ 舊的單沒有這個欄位，一律 null。呼叫端要能處理 null，
+              不要用 unitCostTwd 去反推——那要同時除掉 7.5% 與 1.5%，
+              等於把兩個常數複製到第三個地方。 */
+        listUsd: (Number(i.listUsd) > 0) ? Number(i.listUsd) : null,
         defIndex: (i.defIndex == null || i.defIndex === '') ? null : String(i.defIndex)
       });
     });
