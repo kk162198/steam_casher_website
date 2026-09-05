@@ -757,6 +757,10 @@ function normalizeOrder(raw) {
               不要用 unitCostTwd 去反推——那要同時除掉 7.5% 與 1.5%，
               等於把兩個常數複製到第三個地方。 */
         listUsd: (Number(i.listUsd) > 0) ? Number(i.listUsd) : null,
+        /* CSFloat 標價的台幣版（掛牌價 × **中間價**，不含入金費也不含刷卡費）。
+           ⚠️ 這是使用者拿去跟 CSFloat 畫面比對的數字，unitCostTwd 不是——
+              兩者差 9%（1.075 × 1.015），對不上時他會以為本站算錯。 */
+        listTwd: (Number(i.listTwd) > 0) ? Number(i.listTwd) : null,
         defIndex: (i.defIndex == null || i.defIndex === '') ? null : String(i.defIndex)
       });
     });

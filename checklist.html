@@ -57,11 +57,11 @@
                 </p>
                 <p class="t-note c-ink3 flow-sm">
                     CSFloat 的<strong>求購訂單</strong>可以一張設好數量與上限價，不用同一顆箱子點 18 次。
-                    <span class="c-warn">⚠️ 但它是<strong>掛單等</strong>，不是立刻買</span>——
-                    上限價低於目前最低掛牌價時只會排隊，等別人掛出便宜貨才成交
-                    （實測：填到求購訂單排行榜的最高價，仍然只是排隊）。
-                    要今天就買到，上限價得下在<strong>目前最低掛牌價</strong>，或者直接到市場一件一件買。
-                    每一列附的上限價是本站最近一次抓到的最低掛牌價，<strong>價格會動，以 CSFloat 畫面為準</strong>。
+                    <span class="c-warn">⚠️ 但對話框右邊那一欄是<strong>別的買家出多少</strong>，不是現在賣多少</span>——
+                    照那個數字填，訂單只會排隊。要現在就買到，每件最高價得填到
+                    <strong>市場上目前最低的掛牌價</strong>（比那一欄高一點）。
+                    每一列附的數字是本站最近一次抓到的最低掛牌價，<strong>價格會動，以 CSFloat 畫面為準</strong>。
+                    <a href="help.html#buy-order">完整步驟</a>
                 </p>
             </div>
             <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
@@ -425,7 +425,7 @@
                 <td data-label="計畫">
                     <span class="cell-stack">
                         <span class="c-brand" style="font-weight:700">${item.qty} 個</span>
-                        <span class="t-note c-ink3">估 NT$ ${fmtTwd(item.unitCostTwd)}／個・NT$ ${fmtTwd(planSubtotal)}</span>
+                        <span class="t-note c-ink3" title="含 CSFloat 入金費與刷卡的國外交易費——這是你要準備的現金，比 CSFloat 標價高約 9%">要準備 NT$ ${fmtTwd(item.unitCostTwd)}／個・NT$ ${fmtTwd(planSubtotal)}</span>
                         ${buyOrderHtml(item)}
                     </span>
                 </td>
@@ -489,9 +489,18 @@
               **猜的流程比不給更糟。** 實測過再補進 help.html。 */
         function buyOrderHtml(item) {
             if (!(Number(item.listUsd) > 0)) return '';
-            const limit = Number(item.listUsd).toFixed(2);   // CSFloat 的增量在 $5 以下是 $0.01
+            /* ⚠️⚠️ 顯示的是 **listTwd（CSFloat 標價）**，不是上面那行的 unitCostTwd。
+                  兩者差 9%（1.075 入金費 × 1.015 刷卡費），而使用者是拿這個數字
+                  去跟 CSFloat 畫面比對的——給他成本，他會以為本站算錯。
+                  上面那行「估 NT$ x／個」講的是**要準備多少現金**，是另一件事，兩個都要在。
+               ⚠️ 舊的計畫只有 listUsd 沒有 listTwd（listTwd 是 2026-09-05 才加的），
+                  退回顯示美元。**不要在這裡乘匯率**——這一頁沒有匯率，也刻意不連資料庫。 */
+            const twd = Number(item.listTwd);
+            const price = (twd > 0)
+                ? `NT$ ${fmtTwd(twd)}`
+                : `US$${Number(item.listUsd).toFixed(2)}`;
             return `<span class="t-note c-ink3" style="display:block;margin-top:4px">
-                        求購訂單：×${item.qty}・<span title="超過這個價就不是你試算的那筆生意了">別超過 US$${limit}</span>
+                        求購訂單：×${item.qty}・<span title="CSFloat 標價，不含入金費——這是你在 CSFloat 畫面上會看到的數字。超過它就不是你試算的那筆生意了。">別超過 ${price}</span>
                         <button type="button" class="btn btn-text btn-sm" style="padding:0 0 0 4px"
                                 data-copyname="${escapeHtml(item.name)}">複製品項名</button>
                     </span>`;

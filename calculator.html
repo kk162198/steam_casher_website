@@ -583,12 +583,32 @@
               為什麼不是「永遠寫同一張」：那就是 v4 之前的行為——買完第一單、
               回來試算第二單，第一單的計畫數量被蓋掉，「還差幾個」與可買到率
               跟著全錯，而可買到率是買入側唯一的驗證來源。 */
-        function saveComboForChecklist(combo, rate) {
+        /* ⚠️⚠️ 這裡有**三個台幣數字**，來自同一個美元價、但乘的東西不一樣。
+              寫錯任何一個都不會報錯，只會讓使用者對不上帳：
+
+                unitCostTwd = 掛牌價 × 1.075 × 中間價 × 1.015   「你要準備多少現金」
+                listTwd     = 掛牌價 × 中間價                    「CSFloat 畫面上會看到的數字」
+                （試算頁另外還有純美元的 ratio，那是排序鍵，不進這裡）
+
+           ⚠️ listTwd **一定要用中間價，不可以用 buyRate()**。那 1.5% 是刷卡的國外交易費
+              ——它發生在你把台幣換成美元那一步，不在 CSFloat 的標價上。用 buyRate 會讓
+              畫面上的「別超過」比 CSFloat 實際顯示的高 1.5%，而使用者是拿它去跟
+              CSFloat 畫面比對的，比不起來就會覺得本站算錯。
+           ⚠️ 中間價夠不夠準：2026-09-05 從 CSFloat 求購訂單對話框的價格階梯反推，
+              它每一階是 US$0.01 ≈ NT$0.3175，即匯率約 31.75，而本站當時的中間價是
+              31.69——**差 0.19%**，遠小於一個最小增量（NT$0.32）。用 buyRate 會差 1.5%，
+              是它的八倍。
+           ⚠️ listTwd 跟 unitCostTwd 一樣是**下單當下的快照**，不會自己更新。
+              購物清單頁沒有匯率也沒有連資料庫（刻意的，斷網也讀得出來），
+              所以畫面上必須寫明「以 CSFloat 畫面為準」。 */
+        function saveComboForChecklist(combo, midRate) {
+            const cashRate = buyRate(midRate);   // site.js 第⑭節，含 1.5% 國外交易費
             saveOrderPlan(combo.map(i => ({
                 name: i.name,
                 qty: i.qty,
-                unitCostTwd: roundTwd(i.costUsd * rate),   // ⚠️ 不要 Math.round，購物清單顯示到分
+                unitCostTwd: roundTwd(i.costUsd * cashRate),   // ⚠️ 不要 Math.round，購物清單顯示到分
                 listUsd: i.listUsd ?? null,    // 掛牌價（美元）——求購訂單的價格欄用，不是「要付多少」
+                listTwd: (Number(i.listUsd) > 0) ? roundTwd(i.listUsd * midRate) : null,
                 defIndex: i.defIndex ?? null   // 購物清單頁要靠這個組出 CSFloat 連結
             })));
         }
@@ -1334,7 +1354,9 @@
                 comboBody.appendChild(tr);
             });
             renderTimestamps(comboBody);              // 畫面層：換算每一列的資料時間
-            saveComboForChecklist(combo, buyRate(usdToTwd));   // 畫面層：供購物清單頁讀取（單價是成本，走買進側）
+            /* ⚠️ 傳**中間價**進去，不要傳 buyRate(usdToTwd)。裡面要同時算兩個台幣數字
+                  （要準備的現金走買進側、CSFloat 標價走中間價），乘法集中在那一個函式裡。 */
+            saveComboForChecklist(combo, usdToTwd);   // 畫面層：供購物清單頁讀取
 
             resultCost.innerText = `NT$ ${fmtTwd(totalCostTwd)}`;
             resultValue.innerText = `NT$ ${fmtTwd(totalValueTwd)}`;

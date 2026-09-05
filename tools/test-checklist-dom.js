@@ -25,13 +25,18 @@ const COMBO = {
     /* ⚠️ listUsd（掛牌價，美元）與 unitCostTwd（含入金費與刷卡費的台幣）刻意
           差很多，而且不成任何簡單比例——這樣「求購訂單上限價印錯欄位」
           會直接被下面那條測出來，不會剛好對上。 */
-    { name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, listUsd: 0.61, defIndex: 4001 },
+    /* listTwd（CSFloat 標價）與 unitCostTwd（要準備的現金）刻意差 9%，就是真實的
+       1.075 × 1.015。求購訂單那一行拿錯欄位會直接被下面測出來。 */
+    { name: 'Kilowatt Case', qty: 20, unitCostTwd: 21, listUsd: 0.61, listTwd: 19.31, defIndex: 4001 },
     /* 舊單：2026-09-04 之前存的計畫沒有 listUsd。整行要消失，不可以反推。 */
     { name: 'Clutch Case',   qty: 5,  unitCostTwd: 40, defIndex: 4002 },
   ],
 };
 
-async function boot() {
+/* combo 不傳就用共用的 COMBO。
+   ⚠️ 需要另一種狀態時**開一個新的 boot**，不要往 COMBO 加第三筆——
+      它會撞到「兩個品項各一列」那幾條數列數的斷言。 */
+async function boot(combo) {
   const html = fs.readFileSync(__dirname + '/../checklist.html', 'utf8')
     // nav/footer 是 fetch 進來的片段，測試環境沒有伺服器，拿掉不影響本頁邏輯
     .replace('<body data-page="checklist">', '<body>');
@@ -40,7 +45,7 @@ async function boot() {
     url: 'https://example.test/checklist.html',
     beforeParse(w) {
       w.fetch = () => Promise.reject(new Error('no network in test'));
-      w.localStorage.setItem('sah-combo-v1', JSON.stringify(COMBO));
+      w.localStorage.setItem('sah-combo-v1', JSON.stringify(combo || COMBO));
     },
   });
   // site.js 是外部檔，jsdom 不會抓，手動注入到同一個 window
@@ -230,14 +235,27 @@ async function boot() {
   };
   const kilo = rowText('Kilowatt Case');
   eq('有掛牌價時會出現求購訂單那一行', /求購訂單/.test(kilo), true);
-  eq('上限價用掛牌價（US$0.61）', /別超過 US\$0\.61/.test(kilo), true);
+  /* ⚠️⚠️ 顯示的必須是 CSFloat 標價（listTwd 19.31），不是要準備的現金（21）。
+        使用者是拿這個數字去跟 CSFloat 畫面比對的，給他成本他會以為本站算錯。 */
+  eq('求購訂單顯示 CSFloat 標價的台幣', /別超過 NT\$ 19\.31/.test(kilo), true);
+  eq('沒有拿「要準備的現金」頂替', /別超過 NT\$ 21/.test(kilo), false);
   /* ⚠️ 措辭是「別超過」不是「上限」：2026-09-04 實測證明求購訂單是掛單等，
-        寫成「上限 US$x」會被讀成「要填這個價」，而那個價低於最低掛牌價時
+        寫成「上限 NT$x」會被讀成「要填這個價」，而那個價低於最低掛牌價時
         只會排隊、不會成交。它的角色是天花板，不是目標價。 */
   eq('措辭是天花板不是目標價', /別超過/.test(kilo), true);
+  /* 舊計畫只有 listUsd 沒有 listTwd → 退回美元。
+     ⚠️ 不可以在購物清單頁乘匯率補一個台幣值出來——這一頁沒有匯率，
+        也刻意不連資料庫（斷網、資料庫掛掉時它還要讀得出來）。 */
+  const legacyDom = await boot({
+    savedAt: '2026-08-01T00:00:00.000Z',
+    items: [{ name: 'Legacy Case', qty: 2, unitCostTwd: 18, listUsd: 0.50, defIndex: 4003 }],
+  });
+  const legacyText = legacyDom.window.document.body.textContent.replace(/\s+/g, ' ');
+  eq('舊計畫沒有台幣標價時退回美元', /別超過 US\$0\.50/.test(legacyText), true);
+  eq('而且沒有自己乘一個匯率出來', /別超過 NT\$/.test(legacyText), false);
   eq('數量帶的是計畫數量', /×20/.test(kilo), true);
   /* 21 是 unitCostTwd。它不可以出現在「上限」後面——出現就代表填錯欄位了。 */
-  eq('上限價沒有拿 unitCostTwd 頂替', /US\$21/.test(kilo), false);
+
 
   const clutch = rowText('Clutch Case');
   eq('舊單沒有掛牌價時整行不出現', /求購訂單/.test(clutch), false);
