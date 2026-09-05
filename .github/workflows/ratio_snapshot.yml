@@ -70,3 +70,26 @@ jobs:
       # DDL 見（私有 repo）code/db/schema.sql。
       # 腳本用 (name, snapshot_date) upsert，手動重跑同一天不會產生重複快照。
       run: python .github/scripts/snapshot_ratio_history.py
+
+    # ⚠️⚠️ 這一步**一定要排在快照後面**，不能排前面。
+    #
+    #   DECISIONS.md 4.19 的待辦原文是「跑之前先查 cases_data 更新時間，太舊就讓
+    #   job fail」。順序反過來寫是有代價的：抓價一停，快照就跟著不跑——而三支排程裡
+    #   只有快照**斷掉補不回來**（價格停更下一輪會補上，cases_ratio_history 少掉的
+    #   那一天是永久缺口，見 4.16）。**新加的告警不該害死它要保護的那條序列。**
+    #
+    #   排後面不會讓告警失效：job 一樣 fail、GitHub 一樣寄信，只是快照先寫進去了。
+    #   而「抓價停擺那幾天的快照是重複的舊值」也不會被誤讀成「市場沒動」——
+    #   那幾天的日彙總 *_n 會是空的（沒有 tick 就沒有樣本），現成的辨識依據。
+    #
+    # ⚠️ if: always() —— 快照那步失敗時也要跑。它印的新鮮度正是診斷那次失敗要看的第一件事，
+    #    而 job 的結論仍然是失敗（前一步已經紅了），不會把錯誤吞掉。
+    - name: 5. 🚨 抓價還活著嗎（pg_cron 的主動告警）
+      if: always()
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      # 太舊就 exit 1 →  job 失敗 →  GitHub 寄失敗通知。
+      # 在這支之前，pg_cron 壞掉的偵測完全是被動的（等使用者看見網站時間戳變紅），
+      # 而流量趨近於零的站等於沒有人會看見。門檻與排查步驟寫在腳本的 docstring。
+      run: python .github/scripts/check_price_freshness.py
