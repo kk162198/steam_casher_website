@@ -5,7 +5,9 @@ footer#footer{background:#020617;border-top:1px solid #1e293b}
 #footer a{color:#94a3b8;text-decoration:none}
 #footer a:hover{color:#22d3ee;text-decoration:underline;text-underline-offset:3px}
 #footer a:focus-visible{outline:2px solid #22d3ee;outline-offset:2px;border-radius:4px}
-#footer .f-link{display:flex;align-items:center;min-height:44px;font-size:14px;line-height:1.75}
+#footer .f-link{display:inline-flex;align-items:center;min-height:44px;font-size:14px;line-height:1.75}
+/* 滑鼠裝置不需要 44px 觸控目標，縮成貼著文字的高度，避免游標離文字還有一段就觸發。 */
+@media (hover:hover) and (pointer:fine){#footer .f-link{min-height:0;padding:6px 0}}
 #footer .f-h{font-size:14px;font-weight:700;color:#f1f5f9;margin:0 0 4px}
 </style>
 
