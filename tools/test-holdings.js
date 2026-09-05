@@ -681,5 +681,40 @@ eq('清空後一個 key 都不剩', Object.keys(store).length, 0);
     [...known].filter(k => !used.has(k)).sort(), []);
 }
 
+/* ⚠️ 靜態檢查：每個 HTML 引用 site.js 都要帶 `?v=`，而且要等於 SITE_JS_VERSION。
+   忘了改版本號的後果不是「少一個優化」，是 2026-09-04 那個 bug 會原封不動地回來：
+   新 HTML 配到快取裡的舊 site.js，呼叫一個還不存在的函式，整頁報「資料讀取失敗」，
+   十分鐘後自己好——最難查的那一種。這條紅了就是「site.js 改了、版本號沒跟上」。
+   （setup.html 例外：它是轉址殼，刻意不載入 site.js，見該檔註解。） */
+{
+  const ver = ctx.SITE_JS_VERSION;
+  eq('site.js 有宣告版本號', typeof ver === 'string' && ver.length > 0, true);
+
+  const tag = /<script[^>]*\ssrc="assets\/site\.js(\?v=([^"]*))?"/g;
+  const bad = [];
+  let tagged = 0;
+  fs.readdirSync(__dirname + '/..')
+    .filter(f => f.endsWith('.html'))
+    .sort()
+    .forEach(f => {
+      /* ⚠️ 先把 HTML 註解拿掉再掃：setup.html 的註解裡寫著「不要加
+         <script src="assets/site.js">」，那是說明不是引用，掃進來會假紅。 */
+      const text = fs.readFileSync(__dirname + '/../' + f, 'utf8')
+        .replace(/<!--[\s\S]*?-->/g, '');
+      let m;
+      tag.lastIndex = 0;
+      while ((m = tag.exec(text))) {
+        tagged++;
+        if (m[2] !== ver) bad.push(f + ' → ' + (m[1] || '（沒有 ?v=）'));
+      }
+    });
+  eq('每個 HTML 的 site.js 版本號都對得上 SITE_JS_VERSION（' + ver + '）', bad, []);
+
+  /* ⚠️ 上面那條只檢查「有引用的」，所以要防它自己失效：正規式哪天對不上任何東西
+     （改了引用寫法、標籤換行、屬性順序變了），bad 會是空陣列而整條靜靜地變成永遠通過。
+     頁面數量只增不減，門檻壓在 12 就夠。 */
+  eq('掃到的 site.js 引用數量合理（不是正規式壞掉）', tagged >= 12, true);
+}
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

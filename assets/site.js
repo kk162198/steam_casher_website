@@ -25,9 +25,31 @@
         以及 twdView()：一列 cases_data → 該顯示的台幣數字（四頁共用）
 
    引用方式（放在 </body> 前，或用 defer）：
-     <script defer src="assets/site.js"></script>
+     <script defer src="assets/site.js?v=…"></script>
    各頁自己的 <script> 要在 site.js 之後執行才拿得到這些函式。
+
+   ⚠️⚠️ 那個 ?v= 不是裝飾，改 site.js 就要跟著改，見下面 SITE_JS_VERSION。
    ══════════════════════════════════════════════════════════════ */
+
+/* ── ⓪ 快取破壞版本號 ───────────────────────────────────────
+   ⚠️⚠️ **改了 site.js 的行為，就把這個字串跟每個 HTML 的 `?v=` 一起改掉。**
+
+   為什麼要有它（2026-09-04 真的發生過）：
+     GitHub Pages 對靜態檔發 `max-age=600`，而 HTML 與 site.js 是兩個獨立的
+     快取項目，**不保證同時過期**。那天新的 calculator.html 先到、site.js 還是
+     快取裡的舊版，新頁面呼叫一個舊版沒有的函式 → 整頁報成「資料讀取失敗」，
+     十分鐘後自己好。錯誤訊息後來改成會叫人強制重新整理，但那是處理症狀：
+     只要哪次改動讓某個 HTML 依賴 site.js 的新函式，那十分鐘的窗口就會再來一次。
+     `?v=` 換掉的是 **URL**，新 HTML 一定配到新 site.js，窗口直接消失。
+
+   規矩：
+     - 值用日期。同一天改第二次就加字母：`2026-09-05b`。
+     - 只有「site.js 的內容變了」才要動。改 HTML 不用動。
+     - 忘了改會被擋下來：test-holdings.js 最後那段靜態檢查會紅
+       （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
+   ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
+      它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
+var SITE_JS_VERSION = '2026-09-05';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>

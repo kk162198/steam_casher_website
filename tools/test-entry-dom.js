@@ -11,6 +11,12 @@
 
    node tools/test-entry-dom.js —— 全綠才 commit。 */
 const fs = require('fs');
+
+/* ⚠️ site.js 的 <script> 標籤帶著快取破壞的 `?v=`（見 assets/site.js 第⓪節），
+   所以這裡一律用正規式比對，**不要寫死整串**——寫死的話版本號一動，
+   replace 就靜靜地對不上，整支測試變成「在沒有 site.js 的情況下跑」。
+   版本號本身有沒有同步，由 test-holdings.js 最後那段靜態檢查守。 */
+const SITE_TAG = /<script src="assets\/site\.js(?:\?v=[^"]*)?"><\/script>/;
 let JSDOM;
 try { ({ JSDOM } = require('jsdom')); }
 catch (e) {
@@ -31,8 +37,7 @@ function eq(label, got, want) {
 function inlineSite(html) {
   const site = fs.readFileSync(__dirname + '/../assets/site.js', 'utf8')
     .replace(/<\/script>/g, '<\\/script>');
-  return html.replace('<script src="assets/site.js"></script>',
-    '<script>' + site + '</script>');
+  return html.replace(SITE_TAG, () => '<script>' + site + '</script>');
 }
 
 // Supabase 的最小替身：查什麼都回空陣列。這幾支測試不碰價格計算。

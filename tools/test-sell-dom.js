@@ -2,6 +2,12 @@
    「數量與成本有沒有用對」，不是網路。
    node tools/test-sell-dom.js —— 全綠才 commit。 */
 const fs = require('fs');
+
+/* ⚠️ site.js 的 <script> 標籤帶著快取破壞的 `?v=`（見 assets/site.js 第⓪節），
+   所以這裡一律用正規式比對，**不要寫死整串**——寫死的話版本號一動，
+   replace 就靜靜地對不上，整支測試變成「在沒有 site.js 的情況下跑」。
+   版本號本身有沒有同步，由 test-holdings.js 最後那段靜態檢查守。 */
+const SITE_TAG = /<script src="assets\/site\.js(?:\?v=[^"]*)?"><\/script>/;
 /* jsdom 不是本站的相依套件（這是純靜態網站，沒有 package.json）。
    跑這支測試前先 `npm install jsdom`，或只跑 test-holdings.js——
    那支零相依，涵蓋的是風險最高的部分（格式遷移、網址往返、手續費換算）。 */
@@ -48,7 +54,7 @@ async function boot(sold, opts) {
     /* ⚠️ site.js 的註解裡有一個 </script> 字樣，直接內嵌會把 script 提早關掉，
        症狀是「site.js 的註解變成 HTML」。跳脫掉。replace 的第二個參數用
        函式，避免內容裡的 $ 被當成取代樣式。 */
-    .replace('<script src="assets/site.js"></script>', () =>
+    .replace(SITE_TAG, () =>
       '<script>' + fs.readFileSync(__dirname + '/../assets/site.js', 'utf8')
         .replace(/<\/script/gi, '<\\/script') + '</script>');
   const dom = new JSDOM(html, {

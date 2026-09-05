@@ -11,6 +11,12 @@
 
    node tools/test-calc-dom.js —— 全綠才 commit。 */
 const fs = require('fs');
+
+/* ⚠️ site.js 的 <script> 標籤帶著快取破壞的 `?v=`（見 assets/site.js 第⓪節），
+   所以這裡一律用正規式比對，**不要寫死整串**——寫死的話版本號一動，
+   replace 就靜靜地對不上，整支測試變成「在沒有 site.js 的情況下跑」。
+   版本號本身有沒有同步，由 test-holdings.js 最後那段靜態檢查守。 */
+const SITE_TAG = /<script src="assets\/site\.js(?:\?v=[^"]*)?"><\/script>/;
 let JSDOM;
 try { ({ JSDOM } = require('jsdom')); }
 catch (e) {
@@ -65,7 +71,7 @@ async function boot(data, fail, stripFn) {
     .replace(/<body[^>]*>/, '<body>')
     .replace(/<script src="https:\/\/cdn\.jsdelivr[^>]*><\/script>/g, '')
     /* ⚠️ site.js 的註解裡有 </script> 字樣，直接內嵌會把 script 提早關掉。跳脫。 */
-    .replace('<script src="assets/site.js"></script>', () => {
+    .replace(SITE_TAG, () => {
       let src = fs.readFileSync(__dirname + '/../assets/site.js', 'utf8');
       /* stripFn 模擬「瀏覽器還留著舊版 site.js」：把某個新加的函式改名，
          呼叫端就會 ReferenceError——這正是 2026-09-04 線上發生的事。 */

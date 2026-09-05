@@ -66,7 +66,7 @@
                 <a id="cta-primary" href="eligibility.html" class="btn btn-primary">先確認我能不能用（30 秒）</a>
                 <a id="cta-secondary" href="calculator.html" class="btn btn-text">直接去試算</a>
             </div>
-            <p id="cta-note" class="t-note c-ink3 flow-sm">五個問題，不用註冊，答案只留在你的瀏覽器裡。</p>
+            <p id="cta-note" class="t-note c-ink3 flow-sm">四個問題，不用註冊，答案只留在你的瀏覽器裡。</p>
         </section>
 
         <!-- ② 誠實比較表 -->
@@ -324,7 +324,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js"></script>
+    <script src="assets/site.js?v=2026-09-05"></script>
     <script>
     const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
     const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1'; 
@@ -451,8 +451,10 @@
          答過但被擋住            → 主按鈕仍是資格快檢，但講明是「回去看還差什麼」
          沒答過                  → 原樣，不動
 
-       ⚠️ 已完成初始設定也算通過：指南頁「只做一次」那五步的前三項就是資格的前三題，
-          勾完了還把人送回去重答一次是白費力氣。 */
+       ⚠️ 已完成初始設定也算通過：指南頁「只做一次」那四項的前三項就是資格的前三題，
+          勾完了還把人送回去重答一次是白費力氣。
+          （原本是五項，2026-08-24 把「入金」移到下半頁——那是每輪都要做的事。
+           唯一的依據是 site.js 的 SETUP_STEPS，改那裡就要回來看這一行。） */
     (function routeEntryCta() {
         const primary = document.getElementById('cta-primary');
         const secondary = document.getElementById('cta-secondary');

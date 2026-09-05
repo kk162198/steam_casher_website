@@ -2,6 +2,12 @@
    所以測試也不需要任何網路替身。
    node tools/test-ledger-dom.js —— 全綠才 commit。 */
 const fs = require('fs');
+
+/* ⚠️ site.js 的 <script> 標籤帶著快取破壞的 `?v=`（見 assets/site.js 第⓪節），
+   所以這裡一律用正規式比對，**不要寫死整串**——寫死的話版本號一動，
+   replace 就靜靜地對不上，整支測試變成「在沒有 site.js 的情況下跑」。
+   版本號本身有沒有同步，由 test-holdings.js 最後那段靜態檢查守。 */
+const SITE_TAG = /<script src="assets\/site\.js(?:\?v=[^"]*)?"><\/script>/;
 let JSDOM;
 try { ({ JSDOM } = require('jsdom')); }
 catch (e) {
@@ -42,7 +48,7 @@ function boot(seed) {
   const html = fs.readFileSync(__dirname + '/../ledger.html', 'utf8')
     .replace('<body data-page="ledger">', '<body>')
     /* ⚠️ site.js 的註解裡有一個 </script> 字樣，直接內嵌會把 script 提早關掉。 */
-    .replace('<script src="assets/site.js"></script>', () =>
+    .replace(SITE_TAG, () =>
       '<script>' + fs.readFileSync(__dirname + '/../assets/site.js', 'utf8')
         .replace(/<\/script/gi, '<\\/script') + '</script>');
   return new JSDOM(html, {
