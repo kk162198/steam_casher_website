@@ -82,6 +82,232 @@
 
         <section class="tl" style="margin-top:40px">
 
+            <article class="tl-item" data-type="fix">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-09-06">2026-09-06</time>
+                    <span class="tag tag-fix">修正</span>
+                </div>
+                <h2 class="t-sub flow-xs">賣掉不等於馬上能花：Steam 會先把錢暫扣最多 24 小時</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        賣出頁原本寫「成交後餘額直接進錢包」，那是錯的。Steam 會把市場賣出的錢先掛成<strong class="c-ink">「待處理餘額」</strong>，最多 24 小時才進到可以用的錢包餘額——而且那筆錢<strong class="c-ink">不算進結帳額度</strong>，我們實測時 Steam 直接要求刷卡補差額。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>賣出頁補上這條說明。</li>
+                        <li>「最晚 X 買進，才來得及在特賣時用到餘額」改成「<strong class="c-ink">才趕得上這一檔</strong>」，並講明那天買是最邊緣：錢可能要到特賣第二天才能花。想在開賣第一天就用，早幾天買。</li>
+                        <li>特賣行事曆的說明一起補了。<strong class="c-ink">已經下載過 .ics 的人不會自動更新</strong>，要重新下載一份。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        冷卻期沒有變，還是 7 天。我們沒有為了這件事憑空多加緩衝天數——少的是流程尾端那一段，不是冷卻期算錯。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-09-06">2026-09-06</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">操作指南改用求購訂單當主線，並補上「掛著沒成交怎麼辦」</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        指南原本先教「搜尋 → 依價格排序 → 一件一件點買」，再把求購訂單當補充。實際上求購訂單才是主要走法：一張訂單設好數量，同一顆箱子不用點很多次。我們自己跑了一輪（4 個品項 7 件），四張訂單全部立刻成交，實付只比清單上的上限價高 <strong class="c-ink">0.155%</strong>，而且差額幾乎全來自 CSFloat 價格欄的級距。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>指南步驟 3 改成求購訂單優先，逐件點買降級成例外路徑。</li>
+                        <li>新增「掛著沒成交怎麼辦」：① 回試算頁重算，<strong class="c-ink">不要自己把價格往上加</strong> ② 重算後如果判「不建議」，<strong class="c-ink">這一檔就不做</strong> ③ 仍然值得做、而且買進期限已經很近，才改成逐件點買。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        第 ② 點是原本缺的：以前只寫「回試算頁重算」，但重算之後還是求購訂單、還是可能不成交，那條建議沒有出口。另外要提醒：我們那一輪的數量很小（1／4／1／1），「全部立刻成交」<strong class="c-ink2">不是保證</strong>——最低價那一檔常常只有一兩件。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="fix">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-09-04">2026-09-04</time>
+                    <span class="tag tag-fix">修正</span>
+                </div>
+                <h2 class="t-sub flow-xs">沒有台幣報價的低價品項會被推薦，已經擋掉</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        組合演算法會優先挑倍率最高的品項，而倍率最高的常常是單價極低的。低價品項在台幣市場有個問題：Steam 兩個手續費分量各有 NT$1 的最低收費，用「美元實拿 × 匯率」換算會系統性高估——同一顆箱子，美元路徑說賺、台幣路徑其實是虧。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>線上實測抓到一次：一顆 <strong class="c-ink">NT$1.93</strong> 的品項拿走了 20% 的預算、267 件裡的 236 件。畫面上有警語，但<strong class="c-ink">警語響了還是照樣推薦</strong>。</li>
+                        <li>現在這類品項直接擋在候選池外，不進組合。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        我們的判斷標準是：使用者看到那行警語之後，錯的東西還會不會影響他的決定。會的話，就不能只顯示警語。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-09-04">2026-09-04</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">件數上限，以及購物清單附上求購訂單要填的三個值</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        兩個改動讓買進從「一件一件點」變成「一張訂單設數量」。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>試算頁多了<strong class="c-ink">「最多買幾件」</strong>（不限／100／50／25）。件數從結果變成你可以指定的條件——它會翻譯成「每件至少要值多少」再去挑組合。</li>
+                        <li>購物清單每一列都附上 CSFloat 求購訂單要填的三個值：品項名、數量、每件最高價，還有一鍵複製品項名。</li>
+                        <li>那個「每件最高價」帶的是 CSFloat 的<strong class="c-ink">標價</strong>，不是「你要準備的現金」——求購訂單那一欄要填的是掛牌價，入金費是入金時收一次、不是每件收。填成含費用的數字會讓你每件多付約 9%。</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-31">2026-08-31</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">一次可以追蹤好幾單，加上帳本頁與匯出</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        以前狀態只有「一份計畫」，現在多了「單」這一層：一單＝一次「試算 → 買 → 等七天 → 賣」。可以同時有好幾單在跑，結案的單會進帳本頁。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>帳本頁列出每一單的實付、實拿、差額、資金鎖了幾天，可以匯出 JSON 或 CSV。</li>
+                        <li>帳本<strong class="c-ink">只記事實</strong>：不做年化、不畫報酬率曲線、不排名、不建議你下一單買什麼——那是飾品投資，不是這個工具在做的事。</li>
+                        <li>刪除一律兩段式，而且會先告訴你會失去什麼（幾批、實付多少、幾筆成交價），並提醒先匯出。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        <strong class="c-ink2">匯出不是加值功能，是前提</strong>：資料存在你自己的瀏覽器裡，而 Safari 會在連續 7 天沒互動時清掉——那正好是冷卻期的長度。重要的單請匯出一份。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="fix">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-29">2026-08-29</time>
+                    <span class="tag tag-fix">修正</span>
+                </div>
+                <h2 class="t-sub flow-xs">冷卻期從「箱子到貨」起算，不是從你付錢那一刻</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        CSFloat 是掛單制：你付款之後賣家才會去送交易報價，可能幾分鐘、也可能拖到隔天。7 天冷卻期是<strong class="c-ink">從箱子真的進到你的 Steam 庫存</strong>才開始算。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>購物清單每一批多了「物品到了」，按下去才是冷卻期的起點。沒按就用下單時間估，畫面上會標成估計值、文案講「最快」。</li>
+                        <li>行事曆的到期提醒改成定時事件（原本是全天事件，會讓人以為一早就能賣）。</li>
+                        <li>順帶移除了先前憑空多加的一天緩衝——那一天是拿來蓋住上面那個顯示問題的，病因修好就不需要了。</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="fix">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-24">2026-08-24</time>
+                    <span class="tag tag-fix">修正</span>
+                </div>
+                <h2 class="t-sub flow-xs">台幣手續費改用 Steam 的真實規則；買進側匯率加上刷卡的 1.5%</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        兩個金額算法的修正，方向都是讓畫面上的數字更接近你實際會遇到的。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>台幣市場的手續費<strong class="c-ink">不是</strong>「美元實拿 × 匯率」：兩個分量各有 NT$1 的最低收費（合計 NT$2，是美元假設的 3 倍），而且取整是四捨五入。用美元換算會系統性高估低價品項——US$0.30 差 7.4%，US$0.22 差 <strong class="c-ink">27.3%</strong>。</li>
+                        <li>買進側的匯率加了 1.5%（跨境交易費 + 發卡行費用）。你刷卡入金換到的美元本來就比銀行間中間價貴，「預估要花的現金」低估的後果是錢包不夠、清單買不完。</li>
+                        <li>賣出側維持中間價——那是你拿去跟別的管道比較的數字，刷卡費不在對方的標價上。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        副作用：試算頁的倍率（台幣進出）會比市場列表的倍率（純美元）低約 1.5%。兩者量的不是同一件事，我們<strong class="c-ink2">刻意沒有</strong>為了好看把其中一邊改掉。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-24">2026-08-24</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">主動線重排：先做資格快檢，初始設定併進操作指南</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        請朋友實際走了一次流程，依他卡住的地方重排。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>首頁主要按鈕改成指向<strong class="c-ink">資格快檢</strong>——先確認你的 Steam 帳號能不能用這個方法，再算划不划算。</li>
+                        <li>「初始設定」併進操作指南，分成「第一次要做的四件事」與「每一輪都要做的」。原本三頁講同一批 Steam 規則，而且各自有一份不同步的資格清單。</li>
+                        <li>每一條 Steam 規則都附上官網連結，直接連到看得到答案的那一頁。<strong class="c-ink">查不到的就照實說</strong>，不給一個點進去查不到的連結。</li>
+                        <li>試算頁的組合表改成唯讀——那是計算結果，不是可以編輯的清單。</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-21">2026-08-21</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">「值不值得做」改成比「省下的錢 vs 這一輪的時間」</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        舊版拿你的目標金額去比一個寫死的門檻。那是比錯東西：決定值不值得的是「省下多少」對「花多少時間」，不是「你打算花多少」。同樣 NT$3,000，倍率 1.53 和 1.15 省下的錢差一倍，舊版兩者都判「值得做」。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>現在算的是：省下的錢 vs 這一輪要花的時間（用基本工資時薪換算），要大於 <strong class="c-ink">2 倍</strong>才判「值得做」。那個 2 倍是風險補償——這件事還要求你把資金鎖 7 天。</li>
+                        <li>時間依<strong class="c-ink">件數</strong>算，不是常數。買 20 件和買 300 件差 10 倍以上。</li>
+                        <li>第一次才有的成本（啟用驗證器、註冊 CSFloat、綁交易連結）移到獨立的一次性清單，不再攤在每一筆上。</li>
+                    </ul>
+                    <p class="t-note c-ink3 flow-xs">
+                        淨效果<strong class="c-ink2">不是單向放寬</strong>：小箱大量的組合反而變嚴了。我們不會為了讓更多人看到「值得做」去調鬆這個門檻。
+                    </p>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-14">2026-08-14</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">賣出頁與行事曆提醒：買賣閉環補完</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        買完之後有東西會提醒你第七天回來，回來之後知道該掛多少、實拿多少、大概多久賣得掉。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>賣出頁：冷卻期倒數、建議掛價、扣完手續費實際拿到多少、這個品項的流動性。</li>
+                        <li>行事曆提醒（.ics）：特賣倒數與冷卻期到期。<strong class="c-ink">不需要註冊、不用留 email</strong>，下載一個檔案就好。</li>
+                        <li>可以複製一條追蹤網址，換裝置打開就能還原這一單的狀態。</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="tl-item" data-type="data">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-08-14">2026-08-14</time>
+                    <span class="tag tag-data">資料</span>
+                </div>
+                <h2 class="t-sub flow-xs">一件掛單造出的假第一名，已從首頁與 KPI 剔除；快照原始資料開放下載</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        市場列表原本的第一名是一件孤零零的低價掛單撐出來的——你點進去只買得到一件，而首頁的「最高倍率」與 KPI 卡全被它帶著走。
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li>新增「買 10 件的均價」與實際湊得到幾件；湊不到 10 件的品項會標示出來，但<strong class="c-ink">不動排序</strong>——我們的工作是把事實講出來，不是替你決定。</li>
+                        <li>首頁三個數字與 KPI 卡改成排除深度不足的品項（最高倍率從 2.00 修正為 <strong class="c-ink">1.53</strong>）。</li>
+                        <li>資料透明頁開放每日快照的原始資料下載，立場從「相信我們」改成「你可以自己重算」。</li>
+                    </ul>
+                </div>
+            </article>
+
             <article class="tl-item" data-type="feature">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
@@ -238,7 +464,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06"></script>
+    <script src="assets/site.js?v=2026-09-06b"></script>
     <script>
         /* 更新日誌的類型篩選。純前端、不依賴任何資料。
            三種類型預設全開，至少要留一個開著（全部關掉等於整頁空白，沒有意義）。 */
