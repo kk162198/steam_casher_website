@@ -36,7 +36,13 @@ STEAM_SALES.forEach(s=>{
     summary:'該買了：'+s.name+'還有 '+SALE_LEAD_DAYS+' 天',
     description:
       s.name+'開始日期：'+start.toISOString().slice(0,10)+'\n'+
-      '最晚買進日：'+buyBy.getFullYear()+'-'+String(buyBy.getMonth()+1).padStart(2,'0')+'-'+String(buyBy.getDate()).padStart(2,'0')+'（當天買都來得及；冷卻期要 7 天）\n\n'+
+      '最晚買進日：'+buyBy.getFullYear()+'-'+String(buyBy.getMonth()+1).padStart(2,'0')+'-'+String(buyBy.getDate()).padStart(2,'0')+'（當天買仍趕得上這一檔；冷卻期要 7 天）\n'+
+      /* 2026-09-06：原本只寫「當天買都來得及」。實測 Steam 賣出後有 <=24h 的
+         待處理餘額而且不能結帳（DECISIONS 4.27），最晚那天買會趕不上開賣第一天。
+         ⚠️ 提醒時點不動（SALE_LEAD_DAYS = 10 已經是 4.9 那個 7-10 天區間的保守端），
+            只補說明。⚠️ 已下載的 .ics 不會自己更新，這只對新下載的人生效。 */
+      '⚠️ 那天買是最邊緣：賣掉之後 Steam 會把錢先掛成「待處理餘額」，最多 24 小時才能花。\n'+
+      '   想在開賣第一天就用到，早幾天買。\n\n'+
       '在 CSFloat 買進的箱子要等 7 天才能在 Steam 市場賣掉，'+
       '所以要在特賣開始前就先買，餘額才來得及在特賣期間用。\n\n'+
       '看目前哪些品項划算：\n'+BASE+'marketlist.html',

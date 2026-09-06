@@ -7,16 +7,18 @@ X-WR-CALNAME:Steam 加值幫手｜特賣倒數
 X-WR-TIMEZONE:Asia/Taipei
 BEGIN:VEVENT
 UID:sale-lead-autumn2026@steam-casher
-DTSTAMP:20260813T093201Z
+DTSTAMP:20260906T081516Z
 DTSTART;VALUE=DATE:20260921
 DTEND;VALUE=DATE:20260922
 SUMMARY:該買了：秋季特賣還有 10 天
 DESCRIPTION:秋季特賣開始日期：2026-10-01\n最晚買進日：2026-
- 09-24（當天買都來得及；冷卻期要 7 天）\n\n在 CSFloat 買
- 進的箱子要等 7 天才能在 Steam 市場賣掉，所以要在特賣
- 開始前就先買，餘額才來得及在特賣期間用。\n\n看目前
- 哪些品項划算：\nhttps://kk162198.github.io/steam_casher_website/ma
- rketlist.html
+ 09-23（當天買仍趕得上這一檔；冷卻期要 7 天）\n⚠️ 
+ 那天買是最邊緣：賣掉之後 Steam 會把錢先掛成「待處理
+ 餘額」，最多 24 小時才能花。\n   想在開賣第一天就用
+ 到，早幾天買。\n\n在 CSFloat 買進的箱子要等 7 天才能在
+  Steam 市場賣掉，所以要在特賣開始前就先買，餘額才來
+ 得及在特賣期間用。\n\n看目前哪些品項划算：\nhttps://kk
+ 162198.github.io/steam_casher_website/marketlist.html
 URL:https://kk162198.github.io/steam_casher_website/marketlist.html
 TRANSP:TRANSPARENT
 BEGIN:VALARM
@@ -27,7 +29,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:sale-autumn2026@steam-casher
-DTSTAMP:20260813T093201Z
+DTSTAMP:20260906T081516Z
 DTSTART:20261001T170000Z
 DTEND:20261008T170000Z
 SUMMARY:秋季特賣開始
@@ -39,21 +41,23 @@ TRANSP:TRANSPARENT
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:秋季特賣開始
-TRIGGER:-P0D
+TRIGGER:-PT0M
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:sale-lead-winter2026@steam-casher
-DTSTAMP:20260813T093201Z
+DTSTAMP:20260906T081516Z
 DTSTART;VALUE=DATE:20261207
 DTEND;VALUE=DATE:20261208
 SUMMARY:該買了：冬季特賣還有 10 天
 DESCRIPTION:冬季特賣開始日期：2026-12-17\n最晚買進日：2026-
- 12-10（當天買都來得及；冷卻期要 7 天）\n\n在 CSFloat 買
- 進的箱子要等 7 天才能在 Steam 市場賣掉，所以要在特賣
- 開始前就先買，餘額才來得及在特賣期間用。\n\n看目前
- 哪些品項划算：\nhttps://kk162198.github.io/steam_casher_website/ma
- rketlist.html
+ 12-09（當天買仍趕得上這一檔；冷卻期要 7 天）\n⚠️ 
+ 那天買是最邊緣：賣掉之後 Steam 會把錢先掛成「待處理
+ 餘額」，最多 24 小時才能花。\n   想在開賣第一天就用
+ 到，早幾天買。\n\n在 CSFloat 買進的箱子要等 7 天才能在
+  Steam 市場賣掉，所以要在特賣開始前就先買，餘額才來
+ 得及在特賣期間用。\n\n看目前哪些品項划算：\nhttps://kk
+ 162198.github.io/steam_casher_website/marketlist.html
 URL:https://kk162198.github.io/steam_casher_website/marketlist.html
 TRANSP:TRANSPARENT
 BEGIN:VALARM
@@ -64,7 +68,7 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:sale-winter2026@steam-casher
-DTSTAMP:20260813T093201Z
+DTSTAMP:20260906T081516Z
 DTSTART:20261217T180000Z
 DTEND:20270104T180000Z
 SUMMARY:冬季特賣開始
@@ -76,7 +80,7 @@ TRANSP:TRANSPARENT
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:冬季特賣開始
-TRIGGER:-P0D
+TRIGGER:-PT0M
 END:VALARM
 END:VEVENT
 END:VCALENDAR

@@ -399,23 +399,20 @@
                     <div class="step-no num">3</div>
                     <div style="flex:1">
                         <h3 class="t-sub">照清單下單買箱子</h3>
-                        <p class="t-body c-ink2 flow-xs">
+                        <!-- 2026-09-06 翻轉順序。原本先教「搜尋 → 依價格排序 → 逐件點買」，
+                             再把求購訂單當成「不用點很多次」的補充——那跟實際主動線是反的。
+                             翻轉的根據（DECISIONS 4.25，2026-09-06 實測一輪）：
+                               · 四張求購訂單全部立刻掃滿、一件沒落空
+                               · 實付只比清單的上限價總額高 0.155%，而且幾乎全來自價格級距吸附
+                               · 買進側的時間已經從 per-件 變成 per-單（buyPerOrder 0.688 分/張）
+                             ⚠️ 那一輪的數量很小（1/4/1/1），「全部掃滿」**不能寫成保證**——
+                                4.24 量到 45 個品項有 42 個在最低價那一檔只有 ≤2 件。
+                                所以下面的文案只講「怎麼下單」，不承諾一定買得到。 -->
+                        <p class="t-body c-ink2 flow-xs" id="buy-order">
                             按試算頁的「產生購物清單」，到 <a href="checklist.html">購物清單</a> 邊買邊勾。
-                            在 CSFloat 搜尋品項名稱，依價格由低到高排序，買清單上的數量，
-                            <strong class="c-ink">回填實際買到幾個與實付總額</strong>——買不到全部很常見，
-                            填了七天後才算得出賺多少。
-                        </p>
-                        <p class="t-aux c-warn flow-xs">
-                            會卡在哪：最低價的掛單被別人買走，實際價格比清單上高。差幾塊錢可以接受，差太多就回試算頁重算一份。
-                        </p>
-                        <!-- 求購訂單（2026-09-05）。⚠️ 兩邊都實測過才寫上來：
-                             填買方排行榜最高價 → 掛著沒成交；跨過最低掛牌價 → 立刻買到 1 件。
-                             ⚠️ 那一欄是**買方的排隊**不是掛牌，而它就放在價格欄旁邊，
-                                照著填永遠不會成交——作者第一次就是這樣中的。這一段的重點就是這件事。 -->
-                        <p class="t-body c-ink2 flow-sm" id="buy-order">
-                            <strong class="c-ink">同一顆箱子不用點很多次：用「求購訂單」。</strong>
-                            在品項頁按「求購訂單」旁邊的<strong class="c-ink">創建</strong>，填三個欄位——
-                            品項名、數量、每件最高價。購物清單每一列都附了這三個值。
+                            <strong class="c-ink">同一顆箱子不用點很多次：用「求購訂單」</strong>——
+                            在 CSFloat 品項頁按「求購訂單」旁邊的<strong class="c-ink">創建</strong>，填三個欄位：
+                            品項名、數量、每件最高價。<strong class="c-ink">購物清單每一列都附了這三個值。</strong>
                         </p>
                         <p class="t-aux c-warn flow-xs">
                             ⚠️⚠️ 會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少</strong>。
@@ -427,7 +424,6 @@
                             成交價是取<strong class="c-ink">市場當下的較低者</strong>，不是你填的數字——
                             實測出價 NT$88、實際成交 NT$81。所以它是<strong class="c-ink">天花板不是目標價</strong>
                             （清單上寫「別超過」就是這個意思），設在那裡只會幫你省錢，不會讓你多付。
-                            <strong class="c-ink">沒成交就代表市場已經漲過你的計畫</strong>，回試算頁重算一份，不要自己往上加。
                         </p>
                         <p class="t-aux c-ink3 flow-xs">
                             價格欄有<strong class="c-ink2">級距</strong>，不能想填什麼就填什麼（US$5 以下每階 US$0.01，約 NT$0.3），
@@ -435,6 +431,26 @@
                             錢包要先有錢：單張訂單不能超過餘額，所有未成交訂單加起來不能超過餘額的 10 倍，
                             而餘額不夠時系統會直接把訂單移除。
                         </p>
+                        <p class="t-body c-ink2 flow-sm">
+                            買到之後<strong class="c-ink">回填實際買到幾個與實付總額</strong>——買不到全部很常見，
+                            填了七天後才算得出賺多少。
+                        </p>
+                        <!-- 沒成交的出路（2026-09-06 新增）。
+                             ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是求購訂單、還是可能不成交**
+                                ——那條建議沒有終止條件，會繞圈。缺的不是退路，是**終止條件**。
+                             ⚠️⚠️ 順序不能反，理由是 4.21：「沒成交要回試算頁重算，不是把價格往上加」。
+                                而**逐件買就是用現在的市價買**，市場漲過計畫之後去逐件買，效果上等於往上加。
+                                所以價格的判斷必須留在試算頁，逐件買只能解決「等不等得到」。
+                                ②那一句是純勸退（安全方向），③才是新增的行為建議。 -->
+                        <div class="risk-bar flow-md">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                            <span><strong class="c-ink">掛著沒成交怎麼辦</strong>——照順序，不要跳步。
+                            ① <strong class="c-ink">回試算頁重算一份，不要自己把價格往上加</strong>：沒成交就代表市場已經漲過你的計畫。
+                            ② <strong class="c-ink">重算後如果判「不建議」，這一檔就不做</strong>——那不是失敗，那正是算給你看的答案。
+                            ③ 重算後仍然值得做、而且離<a href="sell.html">買進期限</a>已經很近（掛單等不起了），才改成在 CSFloat
+                            <strong class="c-ink">逐件點買</strong>：搜品項名、依價格由低到高排序、買清單上的數量。
+                            <strong class="c-ink">逐件買解決的是「等不等得到」，不是「價格夠不夠好」</strong>——划不划算永遠由試算頁判斷。</span>
+                        </div>
                         <!-- 2026-08-29 新增。使用者實際踩到的：付完錢以為就開始倒數了，
                              七天後回來卻還鎖著。CSFloat 是掛單制，付款只是通知賣家去送報價。 -->
                         <p class="t-aux c-warn flow-xs">
@@ -565,7 +581,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-05"></script>
+    <script src="assets/site.js?v=2026-09-06"></script>
     <script>
         /* A 段的勾選：維護 sah-setup-v1。（2026-08-24 從 setup.html 併進來）
            門檻常數、時間模型、狀態讀寫全部在 site.js 第⑩節，

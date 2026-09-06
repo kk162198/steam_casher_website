@@ -49,7 +49,7 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-05';
+var SITE_JS_VERSION = '2026-09-06';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
@@ -465,7 +465,18 @@ function nextSale(now) {
   return null; // 表已過期，要更新 STEAM_SALES
 }
 
-/* 買進期限＝特賣開始前 7 天（冷卻期長度）。這是精確的時間點。 */
+/* 買進期限＝特賣開始前 7 天（冷卻期長度）。
+
+   ⚠️ 2026-09-06 更正：原本這裡寫「這是精確的時間點」，那句站不住。
+      完整鏈路是：
+        買 → 到貨 → 冷卻 7 天 → 掛單 → 成交（不保證即時，4.8 量到流動性差 3,901 倍）
+           → Steam 待處理餘額 ≤24h → 錢才真的能花
+      「精確」的前提是成交與入帳都是瞬間的，兩個都不成立。
+
+   ⚠️⚠️ 修法**不是**往 COOLDOWN_DAYS 加緩衝——4.18 明文禁止，那次加緩衝
+      掩蓋了 .ics 全天事件的顯示 bug。冷卻期還是 7 天，沒變；**這個算式不動**。
+      改的是那個「精確」的宣稱：呼叫端一律講「最晚／趕得上這一檔」，
+      並把尾巴講出來。見 DECISIONS.md 4.27。 */
 function buyByDate(sale) {
   var s = Date.parse(sale.start);
   return isNaN(s) ? null : new Date(s - COOLDOWN_MS);

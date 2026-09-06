@@ -199,7 +199,11 @@
                     <li>到 Steam 庫存點箱子、按「出售」。</li>
                     <li>價格填成跟目前最低掛牌價一樣，或低 1 元。<strong>本站顯示的是中位成交價</strong>，會有幾個百分點的出入，以 Steam 畫面為準。</li>
                     <li>看「您將收到」那一行，<strong>那才是扣完手續費實際拿到的錢</strong>。</li>
-                    <li>成交後餘額直接進錢包。回來這裡填成交價，<strong>填 Steam 標價就好（買家付的數字），手續費本站幫你扣</strong>——自己先扣會讓賺賠算少約 13%。</li>
+                    <li>成交後回來這裡填成交價，<strong>填 Steam 標價就好（買家付的數字），手續費本站幫你扣</strong>——自己先扣會讓賺賠算少約 13%。</li>
+                    <!-- 2026-09-06：原本寫「成交後餘額直接進錢包」，實測是錯的（DECISIONS 4.27）。
+                         Steam 把市場賣出所得先掛在「待處理餘額」，而那筆錢**不算進結帳額度**——
+                         拿一個介於可用餘額與含待處理總額之間的金額去結帳，Steam 直接要求刷卡補差額。 -->
+                    <li><strong class="c-warn">賣掉不等於馬上能花。</strong>Steam 會把市場賣出的錢先掛成「待處理餘額」，<strong>最多 24 小時</strong>才進到可以用的錢包餘額。待處理的錢<strong>不能拿去結帳</strong>（實測：Steam 會叫你刷卡補差額）。想在特賣第一天就用到，早幾天賣。</li>
                 </ol>
                 <a href="help.html" class="btn btn-text btn-sm flow-md">看完整操作指南</a>
             </div>
@@ -209,7 +213,7 @@
 
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
-    <script src="assets/site.js?v=2026-09-05"></script>
+    <script src="assets/site.js?v=2026-09-06"></script>
     <script>
         /* ════════════════════════════════════════════════════════════
            賣出頁。網站原本只服務買進那一端——使用者買完之後就消失在
@@ -680,10 +684,12 @@
                 saleNote.textContent = 'Valve 還沒公布下一年度時程，公布後這裡會更新。';
             } else {
                 const days = Math.ceil((Date.parse(sale.start) - Date.now()) / 86400000);
-                const buyBy = buyByDisplayDate(sale);   // 整天，當天買都來得及
+                // ⚠️ buyBy 是「整天」，那天之內買都趕得上這一檔——但**不保證開賣第一天就能花**：
+                //    賣出成交後 Steam 還有 ≤24h 的待處理餘額（DECISIONS 4.27）。文案要照這個講。
+                const buyBy = buyByDisplayDate(sale);
                 saleEl.textContent = days > 0 ? (sale.name + ' ' + days + ' 天') : (sale.name + '進行中');
                 saleNote.textContent = days > 0
-                    ? ('最晚 ' + buyBy.toLocaleDateString('zh-TW') + ' 買進，才來得及在特賣時用到餘額。')
+                    ? ('最晚 ' + buyBy.toLocaleDateString('zh-TW') + ' 買進才趕得上這一檔。那天買是最邊緣——賣出成交後 Steam 還會暫扣最多 24 小時，錢可能要到特賣第二天才能花。')
                     : ('到 ' + new Date(Date.parse(sale.end)).toLocaleDateString('zh-TW') + ' 結束。');
             }
 
