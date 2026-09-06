@@ -180,7 +180,7 @@ pre{
     <h2 class="t-page">1・資料時間戳章</h2>
     <p class="t-body c-ink2" style="max-width:43em;margin:8px 0 24px">
       任何顯示價格或倍率的地方，旁邊都要有這個。時間由 JS 依
-      <span class="num">data-updated</span> 換算，狀態自動判定：CSFloat 超過 6 小時、Steam 超過 12 小時標為過舊。
+      <span class="num">data-updated</span> 換算，狀態自動判定：CSFloat 超過 6 小時、Steam 超過 12 小時標為過舊。門檻在 site.js 的 TS_RULES，轉黃的規則是「抓價間隔 + 1 小時」。
       過舊狀態同時換圖示，不只換顏色。
     </p>
 
@@ -193,8 +193,8 @@ pre{
       </div>
       <div class="hr" style="margin:20px 0"></div>
       <div class="spec" style="display:flex;flex-direction:column;gap:4px">
-        <div>正常 slate：CSFloat &lt; 3 小時、Steam &lt; 6 小時</div>
-        <div class="c-warn">稍舊 amber：CSFloat 3–6 小時、Steam 6–12 小時</div>
+        <div>正常 slate：CSFloat &lt; 4 小時、Steam &lt; 9 小時</div>
+        <div class="c-warn">稍舊 amber：CSFloat 4–6 小時、Steam 9–12 小時</div>
         <div class="c-neg">過舊 rose ＋ 警告圖示：CSFloat &gt; 6 小時、Steam &gt; 12 小時</div>
       </div>
     </div>
@@ -612,7 +612,7 @@ pre{
 </div>
 
 <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-<script src="assets/site.js?v=2026-09-06b"></script>
+<script src="assets/site.js?v=2026-09-06c"></script>
 <script>
 /* 展示頁專用：用相對分鐘數產生 data-updated，讓三種狀態不受開啟時間影響。
    實際頁面直接寫 data-updated="ISO 時間字串"，不需要這段。 */

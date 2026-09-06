@@ -716,5 +716,52 @@ eq('清空後一個 key 都不剩', Object.keys(store).length, 0);
   eq('掃到的 site.js 引用數量合理（不是正規式壞掉）', tagged >= 12, true);
 }
 
+/* ⚠️ 靜態檢查：每個頁面講的抓價頻率，都要等於 site.js 的 FETCH_INTERVAL_HOURS。
+
+   為什麼要有這條（2026-09-06）：2026-08-23 把 Steam 從 6 小時降成 8 小時，
+   **只改了 workflow**。faq / marketlist（三處 meta）/ transparency / design-system
+   四頁還寫著「Steam 每 6 小時」，對使用者說錯話說了 14 天——而 transparency
+   那一頁的整個賣點就是「資料多久更新一次」。沒有人會記得去掃五個檔案，
+   所以讓測試去掃。
+
+   ⚠️ news.html 是**歷史紀錄**，7 月那篇本來就該寫當時的 6 小時，
+      改掉等於竄改紀錄。刻意排除。 */
+{
+  const IV = ctx.FETCH_INTERVAL_HOURS;
+  eq('site.js 有宣告 FETCH_INTERVAL_HOURS',
+    !!IV && typeof IV.csfloat === 'number' && typeof IV.steam === 'number', true);
+
+  const pat = /(CSFloat|Steam)\s*每\s*(\d+)\s*小時/g;
+  const wrong = [];
+  let seen = 0;
+  fs.readdirSync(__dirname + '/..')
+    .filter(f => f.endsWith('.html') && f !== 'news.html')
+    .sort()
+    .forEach(f => {
+      const text = fs.readFileSync(__dirname + '/../' + f, 'utf8');
+      let m;
+      pat.lastIndex = 0;
+      while ((m = pat.exec(text))) {
+        seen++;
+        const want = m[1] === 'CSFloat' ? IV.csfloat : IV.steam;
+        if (Number(m[2]) !== want) wrong.push(f + ' → 「' + m[0] + '」應為 ' + want);
+      }
+    });
+  eq('每個頁面講的抓價頻率都對得上 FETCH_INTERVAL_HOURS', wrong, []);
+
+  /* 同上一條的理由：正規式哪天對不上任何東西，wrong 會是空陣列而靜靜地永遠通過。
+     目前是 faq 1 + marketlist 3 + transparency 0（那頁用「每 N 小時」不帶來源名）
+     + design-system 0，加上各頁零星提及，壓在 4 就夠。 */
+  eq('掃到的頻率字串數量合理（不是正規式壞掉）', seen >= 4, true);
+
+  /* ⚠️⚠️ aging 一定要大於抓價間隔，否則系統正常運作時也會轉黃。
+     2026-09-06 修正前 Steam 是「間隔 8 小時、aging 6 小時」，每輪保證有 2 小時是黃的。
+     一個正常時就會亮的警示燈，資訊量是零。 */
+  const R = ctx.TS_RULES;
+  eq('CSFloat 的 aging 門檻大於抓價間隔', R.csfloat.aging > IV.csfloat * 60, true);
+  eq('Steam 的 aging 門檻大於抓價間隔',   R.steam.aging   > IV.steam   * 60, true);
+  eq('stale 一定比 aging 晚', R.csfloat.stale > R.csfloat.aging && R.steam.stale > R.steam.aging, true);
+}
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

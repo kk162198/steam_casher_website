@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta name="description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 8 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <title>市場列表｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/marketlist.html">
     <meta property="og:title" content="市場列表｜Steam 加值幫手">
-    <meta property="og:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta property="og:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 8 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="市場列表｜Steam 加值幫手">
-    <meta name="twitter:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 6 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
+    <meta name="twitter:description" content="所有監控中的 CS2 武器箱比價（CSFloat 每 3 小時、Steam 每 8 小時更新）：Steam 售價、你實拿、CSFloat 成本與稅後淨利，每個數字都標示資料抓取時間。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -244,7 +244,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06b"></script>
+    <script src="assets/site.js?v=2026-09-06c"></script>
     <script>
         /* ════════════════════════════════════════════════════════════
            本次改版新增的畫面層程式碼。以下之外的邏輯、Supabase 查詢與
@@ -292,10 +292,17 @@
 
            兩種情況才掛章，因為這兩種才是使用者需要知道的：
              ① 某個來源的資料過舊（超過 TS_RULES 的 stale 門檻）
-             ② 兩個來源差超過 6 小時 —— 代表其中一邊那一輪沒抓到，
+             ② 兩個來源差太多 —— 代表其中一邊那一輪沒抓到，
                 此時倍率是拿新價格對舊價格算的，數字會失真
-           沒有標籤 = 這列跟全表一樣新。有標籤 = 這列要注意。 */
-        const TS_DIVERGE_MS = 6 * 60 * 60 * 1000;
+           沒有標籤 = 這列跟全表一樣新。有標籤 = 這列要注意。
+
+           ⚠️⚠️ 門檻一定要大於**兩者之中較長的那個抓價間隔**（Steam 的 8 小時），
+              否則正常運作也會掛章。2026-09-06 修正前是 6 小時，而 Steam 改成
+              8 小時之後，每一輪都有 2 小時多是「CSFloat 剛抓完、Steam 還沒」——
+              那不是失真，那是設計。整張表每一列都掛章，等於沒有章。
+              現在取 9 小時，跟 site.js 的 `aging` 用同一條容忍（間隔 + 1 小時）。
+              ⚠️ 改抓價排程要連這裡一起改，見 site.js 的 FETCH_INTERVAL_HOURS。 */
+        const TS_DIVERGE_MS = (FETCH_INTERVAL_HOURS.steam + 1) * 60 * 60 * 1000;
         function staleChipHtml(item) {
             const s = item.steam_updated_at ? Date.parse(item.steam_updated_at) : NaN;
             const c = item.csfloat_updated_at ? Date.parse(item.csfloat_updated_at) : NaN;

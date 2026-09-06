@@ -65,12 +65,12 @@
                 </div>
                 <div class="card stat">
                     <div class="stat-label">Steam 市場報價</div>
-                    <div class="stat-value stat-value-md">每 6 小時</div>
+                    <div class="stat-value stat-value-md">每 8 小時</div>
                     <div class="stat-note">Steam 的公開報價 API 有頻率限制，抓取間隔比較長。</div>
                     <div class="flow-sm"><span id="chip-steam" class="ts-chip" data-source="steam"></span></div></div>
             </div>
             <p class="t-aux c-ink2 flow-md" style="max-width:39em">
-                上面兩個時間是資料庫裡最新一筆的抓取時間。網站上每個數字旁邊都有自己的時間標籤，因為不同品項的抓取時間可能不一樣。標籤預設是灰色，資料稍舊會轉成黃色（CSFloat 逾 3 小時、Steam 逾 6 小時），再舊會轉成紅色並加上警告圖示（CSFloat 逾 6 小時、Steam 逾 12 小時）。
+                上面兩個時間是資料庫裡最新一筆的抓取時間。網站上每個數字旁邊都有自己的時間標籤，因為不同品項的抓取時間可能不一樣。標籤預設是灰色，資料稍舊會轉成黃色（CSFloat 逾 4 小時、Steam 逾 9 小時），再舊會轉成紅色並加上警告圖示（CSFloat 逾 6 小時、Steam 逾 12 小時）。轉黃的門檻是「抓價間隔再加一小時」——比間隔還短的話，系統正常運作時也會黃。
             </p>
         </section>
 
@@ -452,7 +452,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                                 <td class="rt-key" data-label="來源">Steam 社群市場</td>
                                 <td data-label="取得什麼" style="white-space:normal">近期中位成交價（本站顯示的賣價）、當下最低掛牌價、近 24 小時成交量</td>
                                 <td data-label="方式">公開報價 API</td>
-                                <td data-label="頻率">每 6 小時</td>
+                                <td data-label="頻率">每 8 小時</td>
                             </tr>
                             <tr>
                                 <td class="rt-key" data-label="來源">open.er-api.com</td>
@@ -513,7 +513,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06b"></script>
+    <script src="assets/site.js?v=2026-09-06c"></script>
     <script>
         const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
         const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';

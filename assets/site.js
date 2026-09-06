@@ -57,15 +57,41 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-06b';
+var SITE_JS_VERSION = '2026-09-06c';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
    三態門檻（分鐘）依資料來源的更新頻率設定。 */
+/* ⚠️⚠️ 抓價頻率的**唯一來源**（2026-09-06 新增）。
+
+   真值在 `code/db/scheduler_pg_cron.sql`：
+     CSFloat  '43 1,4,7,10,13,16,19,22 * * *'  → 每 3 小時，8 次/天
+     Steam    '17 1,9,17 * * *'                → 每 8 小時，3 次/天
+
+   為什麼要有這個常數：2026-08-23 把 Steam 從 6 小時降成 8 小時，**只改了
+   workflow**——faq / marketlist / transparency / design-system 四頁還寫著
+   「Steam 每 6 小時」，對使用者說錯話說了 14 天，而 transparency 那頁的整個
+   賣點就是「資料多久更新一次」。根因是同一個事實散在五個地方、沒有單一來源。
+   ➡️ `test-holdings.js` 有一條靜態檢查，掃每個 HTML 講的頻率跟這裡比對。
+   ⚠️ 改了排程就改這裡，然後跑那支測試找出所有要跟著改的頁面。 */
+var FETCH_INTERVAL_HOURS = { csfloat: 3, steam: 8 };
+
+/* 三態門檻（分鐘）。
+
+   ⚠️⚠️ **`aging` 一定要大於抓價間隔**，否則系統正常運作時也會轉黃。
+      2026-09-06 修正前就是這樣：Steam 間隔 8 小時、aging 卻是 6 小時，
+      **每一輪保證有 2 小時多是黃的**；CSFloat 間隔 3 小時、aging 也是 3 小時，
+      每輪結尾必然短暫轉黃（抓價本身要 4 分鐘，還有 Actions 啟動延遲）。
+      一個在系統正常時就會亮的警示燈，資訊量是零——這跟 4.22「警語響了照樣
+      推薦」是同一類問題的另一面：**警語響太多，於是沒人看**。
+
+   規則：`aging = 抓價間隔 + 1 小時`（容忍一輪的合理延遲）。
+   ⚠️ `stale` 沒有跟著動，也不要順手動——它的意思是「不要拿這個數字做決定」，
+      往鬆的方向調需要獨立的理由。 */
 var TS_RULES = {
-  csfloat: { label: 'CSFloat', aging: 180, stale: 360 },
-  steam:   { label: 'Steam',   aging: 360, stale: 720 },
-  rate:    { label: '匯率',     aging: 720, stale: 1440 }
+  csfloat: { label: 'CSFloat', aging: (3 + 1) * 60, stale: 360 },   // 4h / 6h
+  steam:   { label: 'Steam',   aging: (8 + 1) * 60, stale: 720 },   // 9h / 12h
+  rate:    { label: '匯率',     aging: 720,          stale: 1440 }   // 12h / 24h（一天更新一次）
 };
 var TS_WARN_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>';
 
