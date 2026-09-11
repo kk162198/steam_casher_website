@@ -82,6 +82,30 @@
 
         <section class="tl" style="margin-top:40px">
 
+            <article class="tl-item" data-type="feature">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                    <time class="t-note num c-ink3" datetime="2026-09-11">2026-09-11</time>
+                    <span class="tag tag-feature">新功能</span>
+                </div>
+                <h2 class="t-sub flow-xs">品項頁加上「過去 30 天走勢」與「冷卻期這 7 天過去怎麼動」</h2>
+                <div class="t-body c-ink2 flow-xs">
+                    <p class="flow-0">
+                        每個品項頁原本有兩張「資料累積中」的卡片。資料滿 30 天了，現在換成真的：
+                    </p>
+                    <ul class="flow-xs" style="padding-left:1.25em;display:flex;flex-direction:column;gap:6px">
+                        <li><strong class="c-ink">歷史走勢</strong>：Steam 賣價與 CSFloat 買價兩條線，各自從第一天的 0% 起算漲跌。用每天的中位數畫，不會被單一筆怪價格帶走。</li>
+                        <li><strong class="c-ink">冷卻期這 7 天</strong>：假設過去 30 天任何一天買、7 天後賣，Steam 賣價變化的中位數、最差的一次、以及有幾次是漲的。</li>
+                    </ul>
+                    <p class="flow-xs">
+                        原本預告的「倍率百分位」（目前倍率在 30 天裡算高還是算低）<strong class="c-ink">不做了</strong>。我們用自己的資料查過：倍率「算高」的那些天，之後 7 天的 Steam 賣價反而比較常往下掉——那張卡很可能在最不該買的時候告訴你「現在算高」。資料只有三週左右，還不夠下結論，但<strong class="c-ink">方向可能是反的提示，比沒有提示更糟</strong>。
+                    </p>
+                    <p class="t-note c-ink3 flow-xs">
+                        圖上只有漲跌幅、沒有台幣價格，而且兩條線分開畫：買完之後，跟你有關的只有 Steam 賣價那一條。這些都是過去發生過的事，不是預測；算法寫在<a href="transparency.html#seven-day">資料透明頁</a>。
+                    </p>
+                </div>
+            </article>
+
             <article class="tl-item" data-type="fix">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
@@ -449,7 +473,6 @@
             <div class="card">
                 <h2 class="t-sect">接下來要做的</h2>
                 <ul class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
-                    <li>歷史走勢與倍率百分位。需要累積至少 30 天的資料，預計 9 月起提供。</li>
                     <li>預估與實際成交的落差對照。同樣在累積資料，這是驗證工具準不準最直接的方式。</li>
                     <li>接入 Skinport、Waxpeer 等其他買進通道，永遠幫你取最低價。</li>
                 </ul>
@@ -464,7 +487,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06c"></script>
+    <script src="assets/site.js?v=2026-09-11"></script>
     <script>
         /* 更新日誌的類型篩選。純前端、不依賴任何資料。
            三種類型預設全開，至少要留一個開著（全部關掉等於整頁空白，沒有意義）。 */

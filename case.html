@@ -24,6 +24,21 @@
     <link rel="stylesheet" href="assets/utilities.css">
     <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 歷史走勢（2026-09-11）。tooltip 疊在圖上，數值是主角、標籤退後（dataviz：values lead）。 */
+        .hist-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px}
+        .hist-legend[hidden]{display:none}   /* utilities.css 的 [hidden] 沒有 !important，會被上面的 display 蓋掉 */
+        .hist-key{display:inline-flex;align-items:center;gap:6px}
+        .hist-tip{position:absolute;z-index:5;pointer-events:none;background:#020617;border:1px solid var(--line);
+                  border-radius:8px;padding:8px 10px;min-width:150px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+        .hist-tip-row{display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.6}
+        .hist-svg:focus{outline:none}
+        .hist-svg:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:4px}
+        .hist-table{border-collapse:collapse;min-width:100%}
+        .hist-table th,.hist-table td{padding:4px 12px 4px 0;text-align:left;border-bottom:1px solid var(--line)}
+        .hist-table th{color:var(--ink3);font-weight:500}
+        .hist-table td{color:var(--ink2)}
+    </style>
     <script type="application/ld+json" id="ld-json">
     {"@context":"https://schema.org","@type":"Product","name":"CS2 武器箱","category":"CS2 武器箱"}
     </script>
@@ -148,33 +163,62 @@
             </div>
         </section>
 
-        <!-- 兩個空狀態 -->
+        <!-- 歷史走勢與冷卻期（2026-09-11，site.js ⑯，DECISIONS 4.29）
+             原本是兩張「資料累積中，預計 9 月起提供」的佔位卡：歷史走勢、倍率百分位。
+             ⚠️ 倍率百分位**刻意不做**：當天倍率落在自己歷史前 20% 的，之後 7 天
+                Steam 賣價平均 −4.6%——那張卡會在最糟的時點說「現在算高」。
+                換成「冷卻期 7 天過去怎麼動」：只講發生過的事，不給時機建議。
+             ⚠️ 兩張卡都只用每日中位數，也都只畫漲跌幅（沒有台幣數字），理由見 site.js ⑯。 -->
         <section class="flow-md">
-            <div class="grid gap-3 md:grid-cols-2">
-                <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
-                    <h2 class="t-sub flow-0" style="align-self:flex-start">歷史走勢</h2>
-                    <svg width="88" height="56" viewBox="0 0 88 56" fill="none" aria-hidden="true" style="margin-top:8px">
-                        <path d="M4 52h80" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M4 52V4" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M12 40l16-8 16 10 16-18 16 6" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
-                    </svg>
-                    <p class="t-aux c-ink2 flow-0">
-                        資料累積中，預計 9 月起提供。屆時這裡會顯示過去 30 天的價格與倍率變化。
-                    </p>
+            <div class="card" id="hist-card">
+                <h2 class="t-sub">歷史走勢</h2>
+                <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                    過去 30 天，兩邊的價格各自漲跌了多少（以第一天為 0%）。用的是每天的<strong class="c-ink">中位數</strong>：
+                    一天抓好幾次價、取中間那個，不會被單一筆怪價格帶走。
+                </p>
+                <div id="hist-legend" class="hist-legend t-aux c-ink2 flow-md" hidden>
+                    <span class="hist-key"><svg width="20" height="8" aria-hidden="true"><line class="key-s" x1="2" y1="4" x2="18" y2="4" stroke-width="2" stroke-linecap="round"/></svg>Steam 賣價 <strong id="hist-s-chg" class="num c-ink">--</strong></span>
+                    <span class="hist-key"><svg width="20" height="8" aria-hidden="true"><line class="key-c" x1="2" y1="4" x2="18" y2="4" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/></svg>CSFloat 買價 <strong id="hist-c-chg" class="num c-ink">--</strong></span>
+                    <span id="hist-range" class="t-note c-ink3"></span>
                 </div>
-                <div class="card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
-                    <h2 class="t-sub flow-0" style="align-self:flex-start">倍率百分位</h2>
-                    <svg width="88" height="56" viewBox="0 0 88 56" fill="none" aria-hidden="true" style="margin-top:8px">
-                        <rect x="8" y="34" width="12" height="14" rx="2" fill="#1e293b"/>
-                        <rect x="24" y="24" width="12" height="24" rx="2" fill="#1e293b"/>
-                        <rect x="40" y="14" width="12" height="34" rx="2" fill="#334155"/>
-                        <rect x="56" y="26" width="12" height="22" rx="2" fill="#1e293b"/>
-                        <rect x="72" y="38" width="8" height="10" rx="2" fill="#1e293b"/>
-                    </svg>
-                    <p class="t-aux c-ink2 flow-0">
-                        資料累積中，預計 9 月起提供。屆時會告訴你目前的倍率在過去 30 天裡算高還是算低。
-                    </p>
+                <div class="flow-md" style="position:relative">
+                <div id="hist-chart" style="min-height:120px">
+                    <p class="t-aux c-ink3">正在讀取歷史資料。</p>
                 </div>
+                <div id="hist-tip" class="hist-tip" role="status" aria-live="polite" hidden>
+                    <div id="hist-tip-date" class="t-note c-ink3"></div>
+                    <div class="hist-tip-row"><svg width="16" height="6" aria-hidden="true"><line class="key-s" x1="1" y1="3" x2="15" y2="3" stroke-width="2" stroke-linecap="round"/></svg><strong id="hist-tip-s" class="num c-ink"></strong><span class="c-ink2">Steam 賣價</span></div>
+                    <div class="hist-tip-row"><svg width="16" height="6" aria-hidden="true"><line class="key-c" x1="1" y1="3" x2="15" y2="3" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/></svg><strong id="hist-tip-c" class="num c-ink"></strong><span class="c-ink2">CSFloat 買價</span></div>
+                </div>
+                </div>
+                <p id="hist-note" class="t-note c-ink3 flow-md" hidden>
+                    買完之後，只有 <strong class="c-ink2">Steam 賣價那條（實線）</strong>跟你有關——CSFloat 之後怎麼漲跌，你的成本都已經付掉了。
+                </p>
+                <details id="hist-table-wrap" class="flow-xs" hidden>
+                    <summary class="t-note c-ink3" style="cursor:pointer">看每天的數字</summary>
+                    <div style="overflow-x:auto" class="flow-xs">
+                        <table class="hist-table t-note num">
+                            <thead><tr><th scope="col">日期</th><th scope="col">Steam 賣價</th><th scope="col">CSFloat 買價</th></tr></thead>
+                            <tbody id="hist-tbody"></tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <section class="flow-md">
+            <div class="card" id="cool-card">
+                <h2 class="t-sub">冷卻期這 7 天，這個品項過去怎麼動</h2>
+                <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                    假設過去 30 天裡任何一天買進、7 天後賣出，Steam 賣價（每日中位數）會變多少。
+                </p>
+                <div id="cool-body" class="flow-md">
+                    <p class="t-aux c-ink3">正在讀取歷史資料。</p>
+                </div>
+                <p id="cool-note" class="t-note c-ink3 flow-md" hidden></p>
+                <p id="cool-cheap" class="t-note c-warn flow-xs" hidden>
+                    這個品項單價低，Steam 手續費有最低收費，你實拿的跌幅會比上面的賣價跌幅更大。
+                </p>
             </div>
         </section>
 
@@ -182,7 +226,7 @@
         <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                <span>上面是目前的價格快照。你買進的箱子要等 7 天才能賣，實際成交價依當時市場狀況。<a href="risks.html">看完整風險說明</a></span>
+                <span>最上面四個數字是目前的價格快照，中間兩張卡是過去發生過的事——都不是預測。你買進的箱子要等 7 天才能賣，實際成交價依當時市場狀況。<a href="risks.html">看完整風險說明</a></span>
             </div>
         </section>
 
@@ -205,7 +249,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06c"></script>
+    <script src="assets/site.js?v=2026-09-11"></script>
     <script>
         const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
         const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
@@ -393,6 +437,235 @@
         }
 
         loadCase();
+
+        /* ── 歷史走勢與冷卻期（2026-09-11，site.js ⑯，DECISIONS 4.29）────────
+           ⚠️ 跟上面的即時價格**分開讀**：歷史讀不到，不該讓整頁報錯；反之亦然。
+           ⚠️ 只讀每日中位數。單點欄位（steam_price / csfloat_price）刻意不 select，
+              免得以後有人順手拿它補缺日——4.15 量過那是四分之一的噪音。 */
+        const HIST_H = 200;
+        let HIST = null;          // 目前畫在圖上的序列（hover 與重畫用）
+        let HIST_W = 0;
+
+        function histShow(id, on) { const el = document.getElementById(id); if (el) el.hidden = !on; }
+
+        function histMessage(text) {
+            const chart = document.getElementById('hist-chart');
+            chart.innerHTML = '';
+            const p = document.createElement('p');
+            p.className = 't-aux c-ink3';
+            p.textContent = text;
+            chart.appendChild(p);
+            ['hist-legend', 'hist-note', 'hist-table-wrap', 'hist-tip'].forEach(id => histShow(id, false));
+        }
+
+        function coolMessage(text) {
+            const body = document.getElementById('cool-body');
+            body.innerHTML = '';
+            const p = document.createElement('p');
+            p.className = 't-aux c-ink3';
+            p.textContent = text;
+            body.appendChild(p);
+            histShow('cool-note', false);
+        }
+
+        function signColor(v) {
+            if (Math.abs(v) < 0.05) return 'var(--ink)';
+            return v > 0 ? 'var(--pos)' : 'var(--neg)';
+        }
+
+        function drawHistoryChart() {
+            if (!HIST) return;
+            const wrap = document.getElementById('hist-chart');
+            HIST_W = Math.max(280, Math.min(960, Math.floor(wrap.clientWidth || 640)));
+            wrap.innerHTML = historyChartSvg(HIST, HIST_W, HIST_H);
+            bindHistoryHover(wrap);
+        }
+
+        /* 十字線對日期、不對線：指到哪一天就讀那一天（dataviz：the crosshair finds the X）。
+           鍵盤：tab 到圖上，左右鍵移動。tooltip 只是加值，同樣的數字在「看每天的數字」表格裡都有。 */
+        function bindHistoryHover(wrap) {
+            const svg = wrap.querySelector('svg');
+            if (!svg) return;
+            const sc = historyScales(HIST, HIST_W, HIST_H);
+            const pts = HIST.points;
+            const cross = svg.querySelector('.hist-cross');
+            const dotS = svg.querySelector('.hist-dot-s');
+            const dotC = svg.querySelector('.hist-dot-c');
+            const tip = document.getElementById('hist-tip');
+            let idx = null;
+
+            function show(i) {
+                idx = Math.max(0, Math.min(pts.length - 1, i));
+                const p = pts[idx];
+                const x = sc.x(p.d);
+                cross.setAttribute('x1', x); cross.setAttribute('x2', x);
+                cross.setAttribute('visibility', 'visible');
+                dotS.setAttribute('cx', x); dotS.setAttribute('cy', sc.y(p.sPct)); dotS.setAttribute('visibility', 'visible');
+                dotC.setAttribute('cx', x); dotC.setAttribute('cy', sc.y(p.cPct)); dotC.setAttribute('visibility', 'visible');
+                document.getElementById('hist-tip-date').textContent = ymdShort(p.d) + '（相對 ' + ymdShort(HIST.from) + '）';
+                document.getElementById('hist-tip-s').textContent = fmtPct(p.sPct);
+                document.getElementById('hist-tip-c').textContent = fmtPct(p.cPct);
+                tip.hidden = false;
+                // 螢幕座標：svg 可能被 max-width 縮小，按比例換算
+                const scale = (svg.getBoundingClientRect().width || HIST_W) / HIST_W;
+                const tw = tip.offsetWidth || 160;
+                let left = x * scale + 12;
+                if (left + tw > HIST_W * scale) left = x * scale - tw - 12;
+                tip.style.left = Math.max(0, left) + 'px';
+                tip.style.top = '4px';
+            }
+            function hide() {
+                [cross, dotS, dotC].forEach(el => el.setAttribute('visibility', 'hidden'));
+                tip.hidden = true;
+            }
+            function nearest(clientX) {
+                const r = svg.getBoundingClientRect();
+                const px = (clientX - r.left) * (HIST_W / (r.width || HIST_W));
+                let best = 0, bd = Infinity;
+                pts.forEach((p, i) => { const d = Math.abs(sc.x(p.d) - px); if (d < bd) { bd = d; best = i; } });
+                return best;
+            }
+            svg.addEventListener('pointermove', ev => show(nearest(ev.clientX)));
+            svg.addEventListener('pointerdown', ev => show(nearest(ev.clientX)));
+            svg.addEventListener('pointerleave', hide);
+            svg.addEventListener('focus', () => show(idx === null ? pts.length - 1 : idx));
+            svg.addEventListener('blur', hide);
+            svg.addEventListener('keydown', ev => {
+                if (ev.key === 'ArrowLeft') { show((idx === null ? pts.length : idx) - 1); ev.preventDefault(); }
+                else if (ev.key === 'ArrowRight') { show((idx === null ? -1 : idx) + 1); ev.preventDefault(); }
+                else if (ev.key === 'Escape') { hide(); }
+            });
+        }
+
+        function renderHistoryTable(series) {
+            const tbody = document.getElementById('hist-tbody');
+            tbody.innerHTML = '';
+            series.points.forEach(p => {
+                const tr = document.createElement('tr');
+                [ymdShort(p.d), fmtPct(p.sPct), fmtPct(p.cPct)].forEach(t => {
+                    const td = document.createElement('td');
+                    td.textContent = t;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCooling(series) {
+            const st = coolingStats(series);
+            if (st.tooFew) {
+                coolMessage(`還不夠算：目前只有 ${st.n} 個「買進後 ${COOLDOWN_DAYS} 天有資料」的起點，至少要 ${COOLING_MIN_PAIRS} 個。`);
+                return;
+            }
+            const body = document.getElementById('cool-body');
+            body.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.className = 'grid gap-3 sm:grid-cols-3';
+            const cells = [
+                ['中位數', fmtPct(st.median), signColor(st.median), '一半的起點比這好、一半比這差。'],
+                ['最差的一次', fmtPct(st.worst.chg), signColor(st.worst.chg),
+                    `${ymdShort(st.worst.from)} 買 → ${ymdShort(st.worst.to)} 賣。`],
+                [`${COOLDOWN_DAYS} 天後賣價比較高`, `${st.ups} / ${st.n} 次`, 'var(--ink)', '持平不算。'],
+            ];
+            cells.forEach(c => {
+                const box = document.createElement('div');
+                box.className = 'card card-compact stat';
+                const lab = document.createElement('div'); lab.className = 'stat-label'; lab.textContent = c[0];
+                const val = document.createElement('div'); val.className = 'stat-value stat-value-sm num';
+                val.textContent = c[1]; val.style.color = c[2];
+                const note = document.createElement('div'); note.className = 'stat-note'; note.textContent = c[3];
+                box.appendChild(lab); box.appendChild(val); box.appendChild(note);
+                grid.appendChild(box);
+            });
+            body.appendChild(grid);
+
+            /* ⚠️ n 一定要跟「互不重疊的段數」一起講：相鄰兩個起點有 6 天是同一段價格，
+                  21 個起點不是 21 次獨立的結果（4.13）。這一行不可以刪。 */
+            const note = document.getElementById('cool-note');
+            note.textContent = `這 ${st.n} 個起點彼此重疊（相鄰兩天的 ${COOLDOWN_DAYS} 天裡有 ${COOLDOWN_DAYS - 1} 天是同一段價格），` +
+                `大約只等於 ${st.windows} 段互不重疊的 ${COOLDOWN_DAYS} 天。這是過去發生過的事，不是預測；算法與原始資料在`;
+            const a = document.createElement('a');
+            a.href = 'transparency.html#seven-day';
+            a.textContent = '資料透明頁';
+            note.appendChild(a);
+            note.appendChild(document.createTextNode('。'));
+            note.hidden = false;
+        }
+
+        function renderHistory(series) {
+            if (!series) {
+                histMessage('這個品項還沒有歷史資料。');
+                coolMessage('這個品項還沒有歷史資料。');
+                return;
+            }
+            if (series.tooFew) {
+                const msg = `這個品項的歷史資料還不夠（目前 ${series.points.length} 天，至少要 ${HISTORY_MIN_POINTS} 天）。`;
+                histMessage(msg);
+                coolMessage(msg);
+                return;
+            }
+            HIST = series;
+            document.querySelectorAll('#hist-card .key-s').forEach(el => el.setAttribute('stroke', HISTORY_COLORS.steam));
+            document.querySelectorAll('#hist-card .key-c').forEach(el => el.setAttribute('stroke', HISTORY_COLORS.csfloat));
+            document.getElementById('hist-s-chg').textContent = fmtPct(series.sChg);
+            document.getElementById('hist-c-chg').textContent = fmtPct(series.cChg);
+            document.getElementById('hist-range').textContent =
+                `${ymdShort(series.from)} 到 ${ymdShort(series.to)}，共 ${series.points.length} 天`;
+            histShow('hist-legend', true);
+            histShow('hist-note', true);
+            histShow('hist-table-wrap', true);
+            drawHistoryChart();
+            renderHistoryTable(series);
+            renderCooling(series);
+
+            /* 低價品項：最低手續費讓「實拿」跌得比「賣價」多（4.17、坑 #2）。
+               門檻沿用 site.js ⑮-b 的 TWD_FALLBACK_SAFE_GROSS_USD——同一個事實：低於這個價位 NT$1 的下限開始咬。 */
+            const lastS = series.points[series.points.length - 1].s;
+            histShow('cool-cheap', lastS < TWD_FALLBACK_SAFE_GROSS_USD);
+        }
+
+        async function loadHistory() {
+            if (!caseName) {
+                histMessage('網址少了品項名稱。');
+                coolMessage('網址少了品項名稱。');
+                return;
+            }
+            let rows;
+            try {
+                // 多抓 10 天當緩衝：當天的中位數隔天才寫，視窗的最後一天通常是「昨天」
+                const since = ymdAddDays(new Date().toISOString().slice(0, 10), -(HISTORY_DAYS + 10));
+                const { data, error } = await CLIENT
+                    .from('cases_ratio_history')
+                    .select('snapshot_date,steam_price_median,csfloat_price_median')
+                    .eq('name', caseName)
+                    .gte('snapshot_date', since)
+                    .order('snapshot_date', { ascending: true });
+                if (error) throw error;
+                rows = data || [];
+            } catch (e) {
+                console.error(e);
+                histMessage('讀不到歷史資料。上面的即時價格不受影響，重新整理再試一次。');
+                coolMessage('讀不到歷史資料。');
+                return;
+            }
+            /* ⚠️ 資料讀到了但畫不出來（例如瀏覽器還留著舊版 site.js，新函式不存在）
+                  不可以說成「讀不到」——使用者會照著去查網路。見 test-calc-dom.js 第 7 段。 */
+            try {
+                renderHistory(historySeries(rows));
+            } catch (e) {
+                console.error(e);
+                histMessage('這一區顯示失敗，請強制重新整理（Ctrl+F5 或 Cmd+Shift+R）。');
+                coolMessage('這一區顯示失敗，請強制重新整理。');
+            }
+        }
+
+        loadHistory();
+
+        let histResizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(histResizeTimer);
+            histResizeTimer = setTimeout(drawHistoryChart, 150);
+        });
     
     </script>
 </body>

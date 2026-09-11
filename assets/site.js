@@ -23,6 +23,7 @@
      ⑭ 匯率 FX_CARD_FEE_RATE / buyRate()（買進側要多 1.5% 國外交易費）
      ⑮ Steam 台幣手續費 steamNetTwd()（下限 NT$1／分量，四捨五入不是捨去）
         以及 twdView()：一列 cases_data → 該顯示的台幣數字（四頁共用）
+     ⑯ 單品歷史 historySeries() / coolingStats() / historyChartSvg()（case.html 的兩張卡，只用每日中位數）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js?v=…"></script>
@@ -57,7 +58,7 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-06c';
+var SITE_JS_VERSION = '2026-09-11';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
@@ -2190,6 +2191,245 @@ function eligibilityState() {
     if (v === 'unknown' || eligIsBlocking(k, v)) passed = false;
   });
   return { answered: answered, passed: passed };
+}
+
+/* ── ⑯ 單品歷史：走勢圖與「冷卻期 7 天過去怎麼動」（2026-09-11）─────────
+   case.html 那兩張卡用的純函式。畫面（事件、tooltip）留在 case.html，
+   這裡只放「給定資料 → 算出什麼」，零 DOM，test-history.js 直接跑。
+
+   ⚠️⚠️ 三個設計決定都來自 DECISIONS 4.29，改之前先讀那一節：
+
+   1. **只用每日中位數（`*_median`），不用單點欄位。** 4.15：單點快照有四分之一的
+      波動是取樣噪音，畫成圖就是一根一根假的尖刺。中位數 8/14 起才有，
+      當天的中位數隔天才寫，所以序列會停在「昨天」——這是對的，不要拿單點補。
+   2. **畫兩邊各自的漲跌幅，不畫倍率。** 買完之後 CSFloat 怎麼動跟使用者無關，
+      他承擔的只有 Steam 賣價；倍率把兩邊混在一起，CSFloat 同步下跌時會把
+      Steam 側的損失蓋掉（4.29 二：Recoil 倍率 +0.64%、Steam 側 −3.34%）。
+      用漲跌幅也順便避開換匯——圖上沒有任何一個台幣數字會跟上方卡片打架（4.23）。
+   3. **不做「倍率在 30 天內算高還是算低」。** 2026-09-11 量過：當天倍率落在自己
+      歷史前 20% 的，之後 7 天 Steam 賣價平均 −4.6%；後 20% 的 +0.7%。
+      那張卡會在最糟的時點說「現在算高」——提示與錯誤同向，跟 4.22 同一種形狀。
+      換成冷卻期統計：只講過去發生過什麼，不給時機建議。
+
+   ⚠️ 冷卻期天數讀 COOLDOWN_DAYS（第⑥節），**不要在這裡另寫一個 7**。
+   ⚠️ 缺日不內插（跟 analyze_7day_drift.py 同一條規矩）：圖上斷開，配對直接跳過。 */
+var HISTORY_DAYS = 30;          // 走勢圖與冷卻期統計共用的視窗
+var HISTORY_MIN_POINTS = 7;     // 少於 7 天不畫圖
+var COOLING_MIN_PAIRS = 7;      // 少於 7 個「買進 → 7 天後」的起點不給統計
+
+/* 系列色：dataviz 驗證器在本站卡片底色 #0f172a 上跑過（2026-09-11）——
+   亮度帶、彩度、色盲分離（ΔE 26.8）、一般視覺分離（ΔE 31.8）、對比 ≥ 3:1 全過。
+   ⚠️ 不要換成 --brand 青色：它跟灰色、紫色配都過不了驗證器。
+   ⚠️ 顏色不是唯一的區分：CSFloat 那條另外用虛線，圖例與 tooltip 都有文字標籤。 */
+var HISTORY_COLORS = { steam: '#3987e5', csfloat: '#d95926' };
+
+function ymdAddDays(ymd, n) {
+  var t = Date.UTC(+ymd.slice(0, 4), +ymd.slice(5, 7) - 1, +ymd.slice(8, 10));
+  return new Date(t + n * 86400000).toISOString().slice(0, 10);
+}
+
+function ymdDiffDays(a, b) {
+  return Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+}
+
+/* "2026-09-03" → "9/3" */
+function ymdShort(ymd) {
+  return (+ymd.slice(5, 7)) + '/' + (+ymd.slice(8, 10));
+}
+
+/* 百分比顯示：+1.2% / −3.4% / 0.0%。負號用 U+2212，不是連字號。 */
+function fmtPct(v, digits) {
+  var d = digits === undefined ? 1 : digits;
+  var s = Math.abs(v).toFixed(d);
+  if (Number(s) === 0) return (0).toFixed(d) + '%';
+  return (v > 0 ? '+' : '−') + s + '%';
+}
+
+/* cases_ratio_history 的列（順序不拘）→ 走勢序列。
+   回傳 null（完全沒有中位數）或
+   { from, to, points: [{ d, s, c, sPct, cPct }], sChg, cChg, tooFew }
+     s / c       ＝ 當天 Steam 賣價／CSFloat 買價的中位數（美元，只拿來算比例）
+     sPct / cPct ＝ 相對視窗第一天的漲跌幅（%）
+   視窗是「最後一個有中位數的日子」往回 HISTORY_DAYS 天。 */
+function historySeries(rows, days) {
+  var win = days || HISTORY_DAYS;
+  var pts = (rows || []).map(function (r) {
+    return {
+      d: String((r && r.snapshot_date) || '').slice(0, 10),
+      s: Number(r && r.steam_price_median),
+      c: Number(r && r.csfloat_price_median),
+    };
+  }).filter(function (p) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(p.d) && isFinite(p.s) && p.s > 0 && isFinite(p.c) && p.c > 0;
+  }).sort(function (a, b) { return a.d < b.d ? -1 : (a.d > b.d ? 1 : 0); });
+  if (!pts.length) return null;
+
+  var to = pts[pts.length - 1].d;
+  var from = ymdAddDays(to, -(win - 1));
+  pts = pts.filter(function (p) { return p.d >= from; });
+  var s0 = pts[0].s, c0 = pts[0].c;
+  pts.forEach(function (p) {
+    p.sPct = (p.s / s0 - 1) * 100;
+    p.cPct = (p.c / c0 - 1) * 100;
+  });
+  var last = pts[pts.length - 1];
+  return {
+    from: pts[0].d, to: to, points: pts,
+    sChg: last.sPct, cChg: last.cPct,
+    tooFew: pts.length < HISTORY_MIN_POINTS,
+  };
+}
+
+/* 最多能切出幾段「互不重疊」的 COOLDOWN_DAYS 天。與 analyze_7day_drift.py 的
+   independent_windows() 同一個貪婪法：從最早的起點開始取，取一段就跳過它蓋住的天數。
+   ⚠️ 只扣時間上的重疊；這個數字是上界，不是「幾次獨立觀察」。 */
+function independentWindows(dates) {
+  var uniq = {}, list = [];
+  (dates || []).forEach(function (d) { if (!uniq[d]) { uniq[d] = 1; list.push(d); } });
+  list.sort();
+  var count = 0, cursor = null;
+  list.forEach(function (d) {
+    if (cursor === null || d >= cursor) { count++; cursor = ymdAddDays(d, COOLDOWN_DAYS); }
+  });
+  return count;
+}
+
+/* 走勢序列 → 「任何一天買、COOLDOWN_DAYS 天後賣」的 Steam 賣價變化。
+   回傳 { n, tooFew } 或
+   { n, median, worst: { chg, from, to }, ups, windows }
+     ups     ＝ 7 天後賣價**嚴格高於**買進當天的次數（持平不算漲）
+     windows ＝ independentWindows()，畫面上要跟 n 一起講，否則 n 會被當成獨立樣本數
+   ⚠️ 只看 Steam 側（見本節開頭第 2 點）。 */
+function coolingStats(series) {
+  var pts = (series && series.points) || [];
+  var byDate = {};
+  pts.forEach(function (p) { byDate[p.d] = p; });
+  var pairs = [];
+  pts.forEach(function (p) {
+    var q = byDate[ymdAddDays(p.d, COOLDOWN_DAYS)];
+    if (q) pairs.push({ from: p.d, to: q.d, chg: (q.s / p.s - 1) * 100 });
+  });
+  if (pairs.length < COOLING_MIN_PAIRS) return { n: pairs.length, tooFew: true };
+
+  var sorted = pairs.map(function (x) { return x.chg; }).sort(function (a, b) { return a - b; });
+  var m = sorted.length;
+  var median = m % 2 ? sorted[(m - 1) / 2] : (sorted[m / 2 - 1] + sorted[m / 2]) / 2;
+  var worst = pairs[0];
+  pairs.forEach(function (x) { if (x.chg < worst.chg) worst = x; });
+  return {
+    n: m,
+    median: median,
+    worst: { chg: worst.chg, from: worst.from, to: worst.to },
+    ups: pairs.filter(function (x) { return x.chg > 0; }).length,
+    windows: independentWindows(pairs.map(function (x) { return x.from; })),
+    tooFew: false,
+  };
+}
+
+/* 座標換算。圖與 case.html 的 hover 共用同一份，才不會「線畫在這、十字線對在那」。
+   x 用**日期**不是索引：缺日在圖上是一段空白，不會被擠掉。 */
+var HISTORY_PAD = { l: 44, r: 58, t: 12, b: 26 };
+
+function historyScales(series, W, H) {
+  var P = HISTORY_PAD, pts = series.points;
+  var lo = 0, hi = 0;
+  pts.forEach(function (p) {
+    lo = Math.min(lo, p.sPct, p.cPct);
+    hi = Math.max(hi, p.sPct, p.cPct);
+  });
+  var span = Math.max(hi - lo, 2);
+  var steps = [0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+  var step = steps[steps.length - 1];
+  for (var i = 0; i < steps.length; i++) { if (steps[i] >= span / 4) { step = steps[i]; break; } }
+  var yMin = Math.floor(lo / step) * step, yMax = Math.ceil(hi / step) * step;
+  if (yMax - yMin < step) yMax = yMin + step;
+  var ticks = [];
+  for (var v = yMin; v <= yMax + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+
+  var days = Math.max(ymdDiffDays(series.from, series.to), 1);
+  var plotW = W - P.l - P.r, plotH = H - P.t - P.b;
+  return {
+    W: W, H: H, ticks: ticks, yMin: yMin, yMax: yMax,
+    x: function (d) { return P.l + ymdDiffDays(series.from, d) / days * plotW; },
+    y: function (v) { return P.t + (yMax - v) / (yMax - yMin) * plotH; },
+  };
+}
+
+/* 一條線的 path。相鄰兩點差超過一天就斷開（缺日不內插）。 */
+function historyPath(points, key, sc) {
+  var out = '', prev = null;
+  points.forEach(function (p) {
+    var cmd = (prev && ymdDiffDays(prev.d, p.d) === 1) ? 'L' : 'M';
+    out += cmd + sc.x(p.d).toFixed(1) + ' ' + sc.y(p[key]).toFixed(1) + ' ';
+    prev = p;
+  });
+  return out.trim();
+}
+
+/* 走勢圖的 SVG 字串（純字串，零 DOM）。hover 用的十字線與兩顆點預先放好、預設隱藏，
+   由 case.html 移動。文字一律走文字色，不穿系列色（系列色只給線與圖例的線段）。 */
+function historyChartSvg(series, W, H) {
+  var sc = historyScales(series, W, H), P = HISTORY_PAD, pts = series.points;
+  var C = HISTORY_COLORS, out = [];
+  var label = 'Steam 賣價 ' + fmtPct(series.sChg) + '、CSFloat 買價 ' + fmtPct(series.cChg) +
+              '（' + ymdShort(series.from) + ' 到 ' + ymdShort(series.to) + '）';
+  out.push('<svg class="hist-svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H +
+           '" role="img" tabindex="0" aria-label="' + label + '" style="display:block;max-width:100%;overflow:visible">');
+
+  // 格線（1px 實線、壓低）與 y 軸刻度
+  sc.ticks.forEach(function (t) {
+    var y = sc.y(t).toFixed(1);
+    out.push('<line x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + y + '" y2="' + y + '" stroke="' +
+             (t === 0 ? '#334155' : '#1e293b') + '" stroke-width="1"/>');
+    out.push('<text x="' + (P.l - 8) + '" y="' + (+y + 4) + '" text-anchor="end" font-size="11" fill="#64748b" ' +
+             'style="font-variant-numeric:tabular-nums">' + fmtPct(t, t % 1 ? 1 : 0) + '</text>');
+  });
+
+  // x 軸：頭、中、尾三個日期
+  var mid = ymdAddDays(series.from, Math.round(ymdDiffDays(series.from, series.to) / 2));
+  [[series.from, 'start'], [mid, 'middle'], [series.to, 'end']].forEach(function (a) {
+    out.push('<text x="' + sc.x(a[0]).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + a[1] +
+             '" font-size="11" fill="#64748b">' + ymdShort(a[0]) + '</text>');
+  });
+
+  // 兩條線：CSFloat 先畫（在下），Steam 後畫（在上、是使用者要看的那一條）
+  out.push('<path d="' + historyPath(pts, 'cPct', sc) + '" fill="none" stroke="' + C.csfloat +
+           '" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round"/>');
+  out.push('<path d="' + historyPath(pts, 'sPct', sc) + '" fill="none" stroke="' + C.steam +
+           '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>');
+
+  // 線尾的點與數值（直接標籤）。兩個數值太近就上下分開，並用短引線接回去。
+  var last = pts[pts.length - 1], xe = sc.x(last.d);
+  var ends = [
+    { key: 'sPct', color: C.steam, y: sc.y(last.sPct) },
+    { key: 'cPct', color: C.csfloat, y: sc.y(last.cPct) },
+  ];
+  ends.forEach(function (e) { e.ly = e.y; });
+  if (Math.abs(ends[0].y - ends[1].y) < 14) {
+    var up = ends[0].y <= ends[1].y ? ends[0] : ends[1], dn = up === ends[0] ? ends[1] : ends[0];
+    var m = (ends[0].y + ends[1].y) / 2;
+    up.ly = m - 7; dn.ly = m + 7;
+  }
+  ends.forEach(function (e) {
+    out.push('<circle cx="' + xe.toFixed(1) + '" cy="' + e.y.toFixed(1) + '" r="3.5" fill="' + e.color +
+             '" stroke="#0f172a" stroke-width="2"/>');
+    if (Math.abs(e.ly - e.y) > 0.5) {
+      out.push('<line x1="' + (xe + 4).toFixed(1) + '" y1="' + e.y.toFixed(1) + '" x2="' + (xe + 9).toFixed(1) +
+               '" y2="' + e.ly.toFixed(1) + '" stroke="#64748b" stroke-width="1"/>');
+    }
+    out.push('<text x="' + (xe + 11).toFixed(1) + '" y="' + (e.ly + 4).toFixed(1) + '" font-size="11" fill="#94a3b8" ' +
+             'style="font-variant-numeric:tabular-nums">' + fmtPct(last[e.key]) + '</text>');
+  });
+
+  // hover 層：十字線、兩顆焦點、整塊透明的感應區（比線粗很多，指到日期就好）
+  out.push('<line class="hist-cross" x1="0" x2="0" y1="' + P.t + '" y2="' + (H - P.b) +
+           '" stroke="#94a3b8" stroke-width="1" visibility="hidden"/>');
+  out.push('<circle class="hist-dot-s" r="4" fill="' + C.steam + '" stroke="#0f172a" stroke-width="2" visibility="hidden"/>');
+  out.push('<circle class="hist-dot-c" r="4" fill="' + C.csfloat + '" stroke="#0f172a" stroke-width="2" visibility="hidden"/>');
+  out.push('<rect class="hist-hit" x="' + P.l + '" y="0" width="' + (W - P.l - P.r) + '" height="' + H +
+           '" fill="transparent"/>');
+  out.push('</svg>');
+  return out.join('');
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

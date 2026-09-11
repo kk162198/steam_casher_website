@@ -343,7 +343,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                 <div class="card card-compact stat">
                     <div class="stat-label">已累積天數</div>
                     <div id="snap-days" class="stat-value stat-value-sm c-ink3">--</div>
-                    <div class="stat-note">每日 00:30 UTC 各存一筆。</div>
+                    <div class="stat-note">每天各存一筆（排程 03:37 UTC，實際常晚幾小時）。</div>
                 </div>
                 <div class="card card-compact stat">
                     <div class="stat-label">品項數</div>
@@ -368,7 +368,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                 </div>
             </div>
 
-            <div class="card flow-lg">
+            <div class="card flow-lg" id="seven-day">
                 <h3 class="t-sub">怎麼算「7 天後賣價差多少」</h3>
                 <ol class="t-body c-ink2 flow-md" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
                     <li>把 CSV 依 <span class="num">name</span>（品項）與 <span class="num">snapshot_date</span>（日期）排好。</li>
@@ -376,6 +376,10 @@ discount       = (1 − 1 ÷ 1.32) × 100%
                     <li>算 <span class="num">steam_price(d+7) ÷ steam_price(d) − 1</span>，這就是那一組的 7 日賣價變動。</li>
                     <li>把所有組別彙總成分布（平均、中位、百分位、最差值）。</li>
                 </ol>
+                <p class="t-aux c-ink2 flow-md">
+                    每個品項頁的「冷卻期這 7 天」就是這個算法，差別只有兩點：用的是
+                    <span class="num">steam_price_median</span>（每日中位數，理由見下一張卡），而且只看那個品項最近 30 天。
+                </p>
                 <p class="t-note c-ink3 flow-md">
                     ⚠️ 三個算的時候會踩到的地方：<strong>同一品項的相鄰視窗互相重疊</strong>（<span class="num">d</span> 與 <span class="num">d+1</span> 那兩段有 6 天是共用的），
                     所以樣本數不等於獨立觀察數，直接套信賴區間會高估精確度；
@@ -513,7 +517,7 @@ discount       = (1 − 1 ÷ 1.32) × 100%
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-06c"></script>
+    <script src="assets/site.js?v=2026-09-11"></script>
     <script>
         const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
         const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
