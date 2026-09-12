@@ -22,6 +22,7 @@
      ⑬ 台幣顯示格式 fmtTwd()（兩位小數）／ roundTwd()（寫入前收斂）
      ⑭ 匯率 FX_CARD_FEE_RATE / buyRate()（買進側要多 1.5% 國外交易費）
      ⑮ Steam 台幣手續費 steamNetTwd()（下限 NT$1／分量，四捨五入不是捨去）
+        ⑮-c 保本掛價 breakEvenAskTwd()（掛多少以上這一批不會是負收益）
         以及 twdView()：一列 cases_data → 該顯示的台幣數字（四頁共用）
      ⑯ 單品歷史 historySeries() / coolingStats() / historyChartSvg()（case.html 的兩張卡，只用每日中位數）
 
@@ -58,7 +59,7 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-11';
+var SITE_JS_VERSION = '2026-09-12';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
@@ -1984,6 +1985,50 @@ function steamNetTwd(grossTwd) {
     else hi = mid - 1;
   }
   return lo;
+}
+
+/* ── ⑮-c 保本掛價 breakEvenAskTwd()（2026-09-12）─────────────
+   回答賣出頁上唯一一個「要不要現在賣掉」會用到的數字：
+   **掛到多少以上，這一批就不會是負收益。**
+
+   使用者的實際用途是評估「賣給最高求購價（快速賣出）」划不划算——
+   那個價格 Steam 畫面上看得到，但**本站沒有**（`priceoverview` 只有
+   lowest / median / volume，最高求購在 `itemordershistogram`）。
+   所以這裡不預測、不建議，只給一條線，比對留給使用者。
+
+   ⚠️ **這是 Steam 標價（買家付的錢），不是你實拿。** 跟回填欄同一套講法，
+      畫面上一定要寫出來——拿它去跟「實拿」那個數字比是錯的。
+
+   算式（不需要二分搜尋，有精確解）：
+
+     每件最低實拿  n = ceil(實付總額 ÷ 件數)      整數元
+     保本掛價      x = n + steamFeeTwd(n)
+
+   `steamNetTwd(n + steamFeeTwd(n)) === n`，所以 x 就是「實拿 ≥ n」的
+   最小整數標價。台幣掛單價本來就是整數元（4.17），不必再取整。
+
+   ⚠️⚠️ **一定要逐件算，不可以拿總額去反解。**
+      NT$1／分量的下限是**每件咬一次**：13 件實付 280 的保本價是
+      breakEven(280,13) = 每件實拿 22 → 掛 25；
+      拿總額反解會得到「整批掛 313」→ 每件 24，**低估 1 元／件**，
+      而低價品項上這個方向就是「其實在賠卻說有賺」。
+
+   ⚠️ `ceil` 是刻意往保守走（寧可多算幾角）。護欄 3 要的保守是寧可勸退，
+      而這個數字錯的方向如果是低估，使用者會照著它賣掉。
+
+   ⚠️ 件數是估計值時（沒填「實際買到幾個」，退回計畫數量）**分母就是估的**：
+      件數高估 → 保本價低估 → 在會賠的時候說有賺。函式照算，
+      **呼叫端必須把「估」標出來**（2026-09-12 決定：標記而不是擋掉）。
+
+   回傳 null = 算不出來（沒有實付總額、或件數不明），呼叫端要說去哪裡補，
+   ⚠️ 不要印 0——0 會被讀成「掛多少都不賠」。 */
+function breakEvenAskTwd(paidTwd, qty) {
+  var paid = Number(paidTwd);
+  var q = Math.floor(Number(qty));
+  if (!isFinite(paid) || paid <= 0) return null;
+  if (!isFinite(q) || q <= 0) return null;
+  var net = Math.ceil(paid / q);          /* 每件至少要實拿這麼多（整數元） */
+  return net + steamFeeTwd(net);
 }
 
 /* ── ⑮-b 沒有台幣報價時，這個品項還能不能信 ──────────────────

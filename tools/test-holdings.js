@@ -763,5 +763,49 @@ eq('清空後一個 key 都不剩', Object.keys(store).length, 0);
   eq('stale 一定比 aging 晚', R.csfloat.stale > R.csfloat.aging && R.steam.stale > R.steam.aging, true);
 }
 
+/* ── 保本掛價 breakEvenAskTwd()（site.js ⑮-c，2026-09-12）─────
+   賣出頁每一批顯示「每個掛 NT$X 以上才不賠」。使用者拿它判斷要不要
+   直接賣給最高求購價，**錯的方向如果是低估，他會照著它賣掉**。 */
+{
+  const be = ctx.breakEvenAskTwd, net = ctx.steamNetTwd;
+
+  /* 定義本身：掛保本價 → 實拿夠；少 1 元 → 不夠。
+     ⚠️ 用性質掃一整片組合，不是挑幾個好看的點——換一種寫法
+        （拿總額反解、忘了 ceil、用 ×0.87 近似）都會在某一格紅。 */
+  const wrongEnough = [], wrongMinimal = [];
+  [1, 2, 7, 13, 20, 45].forEach(qty => {
+    [3, 20, 26, 100, 280, 999, 5000, 40000].forEach(paid => {
+      const x = be(paid, qty);
+      if (!(net(x) * qty >= paid)) wrongEnough.push([paid, qty, x]);
+      if (!(net(x - 1) * qty < paid)) wrongMinimal.push([paid, qty, x]);
+    });
+  });
+  eq('保本價掛下去實拿一定 ≥ 實付', wrongEnough, []);
+  eq('保本價是最小的那個價（少 1 元就不夠）', wrongMinimal, []);
+
+  /* 實測基準：13 件、實付 280（與 test-sell-dom 的 fixture 同一組）。
+     NT$25 的實拿是 22／個 × 13 = 286 ≥ 280；掛 24 只有 21 × 13 = 273。 */
+  eq('13 件實付 280 → 保本 25', be(280, 13), 25);
+  eq('掛 24 就不夠', net(24) * 13 < 280, true);
+
+  /* ⚠️⚠️ 這一條擋的是「拿總額去反解」那種寫法。
+     NT$1／分量的下限是**每件**咬一次：實付 26、13 件的正確答案是 4
+     （每件實拿 2），總額路徑會算成 ceil((26 + fee(26)) / 13) = 3，
+     每件實拿只剩 1、整批 13——**低估到一半，而且畫面上不會有提示**。 */
+  eq('低價品項：逐件算是 4 不是 3', be(26, 13), 4);
+  eq('總額反解那個答案真的會賠', net(3) * 13 < 26, true);
+
+  /* ceil：實付除不盡時往上，寧可多算幾角（護欄 3 的方向）。 */
+  eq('除不盡往上取', be(100, 3), 39);
+  eq('往下取一元就不夠', net(38) * 3 < 100, true);
+
+  /* 算不出來要回 null。⚠️ 不可以回 0——0 會被讀成「掛多少都不賠」。 */
+  eq('沒填實付 → null', be(null, 13), null);
+  eq('實付 0 → null', be(0, 13), null);
+  eq('件數 0 → null', be(280, 0), null);
+  eq('件數缺 → null', be(280, null), null);
+  eq('負數 → null', be(-280, 13), null);
+}
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

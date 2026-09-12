@@ -562,6 +562,16 @@
                             而待處理的那筆錢<strong class="c-ink">不算進結帳額度</strong>——實測拿一個介於兩者之間的金額去結帳，
                             Steam 會直接要求刷卡補差額。想在特賣第一天就花掉，就要早幾天賣。
                         </p>
+                        <!-- ⚠️ id="break-even"：賣出頁每一批的「每個掛 NT$X 以上才不賠」連過來。
+                             賣出頁只留那個數字與「是標價不是實拿」，為什麼在這裡。改 id 要一起改 sell.html。 -->
+                        <p class="t-aux c-ink2 flow-xs" id="break-even">
+                            <strong class="c-ink">保本掛價</strong>是拿你填的<strong class="c-ink">實付總額</strong>除以件數，
+                            再加回 Steam 的手續費算出來的：掛到這個價以上，這一批就不會是負收益。
+                            它是<strong class="c-ink">你要填進 Steam 的標價</strong>，不是你實拿。
+                            用途是評估要不要直接賣給最高求購價（那個數字只有 Steam 畫面上有，本站看不到）。
+                            兩件事要知道：件數沒填的話分母是計畫數量、算出來的保本價會偏低；
+                            <strong class="c-ink">不賠不等於划算</strong>——這一單值不值得做是試算頁在回答的問題。
+                        </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -698,7 +708,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-11"></script>
+    <script src="assets/site.js?v=2026-09-12"></script>
     <script>
         /* A 段的勾選：維護 sah-setup-v1。（2026-08-24 從 setup.html 併進來）
            門檻常數、時間模型、狀態讀寫全部在 site.js 第⑩節，

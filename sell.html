@@ -219,7 +219,7 @@
 
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
-    <script src="assets/site.js?v=2026-09-11"></script>
+    <script src="assets/site.js?v=2026-09-12"></script>
     <script>
         /* ════════════════════════════════════════════════════════════
            賣出頁。網站原本只服務買進那一端——使用者買完之後就消失在
@@ -496,14 +496,36 @@
                 ? '<span class="t-note c-ink3" style="display:block">' + unlockText(u) + ' 解鎖</span>'
                 : '') + estNote;
 
+            /* 保本掛價（2026-09-12）：掛到多少以上，這一批不會是負收益。
+               算式在 site.js ⑮-c，逐件反解（NT$1／分量的下限每件咬一次）。
+
+               ⚠️ **與市價無關，所以查不到價格時照樣顯示，冷卻期內也照樣顯示。**
+                  它只依賴使用者自己的實付總額與件數，而「要不要用快速賣出
+                  （賣給最高求購價）」這個決定，人是在解鎖前就在想了。
+               ⚠️ 本站沒有最高求購價（`priceoverview` 只有 lowest／median／volume），
+                  所以這裡只給一條線，比對留給使用者，**不建議賣或不賣**。
+               ⚠️ 「Steam 標價、不是實拿」這句不可以省：旁邊那行就是實拿，
+                  兩個數字擺在一起，少了這句就會拿保本價去跟實拿比。
+               ⚠️ 件數是估計值時分母就是估的（件數高估 → 保本價低估 → 在會賠的
+                  時候說有賺）。2026-09-12 決定**標記而不是擋掉**，那就要標得看得見。 */
+            const beTwd = breakEvenAskTwd(item.paidTwd, item.qty);
+            const beHtml = beTwd != null
+                ? '<span class="t-note c-ink3" style="display:block">每個掛 NT$ '
+                  + fmtTwd(beTwd) + ' 以上才不賠'
+                  + (item.qtyIsEstimate
+                      ? '<span class="c-warn">（件數是估的，這個數字跟著估）</span>' : '')
+                  + '<br>Steam 標價、不是實拿・<a href="help.html#break-even">為什麼</a></span>'
+                : '<span class="t-note c-ink3" style="display:block">保本價要先填實付總額</span>';
+
             /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
-            const priceCell = askTwd == null
-                ? '<span class="c-ink3 t-note">查不到目前價格</span>'
-                : '<span class="cell-stack">'
-                  + '<span class="ask">NT$ ' + fmtTwd(askTwd) + '</span>'
-                  + '<span class="t-note c-ink3">實拿 NT$ ' + fmtTwd(netTwd)
-                  + (item.qty > 1 ? '／個・共 NT$ ' + fmtTwd(totalNet) : '') + '</span>'
-                  + '</span>';
+            const priceCell = '<span class="cell-stack">'
+                + (askTwd == null
+                    ? '<span class="c-ink3 t-note">查不到目前價格</span>'
+                    : '<span class="ask">NT$ ' + fmtTwd(askTwd) + '</span>'
+                      + '<span class="t-note c-ink3">實拿 NT$ ' + fmtTwd(netTwd)
+                      + (item.qty > 1 ? '／個・共 NT$ ' + fmtTwd(totalNet) : '') + '</span>')
+                + beHtml
+                + '</span>';
 
             /* ⚠️ 走 soldEntry()：找不到新 key 會退回 v4 之前的純品項名 key，
                否則升級當下所有回填過的成交價會一起消失。 */
