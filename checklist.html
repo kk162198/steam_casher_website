@@ -55,13 +55,16 @@
                     照清單到 CSFloat 買，買到就打勾，填上<strong>實際買到幾個、實付多少</strong>。
                     買不到全部很常見，填了賣出頁才算得出賺多少。進度存在這台瀏覽器裡。
                 </p>
+                <!-- ⚠️ 2026-09-12 精簡：求購訂單的完整說明（為什麼是天花板不是目標價、
+                     實測 NT$88→NT$81、沒成交的三段終止條件）整段搬到 help.html#buy-order。
+                     留在這裡的兩句是 4.21 的紅線——它們是**正在填那個對話框的人**看不到就會填錯的東西：
+                       · 每件最高價要填清單給的數字（不是自己去查最低掛牌價）
+                       · 右邊那一欄是「別的買家出多少」，照它填只會排隊
+                     ⚠️ 不要再壓縮這兩句，也不要把它們換成連結。 -->
                 <p class="t-note c-ink3 flow-sm">
-                    CSFloat 的<strong>求購訂單</strong>可以一張設好數量與上限價，不用同一顆箱子點 18 次。
-                    <strong>每件最高價就填每一列給的那個數字</strong>——成交價取市場當下的較低者，
-                    所以它只會幫你省錢（實測：出價 NT$88 成交在 NT$81）。
-                    <span class="c-warn">沒成交就代表市場漲過你的計畫了</span>，回試算頁重算一份。
-                    <span class="c-warn">⚠️ 對話框右邊那一欄是「別的買家出多少」，不是現在賣多少，別照它填</span>——
-                    它就貼在價格欄旁邊，照著填訂單只會排隊。<a href="help.html#buy-order">完整步驟</a>
+                    用 CSFloat 的<strong>求購訂單</strong>下單，<strong>每件最高價就填每一列給的那個數字</strong>。
+                    <span class="c-warn">⚠️ 對話框右邊那一欄是「別的買家出多少」，不是現在賣多少，別照它填。</span>
+                    <a href="help.html#buy-order">怎麼下單、沒成交怎麼辦</a>
                 </p>
             </div>
             <a href="calculator.html" class="btn btn-secondary btn-sm">重新試算</a>
@@ -131,8 +134,8 @@
                     <div>
                         <h2 class="t-sub">換一台裝置看</h2>
                         <p class="t-aux c-ink2 flow-xs" style="max-width:38em">
-                            清單只存在<strong>這台裝置</strong>裡，手機打開看不到。
-                            複製連結傳給自己，在手機上打開就是同一份清單。<strong>不用註冊。</strong>
+                            複製連結傳給自己，手機打開就是同一份清單。<strong>不用註冊。</strong>
+                            <a href="help.html#track-url">為什麼要這一步</a>
                         </p>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -161,14 +164,15 @@
         <section class="sec">
             <div class="card">
                 <h2 class="t-sect">全部買完之後</h2>
+                <!-- ⚠️ 2026-09-12 五項壓成三項。搬走的是解釋（賣家不一定馬上送報價、
+                     沒按會退回估計值、單價為什麼不存在），留下的是動作本身。
+                     ⚠️ 第 2 項那句警語不可以只留連結：填錯單價的人是**正在填那一格**的人。 -->
                 <ol class="t-body c-ink2 flow-md" style="padding-left:1.5em;display:flex;flex-direction:column;gap:8px">
-                    <li>箱子進到 Steam 庫存後，滑鼠移上去會顯示可交易日期。</li>
-                    <li><strong>箱子到了就回來按「物品到了」</strong>——冷卻期是從物品進到庫存才開始算的，
-                        而 CSFloat 的賣家收到訂單之後才去送交易報價，不一定馬上。</li>
-                    <li>沒按也不會壞：賣出頁會用打勾時間算出<strong>最快</strong>能賣的時刻，並標明那是估計值——
-                        實際只會更晚不會更早。</li>
-                    <li>到期後在 Steam 市場逐一上架，賣出頁會告訴你該掛多少、實拿多少。</li>
-                    <li><strong>實付總額填結帳畫面的金額，不要填單價</strong>——一次買 13 個常是好幾筆不同價格湊的，單價不存在。</li>
+                    <li><strong>箱子到了就回來按「物品到了」</strong>——冷卻期從物品進到庫存才開始算。
+                        <a href="help.html#arrived">為什麼</a>・<a href="help.html#cooldown-estimate">沒按會怎樣</a></li>
+                    <li><strong>實付總額填結帳畫面的金額，不要填單價。</strong>
+                        <a href="help.html#paid-total">為什麼</a></li>
+                    <li>到期後到<a href="sell.html">賣出頁</a>，它會告訴你該掛多少、實拿多少。</li>
                 </ol>
                 <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
                     <a href="sell.html" class="btn btn-primary btn-sm">去賣出頁看冷卻期</a>

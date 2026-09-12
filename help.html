@@ -431,9 +431,14 @@
                             錢包要先有錢：單張訂單不能超過餘額，所有未成交訂單加起來不能超過餘額的 10 倍，
                             而餘額不夠時系統會直接把訂單移除。
                         </p>
-                        <p class="t-body c-ink2 flow-sm">
+                        <!-- ⚠️ id="paid-total"：購物清單頁只留「填總額不要填單價」那一句警語，
+                             「為什麼單價不存在」的解釋在這裡。改 id 要一起改 checklist.html。 -->
+                        <p class="t-body c-ink2 flow-sm" id="paid-total">
                             買到之後<strong class="c-ink">回填實際買到幾個與實付總額</strong>——買不到全部很常見，
                             填了七天後才算得出賺多少。
+                            <strong class="c-ink">實付填結帳畫面的總金額，不是單價</strong>：
+                            一次買 13 個常常是好幾筆不同價格湊起來的，那個「單價」並不存在，
+                            自己除出來的數字會讓賺賠算錯。
                         </p>
                         <!-- 沒成交的出路（2026-09-06 新增）。
                              ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是求購訂單、還是可能不成交**
@@ -453,7 +458,9 @@
                         </div>
                         <!-- 2026-08-29 新增。使用者實際踩到的：付完錢以為就開始倒數了，
                              七天後回來卻還鎖著。CSFloat 是掛單制，付款只是通知賣家去送報價。 -->
-                        <p class="t-aux c-warn flow-xs">
+                        <!-- ⚠️ id="arrived"：購物清單頁的「全部買完之後」只留一句
+                             「箱子到了回來按物品到了」，理由在這裡。改 id 要一起改 checklist.html。 -->
+                        <p class="t-aux c-warn flow-xs" id="arrived">
                             會卡在哪：<strong class="c-ink">付完錢不等於箱子已經到手</strong>。CSFloat 是掛單制，
                             你付款之後賣家才會去送交易報價，可能幾分鐘、也可能拖到隔天。
                             <strong class="c-ink">7 天是從箱子真的進到你的庫存才開始算</strong>，不是從你付錢那一刻。
@@ -488,7 +495,8 @@
                             這 7 天什麼都不用做，也什麼都做不了。不能提前賣、不能取消、不能轉移。
                             <a href="sell.html">賣出頁</a>會倒數，也可以下載到期提醒。
                         </p>
-                        <p class="t-aux c-ink2 flow-xs">
+                        <!-- ⚠️ id="cooldown-estimate"：購物清單頁不再解釋「沒按也不會壞」，指過來。 -->
+                        <p class="t-aux c-ink2 flow-xs" id="cooldown-estimate">
                             ⚠️ 沒按過「物品到了」的批次，賣出頁算的是<strong class="c-ink">最快</strong>能賣的時刻
                             （下單那一刻 + 7 天），並且標明那是估計值。實際只會更晚不會更早。
                         </p>
@@ -529,21 +537,42 @@
                     <div class="step-no num">5</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 Steam 社群市場上架</h3>
-                        <p class="t-body c-ink2 flow-xs">
+                        <!-- ⚠️ id="sell-price"：賣出頁的「在 Steam 上架的時候」只留三句要照做的，
+                             掛價的來源與「為什麼填標價就好」在這裡。改 id 要一起改 sell.html。 -->
+                        <p class="t-body c-ink2 flow-xs" id="sell-price">
                             到庫存點箱子、按出售，價格填成跟目前最低掛牌價一樣或低 1 元。
                             Steam 會自動顯示扣完手續費後你實拿多少，那個數字才是你會拿到的錢。
                             <a href="sell.html">賣出頁</a>會告訴你該掛多少、實拿多少。
                         </p>
+                        <p class="t-aux c-ink2 flow-xs">
+                            賣出頁上的建議掛價是<strong class="c-ink">中位成交價</strong>，不是此刻的最低掛牌價，
+                            兩者會差幾個百分點——<strong class="c-ink">以 Steam 畫面上顯示的為準</strong>。
+                            成交後回賣出頁填成交價時<strong class="c-ink">填 Steam 標價（買家付的數字）就好</strong>，
+                            手續費本站會自己扣；自己先扣過一次再填，賺賠會被算少約 13%。
+                        </p>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。填價格的時候看下面那行「您將收到」。另外掛單不一定馬上成交，冷門品項可能要放幾天。
+                        </p>
+                        <!-- ⚠️ id="pending-balance"：DECISIONS 4.27，2026-09-06 實測（結帳被擋、
+                             Steam 要求刷卡補差額）。賣出頁只留「賣掉不等於馬上能花」一句，理由在這裡。
+                             ⚠️ 這不是「加緩衝」的理由（4.18 禁止），是一個關於「錢什麼時候能用」的事實。 -->
+                        <p class="t-aux c-warn flow-xs" id="pending-balance">
+                            ⚠️ <strong class="c-ink">賣掉不等於馬上能花。</strong>Steam 會把市場賣出的錢先掛成
+                            <strong class="c-ink">待處理餘額</strong>，<strong class="c-ink">最多 24 小時</strong>才進到可以用的錢包餘額，
+                            而待處理的那筆錢<strong class="c-ink">不算進結帳額度</strong>——實測拿一個介於兩者之間的金額去結帳，
+                            Steam 會直接要求刷卡補差額。想在特賣第一天就花掉，就要早幾天賣。
                         </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 怎麼確認做對了
                             </div>
+                            <!-- ⚠️ 2026-09-12 修：原本寫「成交後 Steam 錢包餘額會直接增加，不用再做
+                                 任何確認」。那正是 DECISIONS 4.27 在 2026-09-06 實測推翻的說法——
+                                 sell.html 當天改掉了，這一行漏改，兩頁因此講相反的話。 -->
                             <p class="t-aux c-ink2 flow-0">
-                                市場頁的「我的待售物品」看得到它。成交後 Steam 錢包餘額會直接增加，不用再做任何確認。
+                                市場頁的「我的待售物品」看得到它。成交後那筆錢會先掛成「待處理餘額」，
+                                不是馬上就能花的錢包餘額。
                             </p>
                         </div>
                         <div class="chk-links">
@@ -553,6 +582,94 @@
                                 社群市場：看我的待售物品<span class="ext">↗</span></a>
                         </div>
                     </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ═══════════ C 段：介面本身怎麼運作 ═══════════
+             2026-09-12 新增。購物清單／賣出／帳本三頁原本各自帶著一大段解釋，
+             夾在按鈕與表格中間，把「現在要做什麼」推到很下面。那些解釋講的是
+             **這個工具怎麼運作**，不是這一次操作的結果，所以整段搬到這裡。
+
+             ⚠️ 留在操作頁、不可以搬進來的有五類（DECISIONS 4.7／4.21／4.23、
+                FRONTEND〈跨裝置〉〈刪除〉）：
+               · 求購訂單「別超過」與「右邊那欄是別的買家出多少」
+               · 實付總額「填總額不要填單價」
+               · 回填成交價「填 Steam 標價，不要自己先扣」
+               · 追蹤網址「內容＝你買了什麼、花了多少」
+               · 刪除武裝時具體會失去什麼（幾批、多少錢）
+             這五條的共同點是**使用者正在做那個動作**，看不到就會做錯；
+             搬進來的都是「為什麼」。
+
+             ⚠️ 每張卡的 id 是那四頁連過來的錨點，改 id 要一起改那四頁。 -->
+        <section class="sec">
+            <h2 class="t-page">介面本身怎麼運作</h2>
+            <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                操作頁上只留當下要做的事，背後的理由都收在這裡。
+            </p>
+
+            <div class="card flow-lg" style="display:flex;flex-direction:column;gap:28px">
+
+                <div id="track-url">
+                    <h3 class="t-sub">換裝置看：追蹤網址與行事曆提醒</h3>
+                    <p class="t-body c-ink2 flow-xs">
+                        本站<strong class="c-ink">不用註冊、不收 email</strong>，所以你的清單預設只存在
+                        <strong class="c-ink">按下按鈕的那一台裝置</strong>裡，手機打開是看不到的。
+                        跨裝置有兩條路，都在購物清單頁與賣出頁：
+                    </p>
+                    <ul class="t-aux c-ink2 flow-xs" style="padding-left:1.3em;display:flex;flex-direction:column;gap:6px">
+                        <li><strong class="c-ink">複製追蹤網址</strong>：整份清單編在網址裡，傳給自己、在手機上打開就是同一份，
+                            那一頁會問你要不要存在那台裝置上。</li>
+                        <li><strong class="c-ink">冷卻期到期提醒</strong>（<code>.ics</code> 檔）：匯入行事曆，到期那一刻提醒你，
+                            提醒內文裡附著回到賣出頁的連結，所以換裝置也打得開。七天很容易忘，這是最省事的一條。</li>
+                        <li><strong class="c-ink">特賣倒數行事曆</strong>：整年的檔期一次匯入就好，提醒設在開始前 10 天
+                            ——冷卻期要 7 天，提前 10 天才來得及買。</li>
+                    </ul>
+                    <p class="t-aux c-warn flow-xs">
+                        ⚠️ 追蹤網址是<strong class="c-ink">當下的快照，不是連線</strong>：複製之後你在原裝置改的東西，
+                        已經貼出去的那條連結不會知道，要重新複製一次。
+                        內容包含你買了什麼、花了多少，貼進共用行事曆或群組等於把消費紀錄給別人看。
+                    </p>
+                </div>
+
+                <div class="hr"></div>
+
+                <div id="records">
+                    <h3 class="t-sub">你填的東西存在哪裡</h3>
+                    <p class="t-body c-ink2 flow-xs">
+                        打勾、實際買到幾個、實付多少、成交價——<strong class="c-ink">全部只存在你自己瀏覽器裡</strong>，
+                        沒有上傳到任何伺服器，本站也看不到。好處是不用帳號；代價是它<strong class="c-ink">沒有備份</strong>。
+                    </p>
+                    <p class="t-aux c-warn flow-xs">
+                        ⚠️ 清掉瀏覽資料會消失，而 <strong class="c-ink">iPhone／Mac 的 Safari 更會在連續 7 天沒打開這個網站之後
+                        自動刪掉整包</strong>——本站的動線正好是「買完 → 等 7 天 → 回來賣」，正面對撞。
+                        紀錄累積越多越值錢，也越禁不起一次清空。
+                    </p>
+                    <p class="t-aux c-ink2 flow-xs">
+                        所以<a href="ledger.html">帳本頁</a>的「匯出」不是加值功能，是這個設計的前提：
+                        <strong class="c-ink">JSON</strong> 可以再匯入回來（換裝置、重灌、被清掉時用），
+                        <strong class="c-ink">CSV</strong> 給 Excel、一批一列。兩種都不會上傳到任何地方。
+                        用 iPhone 的話，追蹤網址與 <code>.ics</code> 檔是唯一可靠的持久副本。
+                    </p>
+                </div>
+
+                <div class="hr"></div>
+
+                <div id="export">
+                    <h3 class="t-sub">匯入與刪除各自會動到什麼</h3>
+                    <ul class="t-aux c-ink2 flow-xs" style="padding-left:1.3em;display:flex;flex-direction:column;gap:6px">
+                        <li><strong class="c-ink">匯入 JSON 是整份取代，不是合併</strong>——同一單兩邊不一樣時該聽誰的沒有正確答案，
+                            猜錯就是默默改掉你自己的紀錄。按下去之前會先告訴你會蓋掉幾單。</li>
+                        <li><strong class="c-ink">結案</strong>不刪任何東西，只是把那一單從購物清單與賣出頁移到帳本，隨時可以打開。</li>
+                        <li><strong class="c-ink">刪掉全部交易紀錄</strong>＝所有的單、批次、實付金額與成交價。</li>
+                        <li><strong class="c-ink">清空這台裝置上的所有本站資料</strong>＝上面那些，再加上初始設定、資格快檢的答案與試算頁的篩選偏好。</li>
+                        <li>只想刪掉某一單的話，用帳本頁每張卡右上角的「刪除」。</li>
+                    </ul>
+                    <p class="t-aux c-warn flow-xs">
+                        ⚠️ 刪除<strong class="c-ink">不能復原</strong>：沒有任何伺服器上的備份，CSFloat 的結帳紀錄也不會自己回到這裡。
+                        要留底就先匯出 JSON。
+                    </p>
                 </div>
 
             </div>

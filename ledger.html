@@ -32,9 +32,8 @@
         <header style="padding-top:48px">
             <h1 class="t-page">帳本</h1>
             <p class="t-body c-ink2 flow-sm" style="max-width:38em">
-                每一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。這一頁只講已經發生的事：
-                實際付了多少、實際拿回多少、差多少、鎖了幾天。
-                <strong>不預測、不排名、不給下一單的建議。</strong>
+                每一「單」＝一次「試算 → 買 → 等 7 天 → 賣」。這一頁只記已經發生的事：
+                實付、實拿、差額、鎖了幾天。<strong>不預測、不排名、不建議下一單。</strong>
             </p>
         </header>
 
@@ -42,10 +41,11 @@
         <section class="flow-lg">
             <div class="risk-bar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                <span><strong>瀏覽器不是保險箱。</strong>這些紀錄只存在這台裝置的瀏覽器裡：清掉瀏覽資料會消失，
-                    <strong>iPhone／Mac 的 Safari 更會在連續 7 天沒打開這個網站之後自動刪掉</strong>——
-                    而本站的動線正好是「買完 → 等 7 天 → 回來賣」。累積越多越值錢，也越禁不起一次清空。
-                    <strong>用下面的「匯出」留一份在自己手上。</strong></span>
+                <!-- ⚠️ 2026-09-12 精簡：Safari 七天與「正面對撞本站動線」的完整說明
+                     搬到 help.html#records。留下的是結論與行動——匯出這件事本身不能只留連結。 -->
+                <span><strong>瀏覽器不是保險箱。</strong>紀錄只在這台裝置上，清掉瀏覽資料、
+                    或 iPhone／Mac 的 Safari 連續 7 天沒打開這個網站，就會消失。
+                    <strong>用下面的「匯出」留一份在自己手上。</strong><a href="help.html#records">為什麼</a></span>
             </div>
         </section>
 
@@ -56,8 +56,8 @@
                     <div>
                         <h2 class="t-sub">留一份在自己手上</h2>
                         <p class="t-aux c-ink2 flow-xs" style="max-width:40em">
-                            <strong>JSON</strong> 可以再匯入回來（換裝置、重灌、被清掉時用）。
-                            <strong>CSV</strong> 是給 Excel 的，一批一列。都不會上傳到任何地方。
+                            <strong>JSON</strong> 可以再匯入回來，<strong>CSV</strong> 給 Excel。都不會上傳到任何地方。
+                            <a href="help.html#records">什麼時候會用到</a>
                         </p>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -67,9 +67,11 @@
                         <input type="file" id="lg-import" accept="application/json,.json" hidden>
                     </div>
                 </div>
+                <!-- ⚠️ 這一格 JS 會覆寫（匯入結果、取消、存不進去）。靜態預設值 2026-09-12 壓成一行，
+                     「為什麼不合併」搬到 help.html#export。⚠️ 武裝時那句「會蓋掉幾單」在 JS 裡，不要動。 -->
                 <p class="t-note c-ink3 flow-md" id="lg-io-note">
-                    ⚠️ 匯入是<strong>整份取代</strong>，不是合併——同一單兩邊不一樣時該聽誰的沒有正確答案，
-                    猜錯就是默默改掉你自己的紀錄。按下去之前會先告訴你會蓋掉幾單。
+                    ⚠️ 匯入是<strong>整份取代</strong>，不是合併。按下去之前會先告訴你會蓋掉幾單。
+                    <a href="help.html#export">為什麼不合併</a>
                 </p>
                 <!-- 匯入的確認。⚠️ 不用 confirm()：它會擋住畫面，而使用者這一刻要看的
                      就是背後那幾張卡（他正要用檔案取代掉的東西）。 -->
@@ -117,17 +119,18 @@
             <div class="card">
                 <h2 class="t-sub">刪除資料</h2>
                 <p class="t-aux c-ink2 flow-xs" style="max-width:40em">
-                    刪掉就<strong>不能復原</strong>——這些紀錄沒有備份在任何伺服器上，
-                    CSFloat 的結帳紀錄也不會自己回到這裡。<strong>要留底請先匯出。</strong>
+                    刪掉就<strong>不能復原</strong>，沒有任何備份。<strong>要留底請先匯出。</strong>
                 </p>
                 <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:8px">
                     <button type="button" id="lg-wipe-records" class="btn btn-text btn-sm">刪掉全部交易紀錄</button>
                     <button type="button" id="lg-wipe-all" class="btn btn-text btn-sm">清空這台裝置上的所有本站資料</button>
                 </div>
+                <!-- ⚠️ 這一格 JS 會覆寫（刪完的回報、存不進去）。靜態預設值 2026-09-12 壓成一行，
+                     兩顆按鈕各自的範圍搬到 help.html#export。
+                     ⚠️ 武裝時「具體會失去什麼」（幾批、實付多少、幾筆成交價）在 JS 裡，不要動。 -->
                 <p class="t-note c-ink3 flow-md" id="lg-wipe-note">
-                    「全部交易紀錄」＝所有的單、批次、實付金額與成交價。
-                    「所有本站資料」還包含初始設定、資格快檢的答案與試算頁的篩選偏好。
-                    單獨刪掉某一單請用上面每張卡右上角的「刪除」。
+                    兩顆按鈕的範圍不一樣；只想刪掉某一單請用每張卡右上角的「刪除」。
+                    <a href="help.html#export">各自會動到什麼</a>
                 </p>
             </div>
         </section>
