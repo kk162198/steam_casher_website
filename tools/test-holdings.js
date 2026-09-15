@@ -807,5 +807,72 @@ eq('清空後一個 key 都不剩', Object.keys(store).length, 0);
   eq('負數 → null', be(-280, 13), null);
 }
 
+/* ── site.js 第⑰節：品項圖片（2026-09-15）───────────────────── */
+{
+  const url = n => ctx.caseIconUrl(n, 64);
+  const html = (n, px) => ctx.caseIconHtml(n, px);
+
+  eq('認得的品項給得出網址', typeof url('Kilowatt Case'), 'string');
+  eq('網址指向 Steam 自己的 CDN',
+    url('Kilowatt Case').indexOf('https://community.cloudflare.steamstatic.com/economy/image/'), 0);
+  eq('尺寸接在最後', url('Kilowatt Case').endsWith('/64fx64f'), true);
+
+  /* ⚠️ 查無品項一律 null／空字串，**不可以回一個猜的網址**。
+     猜錯的後果是那一列掛一張別顆箱子的圖，而使用者正要照這一列去下求購訂單
+     ——圖比文字先被看到，錯的圖會直接讓人填錯品項。 */
+  eq('沒收錄的品項 → null', url('Not A Real Case'), null);
+  eq('空字串 → null', url(''), null);
+  eq('null → null', url(null), null);
+  eq('沒收錄的品項 → 空字串（那一列只有文字，不破版）', html('Not A Real Case', 32), '');
+
+  /* ⚠️ 原型鏈上的名字不算收錄。物件字面值查表最典型的坑就是
+     CASE_ICONS['constructor'] 會拿到函式，然後 hash 被當成字串接進網址。 */
+  eq('constructor 不算收錄', url('constructor'), null);
+  eq('toString 不算收錄', url('toString'), null);
+
+  const img = html('Kilowatt Case', 28);
+  eq('寬高寫死在標籤上（沒有它就是 45 次版面位移）',
+    /\swidth="28"/.test(img) && /\sheight="28"/.test(img), true);
+  eq('跟 CDN 要 2 倍解析度', img.indexOf('/56fx56f') > 0, true);
+  eq('alt 留空（品項名就在旁邊，不要唸兩次）', /\salt=""/.test(img), true);
+  eq('lazy loading 有開', /\sloading="lazy"/.test(img), true);
+  eq('不把使用者在看哪一頁送給第三方', /referrerpolicy="no-referrer"/.test(img), true);
+  eq('載入失敗是藏起來、不是移除（移除會讓那一列縮寬）',
+    img.indexOf('visibility') > 0 && img.indexOf('this.remove') === -1, true);
+
+  /* ⚠️ 這張表是**寫死的**，所以要有東西守住「它沒有被誤刪成空的」。
+     資料庫 2026-09-15 有 45 個品項；門檻壓在 40 就夠（品項只會變多）。 */
+  const names = Object.keys(ctx.CASE_ICONS);
+  eq('對照表的品項數量合理（不是被清空或砍剩幾筆）', names.length >= 40, true);
+  eq('每一筆都是非空字串',
+    names.filter(n => typeof ctx.CASE_ICONS[n] !== 'string' || !ctx.CASE_ICONS[n].length), []);
+  /* 同一串雜湊出現在兩個品項 = 複製貼上時貼錯行，畫面上是兩列長一樣的圖。 */
+  const seen = new Map(), dup = [];
+  names.forEach(n => {
+    const h = ctx.CASE_ICONS[n];
+    if (seen.has(h)) dup.push([seen.get(h), n]); else seen.set(h, n);
+  });
+  eq('沒有兩個品項共用同一張圖', dup, []);
+
+  /* ⚠️ 圖片一律熱連，**不可以有任何一張被下載進 repo**（見第⑰節的理由）。
+     這條紅了代表有人把圖存進 assets/ 了——那會把「引用一個網址」變成「重製並散布」。 */
+  const assetImgs = fs.readdirSync(__dirname + '/../assets')
+    .filter(f => /\.(png|jpe?g|gif|webp)$/i.test(f))
+    .filter(f => f !== 'og-image.png')   // 本站自己做的社群分享圖，不是 Valve 的資產
+    .sort();
+  eq('assets/ 裡沒有下載下來的品項圖', assetImgs, []);
+
+  /* ⚠️ 免責那一行跟「不下載」是同一件事的兩半，少一半另一半就變成假的。 */
+  const footer = fs.readFileSync(__dirname + '/../footer.html', 'utf8');
+  eq('頁尾有圖片版權歸屬', footer.indexOf('Valve Corporation') > 0, true);
+  eq('頁尾有「無任何合作、授權或贊助關係」', footer.indexOf('無任何合作、授權或贊助關係') > 0, true);
+
+  /* ⚠️ 四頁都要真的呼叫到它。漏掉一頁不會報錯，只會那一頁沒有圖——
+     而「有的頁面有圖、有的沒有」看起來就像壞掉。 */
+  const missing = ['marketlist.html', 'checklist.html', 'sell.html', 'case.html']
+    .filter(f => fs.readFileSync(__dirname + '/../' + f, 'utf8').indexOf('caseIconHtml(') === -1);
+  eq('四個頁面都接上了圖片', missing, []);
+}
+
 console.log(fail ? '\n' + fail + ' 個失敗' : '\n全部通過');
 process.exit(fail ? 1 : 0);

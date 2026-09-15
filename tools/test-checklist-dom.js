@@ -73,6 +73,16 @@ async function boot(combo) {
   const rows = () => [...document.querySelectorAll('#cl-body tr')];
 
   eq('兩個品項各一列', rows().length, 2);
+  /* 品項圖片（2026-09-15）。這一頁是**照著填求購訂單**的那一頁，填錯品項是整張訂單錯，
+     所以圖要真的長在名稱那一格裡——而且名字不能因為加了圖就不見。 */
+  {
+    const key = rows()[0].querySelector('[data-label="品項"]');
+    const img = key.querySelector('img.case-icon');
+    eq('名稱那一格有品項圖', !!img, true);
+    eq('圖指向 Steam 的 CDN',
+      img.getAttribute('src').indexOf('https://community.cloudflare.steamstatic.com/') === 0, true);
+    eq('圖沒有把品項名擠掉', key.textContent.includes('Kilowatt Case'), true);
+  }
   eq('計畫欄顯示計畫數量', rows()[0].querySelector('[data-label="計畫"]').textContent.includes('20 個'), true);
   eq('沒勾之前數量輸入是關的', rows()[0].querySelector('[data-qty-for]').disabled, true);
   eq('沒勾之前實付輸入是關的', rows()[0].querySelector('[data-paid-for]').disabled, true);

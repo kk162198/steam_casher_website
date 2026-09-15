@@ -25,6 +25,7 @@
         ⑮-c 保本掛價 breakEvenAskTwd()（掛多少以上這一批不會是負收益）
         以及 twdView()：一列 cases_data → 該顯示的台幣數字（四頁共用）
      ⑯ 單品歷史 historySeries() / coolingStats() / historyChartSvg()（case.html 的兩張卡，只用每日中位數）
+     ⑰ 品項圖片 CASE_ICONS / caseIconUrl() / caseIconHtml()（熱連 Steam CDN，圖不進 repo）
 
    引用方式（放在 </body> 前，或用 defer）：
      <script defer src="assets/site.js?v=…"></script>
@@ -59,7 +60,7 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-12';
+var SITE_JS_VERSION = '2026-09-15';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
@@ -2475,6 +2476,116 @@ function historyChartSvg(series, W, H) {
            '" fill="transparent"/>');
   out.push('</svg>');
   return out.join('');
+}
+
+/* ── ⑰ 品項圖片（2026-09-15）─────────────────────────────────
+   圖片沒有進 repo，也沒有任何截圖：`<img>` 直接指向 Steam 自己的 CDN
+     https://community.cloudflare.steamstatic.com/economy/image/<icon_url>/<尺寸>
+   下面存的只是每個品項的 `icon_url`——Steam 市場端點回傳的那串雜湊。
+
+   ⚠️ **為什麼是寫死的對照表，不是 `cases_data` 加一欄。**
+      箱子的圖幾乎不會變，而加一欄要動 schema、抓價腳本與一次 migration，
+      三個地方全都在「每 3 小時跑一次的正式流程」上。
+      對照表的代價只有一個：**新品項要補一筆**，而沒補的後果只是那一列不顯示圖
+      ——不破版、不報錯、價格照樣正確。補的方法不用手抄：
+        node tools/fetch-case-icons.js          （印出整段，貼回來換掉）
+        node tools/fetch-case-icons.js --check  （只比對，缺哪幾個品項會列出來）
+
+   ⚠️ **這些圖是 Valve 的美術資產，本站沒有任何授權關係。** 所以：
+      - 一律熱連對方的 CDN。**不要下載、不要轉存、不要放進 repo**
+        ——那就從「引用一個網址」變成「重製並散布」，是完全不同的位置。
+      - 頁尾那句「與 Valve、CSFloat 無任何合作或授權關係」是這件事的配套，不要拿掉。
+      - `referrerpolicy="no-referrer"`：不要把使用者正在看哪一頁送給第三方。
+
+   ⚠️ **alt 一律留空。** 每一個用到圖的地方，品項名都**就在旁邊**；
+      再唸一次只會讓報讀使用者聽到兩次同樣的字。它是裝飾，不是資訊。
+
+   ⚠️ **寬高一定要寫死在 `<img>` 上。** 市場列表一次 45 列，沒有寬高就是 45 次版面位移，
+      而那張表本身可以排序——位移會讓正要點的人點到別列。 */
+
+var CASE_ICON_BASE = 'https://community.cloudflare.steamstatic.com/economy/image/';
+
+/* name（＝ cases_data.name ＝ market_hash_name）→ Steam icon_url 雜湊。
+   2026-09-15 由 tools/fetch-case-icons.js 產生，涵蓋當時資料庫裡全部 45 個品項。 */
+var CASE_ICONS = {
+  'Chroma 2 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fqmwOuKD2PqI6caDBWDeUkO8uteM9SnDglklw6miEn9j6IHKfblNxA5pxW6dU5UH4LtBe',
+  'Chroma 3 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHAVuKf7PaJucPLHW2TExb9z4OdvHirixEomtW7cyduvci2VZ1AiCsR2Q_lK7EdW_VBhrw',
+  'Chroma Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fq2wP7qr6bqI5cvHDCzfBlbcv57JqF3zrxRkj4W6Dwo34dy6QPQAoC5ZyW6dU5cxvklfG',
+  'Clutch Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHsVtqr8a_dsdKTAWDWVxLgjsrAwHSvgwEQk4m-ByYuqIC2eO1VyD5QiR_lK7EcxQQPYQA',
+  'CS:GO Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bji61XxRCKg0MSz_nUDvPb-OPFvdKTFDzbAkbp16bY5Gn6wkx9ysj7Xntf9IC6WZgA-Sswnnj45WXo',
+  'CS:GO Weapon Case 2': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bji61XxRCKj0M-xr3IIvqP5PqI_c6LDCjWUkrdw5LUwTivgkE9wsGnUnNr8InzBP1c-SswnzDatg2g',
+  'CS:GO Weapon Case 3': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bji61XxRCKi0JS0pCZYvaCvOPI0eaHKWjGVmbovs7ZrHH_nl0oj5mXSzNqqdS7BaAc-SswnOWLoN2Y',
+  'CS20 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3YVvfD9aqVveKaQDDKSl7134bg_HH3hlBty6z7Vn9v6eXmeZgBxWJd0EflK7Efs4hZiKQ',
+  'Danger Zone Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3MVv_H4a6FucPPBWjDIkbdz4rg4Syyyxxsi5mzRntuvJCqVbwAgDZBwRPlK7EcZJ5GkQA',
+  'Dreams & Nightmares Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnIV7Kb5OaU-JqfHDzXFle0u4LY8Gy_kkRgisGzcm4v4J3vDOAQmDMdyRvlK7EcmeCU3yw',
+  'eSports 2013 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bjx-UnoUwniocSwrHEV7KaobPdud6HEWjXGmbYl6LIwHn2ywhgh5GzXzdmsc3yRalAkD5R3FvlK7Ed7JoXDRQ',
+  'eSports 2013 Winter Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bjx-UnoUwniocSwrHFkvqbgafw-JKHKWTGSw7wmtOMxTX2yw0ki5DyGm4ugcirGPQ4nC5B3EbNetw74zIMdBc4CJw',
+  'eSports 2014 Summer Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bjx-UnoUwniocSwrHZk_OejZaF_bvXGWT6Vkughs-A5H321kUQl5myEm9__dHKQaw8gWZtzQ7VYu0a-lYf5d7S1qrUfUsY',
+  'Falchion Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fpWwI7Pb-P6Y5dvPEDGSSlrsh57U8HHHiwx5yt2-Dwo7_JSnCOw8oCJF0W6dU5dgrLNA1',
+  'Fever Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frncVtqv7MPE8JaHHCj_Dl-wk4-NtFirikURy4jiGwo2udHqVaAEjDZp3EflK7EeSMnMs4w',
+  'Fracture Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3QV7aD7OP01IfbGDzPCmbsm4LU5GnvkzUsi4WvUmIqtci_CPQNyApsjE_lK7EfrhW545A',
+  'Gallery Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnYVuPD5baE6IfTFCmSRme0j5eU5SXrjkRwmt2rWnoqhdnjEPQQiDpRxTflK7EePRV2-Kg',
+  'Gamma 2 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bjz61TqQCKj0JfipHMN7aX2bfM9eaPDXT7Glbx1s7Y8HHHnw0sltWXSmYmqcH-UaAU-Sswn_16VNj0',
+  'Gamma Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHEVtvP5bPZrd6XECmOSxe0v4bRoTnnjwBkitWrRm4yoeX3GagMnCZZ2FPlK7EcEv22BnQ',
+  'Glove Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHcVuPaoafU1JqiVWWSVkux15OQ8Giiylk0k5mvTnIqpd3PCaQIhWMYkE_lK7EcNeCKW-w',
+  'Horizon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3IV6vSrbfw8eaiWCjWVkewgseM9TXyxl0wi6mSHn9-tIHqUbg5yDpEmEPlK7EcXFmSLsw',
+  'Huntsman Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frmxY6qr9OqU0cvbKCGTDk7dys7k-S36yzU114GrRmNaoeSmXaVV0WJp0W6dU5Q_KKWwm',
+  'Kilowatt Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnEVvqf_a6VoIfGSXz7Hlbwg57QwSS_mxhl15jiGyN37c3_GZw91W8BwRflK7EfKsa2sfw',
+  'Operation Bravo Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj7-lz1QAn4kZjf9CsVuvf7OfQ5IabBVzbHlb915bcwHCjikEp_sTnTn4z6eH6RblQlC8RwFPlK7EdXSP0Ibg',
+  'Operation Breakout Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fqWxdv_b8O_w5eKXBWWXHw-smtrBvTHDmwEsl4jvWn4z_I3qWZwV1X5ZwW6dU5RcRF1o0',
+  'Operation Broken Fang Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3UVu6P-MPQ0dKbCVzLGx7wgtbM6S3jhw0V25m-EnNj7JS7GaQ4nD8QiRflK7EfH0YGFHg',
+  'Operation Hydra Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHUVt_b6PfY1JfOSXDXJxbgjtLFqHnDqx0Qmtm_Vzdf4ICmUZlJ2C5F2TPlK7EdjN0FcPg',
+  'Operation Phoenix Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr2wPtqP5PKVvJPSQDWSSl7sn6eMxHC3hwhl3sDuDztivJHrEagJzWZd3W6dU5fXcT7oM',
+  'Operation Riptide Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3sVtvD2O_Q9dqfEXTWSlepz4bA5THnikx915z6BytmuIHiXaAdyDpEhTflK7EdW-TaRMg',
+  'Operation Vanguard Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fqGwPtvP9MKA_JKOSCGGWmL8useQ6TXywwB8k4T-EyImgeCmXbA4oAsRzW6dU5QwRm5UL',
+  'Operation Wildfire Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHMVu6r9MaA6ePPAWjbGwrwm47dtTnu2kUl14mzUnomudnqQaQ4iApF5TPlK7Ee3MsZV-w',
+  'Prisma 2 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3cV6vT9avBvefWWDDGTxbZ14rhsTX7qkE90sDiHwt2pdC-TblJ2DsB1QPlK7Ee9riHKAA',
+  'Prisma Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3AV6aD8O6BpdKKQVmPEwr1zs-c8Tnngl09w52zTmY2sc3jBag8jXpohE_lK7Ede7E2Kfw',
+  'Recoil Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnMVu6b-avA-JqSSCjSWwuhz47U9TCzlxh9yt2WGnNqgIi-fbgUkWMNxFPlK7EdIJF6a2Q',
+  'Revolution Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnAVvfb6aqduc_TFVjTCxbx05OU4S3jilE9w4DzRnImtIy2Sa1JzDJEhRPlK7EcO4U8gfA',
+  'Revolver Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHIV7qWvOqE9IqSVWGKVlu8v6eM7Girmxkwl4TnWmIv8J36WagEiCpImQvlK7EclOzxxiQ',
+  'Sealed Dead Hand Terminal': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnVk7P6he6FpbqHGCmSTk-hz5rZsHS3mwxgjsGjRytb7dC2VPwYlAschRrFbsBC4xNH5d7S1gfLQnNE',
+  'Sealed Genesis Terminal': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnRk7P6he6FpbqWXCzSVkL4h6bExTHuwx0wk6mjUmdn_Iy2TbAUkCZslQu8CtBTrkNz5d7S1oNprwEg',
+  'Shadow Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fpGxet6H-O_Q6dfXCDzfJl7ci6bZoG3zjx0xz4ziEztj8IiiRa1QkWZdwW6dU5RegDbP-',
+  'Shattered Web Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3EVvKD6MKU_cKPKXWHFxLkls7FsSnDqwUl_sWTczoqheHifbwMmD5F1RvlK7Ec_KL6Q_A',
+  'Snakebite Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_fr3oVvvT4bfI4dvTLCGTCmLl16ec7TX_mk08k42iHwtqscy-WPVUmCZJ4R_lK7Ed8Q6OYtw',
+  'Spectrum 2 Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHoVu6D7PaA0JaDACjKUwOom47VrTSzrw0Vx4W_Sydz9JC7FZgckCZYjRPlK7EcPuDAQzw',
+  'Spectrum Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frHQV7qCra_JscqPGCzLCl78ktuAxHSzmzUh_sjvWzdqoI33CaQF2DscjR_lK7EeF3oM7TA',
+  'Winter Offensive Weapon Case': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frGxZvqX4avxuIabDXDPJxb534uQ-TH-3wk8isGqByIuoIHKRbQRyXpJ2W6dU5a9fuS_R',
+  'X-Ray P250 Package': 'i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bjs-Fj-fg2jy8auqXMJuvf3afJsdfXFC2GTxLcm6bQ9S3q2zE1y4zzSyYmrJSrGPwQkDowwG7DTNlIwTA'
+};
+
+/* 圖片網址。查無這個品項就回 null——呼叫端自己決定要不要留空位。
+   ⚠️ `size` 是**要跟 CDN 要的像素**，不是顯示尺寸。要 2 倍是給高解析度螢幕用的，
+      呼叫端請走 caseIconHtml()，不要自己記得乘 2。 */
+function caseIconUrl(name, size) {
+  var key = String(name == null ? '' : name);
+  /* ⚠️ 一定要 hasOwnProperty，不能直接 CASE_ICONS[key]：
+     'constructor' / 'toString' 這種名字會從原型鏈拿到函式，然後被接進網址
+     （實際長出 .../function Object() { [native code] }/64fx64f）。
+     箱子不會叫這些名字，但這一頁的 name 是**從網址參數來的**。 */
+  if (!Object.prototype.hasOwnProperty.call(CASE_ICONS, key)) return null;
+  var hash = CASE_ICONS[key];
+  if (!hash) return null;
+  var px = Math.round(Number(size));
+  if (!(px > 0)) px = 64;
+  return CASE_ICON_BASE + hash + '/' + px + 'fx' + px + 'f';
+}
+
+/* 可以直接塞進樣板字串的 <img>。查無品項回傳空字串（那一列就只有文字，不破版）。
+   px 是**顯示尺寸**；跟 CDN 要 2 倍。
+   ⚠️ onerror 是把圖藏起來（visibility），不是移除——移除會讓那一列的寬度突然變窄。 */
+function caseIconHtml(name, px, extraClass) {
+  var show = Math.round(Number(px));
+  if (!(show > 0)) show = 32;
+  var url = caseIconUrl(name, show * 2);
+  if (!url) return '';
+  return '<img class="case-icon' + (extraClass ? ' ' + extraClass : '') + '"'
+       + ' src="' + tradeEscape(url) + '"'
+       + ' width="' + show + '" height="' + show + '"'
+       + ' alt="" aria-hidden="true" loading="lazy" decoding="async"'
+       + ' referrerpolicy="no-referrer"'
+       + ' onerror="this.style.visibility=\'hidden\'">';
 }
 
 /* 依 <body data-page="xxx"> 自動載入 nav / footer，各頁不用再自己呼叫。

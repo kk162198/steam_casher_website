@@ -59,10 +59,10 @@
         </nav>
 
         <header class="flow-lg" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
-            <div style="flex:none;width:120px;height:90px;border-radius:8px;border:1px solid var(--line);background:#0b1424;
-                        display:flex;align-items:center;justify-content:center;text-align:center;padding:8px">
-                <span class="t-note c-ink3" style="font-family:ui-monospace,Menlo,monospace">武器箱圖片<br>待接入</span>
-            </div>
+            <!-- 武器箱圖片。預設 display:none，renderCaseIcon() 認得這個品項才打開
+                 ——認不得時整塊收掉，不要留一個空框在標題旁邊。 -->
+            <div id="case-icon-box" style="flex:none;width:120px;height:120px;border-radius:8px;border:1px solid var(--line);
+                        background:#0b1424;display:none;align-items:center;justify-content:center;padding:8px"></div>
             <div style="flex:1;min-width:260px">
                 <h1 id="case-name" class="t-page">載入中</h1>
                 <p id="case-verdict" class="t-aux c-ink2 flow-xs">正在讀取這個品項目前的價格。</p>
@@ -249,7 +249,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-12"></script>
+    <script src="assets/site.js?v=2026-09-15"></script>
     <script>
         const supabaseUrl = 'https://ayizsqevbabaxnapgwua.supabase.co';
         const supabaseKey = 'sb_publishable_qaDGPbpdQVbWj9GcyWRB6A_MmqFAQa1';
@@ -321,6 +321,17 @@
             });
         }
 
+        /* 武器箱圖片（2026-09-15）。只吃網址上的品項名，不等資料庫——
+           圖跟價格是兩件事，價格查不到的時候圖照樣該出現。
+           site.js 第⑰節查無這個品項時回空字串，這裡就把整塊收掉。 */
+        function renderCaseIcon(name) {
+            const box = document.getElementById('case-icon-box');
+            if (!box) return;
+            const html = (typeof caseIconHtml === 'function') ? caseIconHtml(name, 104) : '';
+            box.innerHTML = html;
+            box.style.display = html ? 'flex' : 'none';
+        }
+
         function showNotFound(message) {
             document.getElementById('case-name').textContent = caseName || '找不到這個品項';
             document.getElementById('case-verdict').innerHTML =
@@ -339,6 +350,7 @@
                 return;
             }
             applySeo(caseName, null);
+            renderCaseIcon(caseName);
 
             let rate = 32.5;
             try {
@@ -376,6 +388,9 @@
                 const inventory = Number(item.csfloat_inventory || 0);
 
                 document.getElementById('case-name').textContent = item.name;
+                /* 用資料庫的名字再畫一次：網址上的大小寫可能跟 market_hash_name 不一樣，
+                   而對照表是照 market_hash_name 建的。 */
+                renderCaseIcon(item.name);
                 applySeo(item.name, ratio);
                 applyTradeLinks(item);
 

@@ -86,6 +86,14 @@ async function boot(sold, opts) {
   let row = doc.querySelector('#sl-body tr');
 
   eq('一批一列', doc.querySelectorAll('#sl-body tr').length, 1);
+  /* 品項圖片（2026-09-15）。名稱那一格底下還掛著數量與成本，
+     加了圖之後那幾行要還在同一格裡——巢狀包錯的話它們會被推出去。 */
+  {
+    const key = row.querySelector('[data-label="品項"]');
+    eq('名稱那一格有品項圖', !!key.querySelector('img.case-icon'), true);
+    eq('品項名還在同一格', key.textContent.includes('Kilowatt Case'), true);
+    eq('數量還在同一格（巢狀沒包錯）', key.textContent.includes('13 個'), true);
+  }
   eq('用實際買到的 13 個，不是計畫的 20', row.textContent.includes('13 個'), true);
   eq('不會出現計畫數量 20 個', row.textContent.includes('20 個'), false);
   eq('成本用實付總額', row.textContent.includes('實付 NT$ 280'), true);

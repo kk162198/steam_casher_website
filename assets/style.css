@@ -398,3 +398,19 @@ a:not([class]):hover{color:#67e8f9}
    售價在上、實拿在下。桌機靠左、手機卡片模式靠右，跟同列其他數字對齊方式一致。 */
 .cell-stack{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.45}
 @media (max-width:767px){ .cell-stack{align-items:flex-end} }
+
+/* ── 9c. 品項圖片（2026-09-15）──────────────────────────
+   由 site.js 第⑰節的 caseIconHtml() 產生，圖片熱連 Steam 自己的 CDN
+   （沒有下載、沒有進 repo，理由見該節）。
+
+   ⚠️ **尺寸是寫死在 <img> 的 width/height 上的，這裡不要改成 auto 或百分比。**
+      市場列表一次 45 列，寬高一旦交給圖片自己決定就是 45 次版面位移，
+      而那張表可以排序——位移會讓正要點的人點到別一列。
+   ⚠️ 底色不是裝飾：圖還沒載到（或第三方被擋掉）時那裡是一塊安靜的深色，
+      不是破圖圖示，也不是忽大忽小的空白。 */
+.case-icon{flex:none;display:block;border-radius:4px;background:#0b1424;object-fit:contain}
+
+/* 名稱那一格：圖在左、名字在右。名字那半要 min-width:0，
+   否則長品項名不會斷行、會把整格撐開。 */
+.name-with-icon{display:flex;gap:8px;align-items:flex-start}
+.name-with-icon>.name-body{min-width:0}
