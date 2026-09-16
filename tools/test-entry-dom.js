@@ -122,6 +122,16 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('沒答完：不要說「還差什麼」（他根本還沒答完）', p.textContent.includes('還差什麼'), false);
   }
 
+  /* q5（CSFloat 帳號，2026-09-17 加）不是資格，不影響首頁導流。
+     ⚠️ PASS_ALL 刻意沒有 q5：9/17 以前答完四題的人，不能因為多了一題就被當成沒答完。 */
+  {
+    const seed = Object.assign({}, PASS_ALL, { q5: 'no' });
+    const { window } = boot('index.html', ls => ls.setItem('sah-eligibility-v2', JSON.stringify(seed)));
+    await tick();
+    eq('CSFloat 還沒建：首頁照樣放行到試算（那是設定，不是資格）',
+      window.document.getElementById('cta-primary').getAttribute('href'), 'calculator.html');
+  }
+
   // 初始設定做完的人，前三題本來就等於答過了
   {
     const { window } = boot('index.html', ls => ls.setItem('sah-setup-v1', JSON.stringify({
@@ -338,6 +348,77 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     // 第三份資格清單必須不存在
     eq('舊的第三份資格清單已經拿掉',
       document.querySelectorAll('.eligibility-check').length, 0);
+
+    /* 說明書結構（2026-09-17）：目錄的每一章都要真的存在，而且章節順序照目錄。 */
+    const tocTargets = [...document.querySelectorAll('#toc a')].map(a => a.getAttribute('href'));
+    eq('目錄六章', tocTargets, ['#ch-start', '#ch-setup', '#ch-round', '#ch-interface', '#ch-trouble', '#ch-glossary']);
+    eq('目錄指到的章節都在頁面上', tocTargets.filter(h => !document.getElementById(h.slice(1))), []);
+    eq('章節順序跟目錄一樣',
+      [...document.querySelectorAll('section[id^="ch-"]')].map(x => '#' + x.id), tocTargets);
+    eq('流程總覽五格都連到對應的步驟',
+      [...document.querySelectorAll('.flow-map a')].map(a => a.getAttribute('href')),
+      [...document.querySelectorAll('.step')].map(x => '#' + x.id));
+    // 進度條是 sticky，必須跟四張卡在同一個 section，否則會一路黏到頁尾（見 HTML 註解）
+    eq('進度條與四張設定卡在同一個章節',
+      document.getElementById('su-progressbar').closest('section') === document.getElementById('su-card-csfloat').closest('section'), true);
+
+    /* 頁內錨點：這一頁有四十幾條 href="#…"，改一個 id 就會靜靜地斷一條。 */
+    const html = fs.readFileSync(__dirname + '/../help.html', 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+    const inPage = [...new Set([...html.matchAll(/href="#([^"]+)"/g)].map(m => m[1]))];
+    eq('頁內錨點不只幾條（正規式有抓到東西）', inPage.length > 20, true);
+    eq('每一條頁內錨點都指得到', inPage.filter(id => !document.getElementById(id)), []);
+
+    /* ⚠️ 疑難排解與名詞解釋**只指路，不重講數字**：同一個事實在同一頁寫兩次，
+       就有一次會漏改（4.27 那一行就是這樣跟 sell.html 講反了六天）。
+       拿掉章節編號、「第 N 章／步」與「7 天」（這個做法本身的定義）之後，不該剩任何數字。 */
+    ['ch-trouble', 'ch-glossary'].forEach(id => {
+      const text = document.getElementById(id).textContent
+        .replace(/\d+\.\d+/g, '').replace(/第 \d+ [章步]/g, '').replace(/7 天/g, '');
+      eq(id + '：沒有重講規則裡的數字', text.match(/[0-9０-９]+/g), null);
+    });
+  }
+
+  /* 其他頁連進指南的錨點（help.html#…）都要指得到。
+     FRONTEND.md〈操作頁只留動作〉記過這件事沒有測試在守，2026-09-17 補上。 */
+  {
+    /* ⚠️ 一定要先剝註解：help.html 的註解裡寫著「id="paid-total"：購物清單頁⋯⋯」這種字，
+       不剝的話真的 id 被刪掉了，註解還是會讓這條檢查通過。 */
+    const helpHtml = fs.readFileSync(__dirname + '/../help.html', 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+    const ids = new Set([...helpHtml.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
+    const linked = [];
+    const broken = [];
+    fs.readdirSync(__dirname + '/..').filter(f => f.endsWith('.html')).forEach(f => {
+      const body = fs.readFileSync(__dirname + '/../' + f, 'utf8');
+      for (const m of body.matchAll(/help\.html#([A-Za-z0-9_-]+)/g)) {
+        linked.push(m[1]);
+        if (!ids.has(m[1])) broken.push(f + ' → #' + m[1]);
+      }
+    });
+    eq('他頁連進指南的錨點有抓到（正規式沒失效）', linked.length >= 10, true);
+    eq('他頁連進指南的錨點都指得到', broken, []);
+  }
+
+  /* 資格快檢第 5 題答「都好了」→ 指南第 4 項（CSFloat）也帶入；答「還沒」不帶。
+     ⚠️ 只帶通過的答案：「還沒」「不確定」自動勾起來，等於替他宣稱一件他沒說過的事。 */
+  {
+    const { window } = boot('help.html', ls => ls.setItem('sah-eligibility-v2',
+      JSON.stringify(Object.assign({}, PASS_ALL, { q5: 'yes' }))));
+    await tick();
+    const { document, localStorage } = window;
+    const st = JSON.parse(localStorage.getItem('sah-setup-v1'));
+    eq('五題全過：四項都帶入', ['authenticator', 'spend5', 'notrestricted', 'csfloat'].every(k => !!st.steps[k]), true);
+    eq('五題全過：打開指南就是設定完成（試算頁改用回訪門檻）', typeof st.doneAt === 'string', true);
+    eq('第 4 項標示「已由資格快檢帶入」',
+      document.querySelector('.su-from-elig[data-elig-for="csfloat"]').hidden, false);
+  }
+  {
+    const { window } = boot('help.html', ls => ls.setItem('sah-eligibility-v2',
+      JSON.stringify(Object.assign({}, PASS_ALL, { q5: 'no' }))));
+    await tick();
+    const st = JSON.parse(window.localStorage.getItem('sah-setup-v1'));
+    eq('CSFloat 答還沒：第 4 項不帶入', !!st.steps.csfloat, false);
+    eq('CSFloat 答還沒：前三項照樣帶入', ['authenticator', 'spend5', 'notrestricted'].every(k => !!st.steps[k]), true);
+    eq('CSFloat 答還沒：不會被當成設定完成', st.doneAt, null);
   }
 
   /* 過渡：舊資料勾了四項、只差已被移除的 funded，載入時要自動補上 doneAt。
@@ -372,25 +453,55 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('標了 noindex', /name="robots"[^>]*noindex/.test(html), true);
   }
 
-  /* ── ③-c 資格快檢只剩四題 ─────────────────────────────── */
+  /* ── ③-c 資格快檢：四題資格＋第 5 題 CSFloat 帳號（2026-09-17）──────── */
   {
     const { window } = boot('eligibility.html');
     await tick();
     const { document } = window;
-    eq('四題', document.querySelectorAll('.q-card').length, 4);
-    eq('進度條四段', document.querySelectorAll('.prog-seg').length, 4);
+    eq('五題', document.querySelectorAll('.q-card').length, 5);
+    eq('進度條五段', document.querySelectorAll('.prog-seg').length, 5);
     eq('沒有金額輸入（能省多少交給試算頁）',
       document.getElementById('elig-amount'), null);
     eq('沒有金額快捷鍵', document.querySelectorAll('.opt[data-amount]').length, 0);
 
-    // 四題全過 → 結果卡不該出現任何金額
-    [['q1', 'yes'], ['q2', 'yes'], ['q3', 'no'], ['q4', 'yes']].forEach(([q, v]) => {
-      document.querySelector(`.opt[data-q="${q}"][data-val="${v}"]`)
-        .dispatchEvent(new window.Event('click'));
-    });
-    const result = document.getElementById('elig-result').textContent;
+    const click = (q, v) => document.querySelector(`.opt[data-q="${q}"][data-val="${v}"]`)
+      .dispatchEvent(new window.Event('click'));
+
+    // 只答前四題 → 還不能出結果（第 5 題沒答）
+    [['q1', 'yes'], ['q2', 'yes'], ['q3', 'no'], ['q4', 'yes']].forEach(([q, v]) => click(q, v));
+    eq('前四題答完、第 5 題沒答：還不出結果',
+      document.getElementById('elig-result').textContent.includes('還有 1 題沒答'), true);
+
+    // 五題全過 → 結果卡不該出現任何金額
+    click('q5', 'yes');
+    let result = document.getElementById('elig-result').textContent;
     eq('結果講的是資格，不是省多少', result.includes('可以用這個方式加值'), true);
     eq('結果沒有出現預估省下的金額', /省下約 NT\$/.test(result), false);
+    eq('五題全過：沒有「還差一步」', !!document.getElementById('elig-csfloat-todo'), false);
+    eq('答案有存下 q5', JSON.parse(window.localStorage.getItem('sah-eligibility-v2')).q5, 'yes');
+
+    /* CSFloat 還沒建：**不判「暫時還不行」**，照樣是資格通過，另外列「還差一步」。
+       理由在 site.js 第⑫節：目標使用者幾乎都會答「還沒」，而他們只差一個註冊。 */
+    click('q5', 'no');
+    result = document.getElementById('elig-result').textContent;
+    eq('CSFloat 還沒：資格照樣通過', result.includes('你符合條件'), true);
+    eq('CSFloat 還沒：不是「暫時還不行」', result.includes('暫時還不行'), false);
+    eq('CSFloat 還沒：列出開始之前還差一步', !!document.getElementById('elig-csfloat-todo'), true);
+    eq('CSFloat 還沒：指到指南 2.4',
+      !!document.querySelector('#elig-csfloat-todo a[href="help.html#su-card-csfloat"]'), true);
+    eq('CSFloat 還沒：卡片不配綠色（這一項沒有好）',
+      document.getElementById('elig-q5').dataset.answered, 'unknown');
+
+    click('q5', 'unknown');
+    eq('CSFloat 不確定：也列出來', !!document.getElementById('elig-csfloat-todo'), true);
+
+    // Steam 那邊被擋＋CSFloat 還沒：擋住的件數只算 Steam 的，CSFloat 另外列
+    click('q2', 'recent');
+    click('q5', 'no');
+    result = document.getElementById('elig-result').textContent;
+    eq('有擋住的項目：判暫時還不行', result.includes('暫時還不行'), true);
+    eq('擋住的件數不含 CSFloat', result.includes('還差 1 件事'), true);
+    eq('被擋住時 CSFloat 那一步照樣列出來', !!document.getElementById('elig-csfloat-todo'), true);
   }
 
   /* ── ③-d 保守緩衝的說明搬到資料透明頁（2026-08-24）───────

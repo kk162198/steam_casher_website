@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="分成兩段：第一次要做的四件事（做完就不用再做），以及之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了，並附上 Steam 與 CSFloat 的網址。">
+    <meta name="description" content="Steam 加值幫手的使用說明書：開始之前要準備什麼、只做一次的四項設定、每一輪的五個步驟、介面怎麼運作，加上照症狀找的疑難排解與名詞解釋。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <title>操作指南｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/help.html">
     <meta property="og:title" content="操作指南｜Steam 加值幫手">
-    <meta property="og:description" content="第一次要做的四件事，加上之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta property="og:description" content="使用說明書：只做一次的四項設定、每一輪的五個步驟、疑難排解與名詞解釋。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="操作指南｜Steam 加值幫手">
-    <meta name="twitter:description" content="第一次要做的四件事，加上之後每一輪的五個步驟。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
+    <meta name="twitter:description" content="使用說明書：只做一次的四項設定、每一輪的五個步驟、疑難排解與名詞解釋。每一步都寫清楚要做什麼、會卡在哪、怎麼確認做對了。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -50,6 +50,79 @@
            [hidden]{display:none}，沒有它的話這個標示會永遠顯示，
            變成「每一項都宣稱是資格快檢帶入的」。 */
         .su-from-elig[hidden] { display: none; }
+
+        /* ── 說明書版面（2026-09-17）──────────────────────────
+           作者要的是「像使用說明書」：有目錄、章節編號、先講準備再講操作、
+           卡住時有地方查、看不懂的字有地方查。
+           ⚠️ 疑難排解與名詞解釋**只指路，不重講規則與數字**——同一個事實在同一頁
+              寫兩次，就有一次會漏改（4.27 那行在 help.html 跟 sell.html 之間
+              講反了六天）。規則本身只住在第 2～4 章那一節。 */
+        .ch-no {
+            display: block; margin: 0 0 4px;
+            font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--brand);
+        }
+        .sec-no { color: var(--brand); font-variant-numeric: tabular-nums; margin-right: 10px; }
+
+        /* ⚠️ 要寫成 ol.toc-list：style.css 的 `.card ol{list-style-type:decimal}` 權重是 0,1,1，
+           只寫 .toc-list 會輸，畫面上變成「1. 1 開始之前」兩個編號。 */
+        ol.toc-list { list-style: none; padding: 0; display: grid; gap: 0 28px; }
+        @media (min-width: 768px) { .toc-list { grid-template-columns: 1fr 1fr; } }
+        .toc-list a {
+            display: flex; gap: 12px; align-items: baseline;
+            min-height: 44px; padding: 8px 0; color: var(--ink);
+        }
+        .toc-list a:hover .toc-title { color: var(--brand); }
+        .toc-no { flex: none; width: 1.2em; color: var(--brand); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .toc-title { display: block; font-weight: 600; line-height: 1.5; }
+        .toc-sub { display: block; font-size: 12px; line-height: 1.6; color: var(--ink3); }
+
+        .legend { display: grid; gap: 12px; }
+        @media (min-width: 768px) { .legend { grid-template-columns: 1fr 1fr; } }
+        .legend-desc { font-size: 12px; line-height: 1.75; color: var(--ink3); margin: 8px 0 0; }
+        /* 範例裡的 ↗ 不是連結，只是示範長相——做成可以點的話，
+           使用者會以為這裡就有一條去官網的路。 */
+        .legend .chk-link { cursor: default; min-height: 0; }
+
+        ol.flow-map { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .flow-map a {
+            display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 12px; align-items: center;
+            min-height: 44px; padding: 10px 14px; border-radius: 8px;
+            border: 1px solid var(--line); background: #0b1424; color: var(--ink);
+        }
+        .flow-map a:hover { border-color: rgba(34,211,238,.4); }
+        .fm-no { grid-row: 1 / span 2; color: var(--brand); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .fm-what { font-weight: 600; }
+        .fm-where { font-size: 14px; color: var(--ink2); }
+        @media (min-width: 640px) {
+            .flow-map a { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.5fr); }
+            .fm-no { grid-row: auto; }
+        }
+
+        /* 步驟序號從 1–5 改成 3.1–3.5，跟目錄與疑難排解的交叉引用對得上。
+           三個字元塞不進原本 36px 的圓，只在這一頁放大。 */
+        .step-no { width: 44px; height: 44px; font-size: 14px; }
+
+        .howto { margin: 8px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }
+        .howto li::marker { color: var(--brand); font-weight: 700; }
+
+        .ts-group + .ts-group { margin-top: 28px; }
+        .ts-item { padding: 14px 0; border-top: 1px solid var(--line); }
+        .ts-q { margin: 0; font-size: 16px; line-height: 1.6; font-weight: 600; color: var(--ink); }
+        .ts-a { margin: 6px 0 0; font-size: 14px; line-height: 1.75; color: var(--ink2); }
+
+        .gloss { margin: 0; }
+        .gloss > div { padding: 12px 0; border-top: 1px solid var(--line); }
+        .gloss dt { font-weight: 600; color: var(--ink); }
+        .gloss dd { margin: 4px 0 0; font-size: 14px; line-height: 1.75; color: var(--ink2); }
+        @media (min-width: 768px) {
+            .gloss > div { display: grid; grid-template-columns: 12em 1fr; gap: 16px; }
+            .gloss dd { margin: 0; }
+        }
+
+        /* 第 2 章的卡片上方黏著進度條（導覽列 64px ＋ 進度條約 60px）。
+           從疑難排解或名詞解釋連過來時要讓開兩條，否則卡片標題被進度條蓋住。
+           ⚠️ 跟 style.css 的 :target 同權重，靠「寫在後面」勝出，不要搬進共用檔。 */
+        .su-card, #setup-other-device { scroll-margin-top: 140px; }
     </style>
 </head>
 <body data-page="help">
@@ -58,34 +131,96 @@
     <main class="wrap" style="padding-bottom:56px;max-width:820px">
 
         <header style="padding-top:48px">
+            <span class="ch-no">使用說明書</span>
             <h1 class="t-page">操作指南</h1>
-            <!-- ⚠️ 2026-08-24：原本的「初始設定」是獨立一頁，而這一頁的七步裡有三步
-                 跟它逐字重複（驗證器、US$5、CSFloat 交易連結），底下還有第三份資格
-                 勾選清單。同一件事寫在三個地方，改一次就得改三次，而且它們的勾選狀態
-                 各自存在不同的 localStorage key、彼此不同步。
-
-                 現在合成一頁兩段：**上半只做一次，下半每一輪都要做。**
-                 這個分段本來就是使用者真正需要的區別——他要知道的是「哪些事我明年
-                 還要再做一次」。
-
-                 ⚠️ 分段的正確性比分段本身重要。原本「在 CSFloat 完成第一次入金」
-                 被放在上半段，但 CSFloat 是**錢包制**、餘額每輪都會花光，
-                 所以入金是每輪都要做的事。擺在「只做一次」等於告訴使用者
-                 這件事做過就不用再做，而他第二輪回來會發現錢包是空的。
-                 2026-08-24 移到下半段第 2 步。 -->
             <p class="t-body c-ink2 flow-sm" style="max-width:36em">
-                分成兩段：<strong class="c-ink">上半只做一次</strong>，做完就不用再碰；
-                <strong class="c-ink">下半每一輪都要做</strong>。
+                從第一次設定到把箱子賣掉，照章節順序做就好。
+                <strong class="c-ink">第 2 章只做一次</strong>，<strong class="c-ink">第 3 章每一輪都要做</strong>；
+                卡住的時候翻<a href="#ch-trouble">第 5 章疑難排解</a>。
             </p>
 
-            <div class="grid gap-3 md:grid-cols-2 flow-lg">
+            <!-- 目錄。⚠️ 用 div + role，不用 <nav>：全站的導覽列就是 <nav id="nav">，
+                 多一個 <nav> 會被任何針對 nav 寫的樣式或腳本一起抓到。 -->
+            <div class="card card-compact flow-lg" id="toc" role="navigation" aria-label="目錄">
+                <p class="t-note c-ink3 flow-0">目錄</p>
+                <ol class="toc-list flow-xs">
+                    <li><a href="#ch-start"><span class="toc-no">1</span>
+                        <span><span class="toc-title">開始之前</span><span class="toc-sub">標示說明・準備什麼・要花多久・先確認資格</span></span></a></li>
+                    <li><a href="#ch-setup"><span class="toc-no">2</span>
+                        <span><span class="toc-title">初次設定（只做一次）</span><span class="toc-sub">驗證器・US$5・交易限制・CSFloat 帳號</span></span></a></li>
+                    <li><a href="#ch-round"><span class="toc-no">3</span>
+                        <span><span class="toc-title">每一輪的操作</span><span class="toc-sub">試算・入金・下單・等 7 天・上架</span></span></a></li>
+                    <li><a href="#ch-interface"><span class="toc-no">4</span>
+                        <span><span class="toc-title">介面本身怎麼運作</span><span class="toc-sub">換裝置・紀錄存在哪・匯入與刪除</span></span></a></li>
+                    <li><a href="#ch-trouble"><span class="toc-no">5</span>
+                        <span><span class="toc-title">疑難排解</span><span class="toc-sub">照你看到的症狀找</span></span></a></li>
+                    <li><a href="#ch-glossary"><span class="toc-no">6</span>
+                        <span><span class="toc-title">名詞解釋</span><span class="toc-sub">冷卻期、求購訂單、待處理餘額⋯⋯</span></span></a></li>
+                </ol>
+            </div>
+        </header>
+
+        <!-- ═══════════ 第 1 章：開始之前 ═══════════ -->
+        <section class="sec" id="ch-start">
+            <span class="ch-no">第 1 章</span>
+            <h2 class="t-page">開始之前</h2>
+
+            <!-- 風險提示條。原本在頁尾，2026-09-17 搬到第 1 章最上面：
+                 說明書的慣例是安全須知寫在操作之前，而這一條是整件事最大的實質風險
+                 （PROJECT_OVERVIEW〈使用者實際承擔的風險〉第 1 條）。
+                 ⚠️ 搬，不是複製——同一頁寫兩次就有一次會漏改。 -->
+            <div class="risk-bar flow-md">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                <span>Steam 錢包餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+            </div>
+
+            <h3 class="t-sect flow-xl"><span class="sec-no">1.1</span>這份說明書的標示</h3>
+            <div class="legend flow-md">
+                <div class="card card-compact">
+                    <p class="t-aux c-warn flow-0">會卡在哪：⋯⋯</p>
+                    <p class="legend-desc">最多人做錯的地方。每一步都先看這一行。</p>
+                </div>
+                <div class="card card-compact">
+                    <div class="step-check" style="margin-top:0">
+                        <div class="step-check-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            怎麼確認做對了
+                        </div>
+                    </div>
+                    <p class="legend-desc">做完照這個檢查，對得上才往下一步。</p>
+                </div>
+                <div class="card card-compact">
+                    <div class="risk-bar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                        <span>黃色邊條</span>
+                    </div>
+                    <p class="legend-desc">跟錢有關、要特別留意的說明。</p>
+                </div>
+                <div class="card card-compact">
+                    <span class="chk-link" aria-hidden="true">Steam／CSFloat 的網頁<span class="ext">↗</span></span>
+                    <p class="legend-desc">開到外站，自己去看或操作。本站沒有登入，查不到你的帳號狀態，也不代你操作任何一步。</p>
+                </div>
+            </div>
+
+            <h3 class="t-sect flow-xl"><span class="sec-no">1.2</span>你需要準備什麼</h3>
+            <ul class="t-body c-ink2 flow-sm" style="padding-left:1.3em;display:flex;flex-direction:column;gap:6px">
+                <li><strong class="c-ink">Steam 帳號</strong>——要符合第 2 章的條件。</li>
+                <li><strong class="c-ink">裝好 Steam App 的手機</strong>——驗證器在手機上，上架也要在手機確認（<a href="#su-card-authenticator">2.1</a>）。</li>
+                <li><strong class="c-ink">CSFloat 帳號</strong>——用 Steam 帳號登入就會建立（<a href="#su-card-csfloat">2.4</a>）。</li>
+                <li><strong class="c-ink">入金用的付款方式</strong>——本站的成本是照刷卡入金估算的（<a href="#step-deposit">3.2</a>）。</li>
+                <li><strong class="c-ink">一筆這幾天用不到的錢</strong>——從買到能花，中間至少隔著 7 天（<a href="#step-wait">3.4</a>）。</li>
+                <li><strong class="c-ink">固定用同一台裝置、同一個瀏覽器</strong>——你填的紀錄只存在瀏覽器裡（<a href="#records">4.2</a>）。</li>
+            </ul>
+
+            <h3 class="t-sect flow-xl"><span class="sec-no">1.3</span>要花多少時間</h3>
+            <div class="grid gap-3 md:grid-cols-2 flow-md">
                 <div class="stat card card-compact">
-                    <div class="stat-label">只做一次（下半頁不算）</div>
+                    <div class="stat-label">只做一次（第 2 章）</div>
                     <div class="stat-value-sm num" id="su-setup-time">--</div>
                     <div class="stat-note">換算約 <span id="su-setup-cost">--</span></div>
                 </div>
                 <div class="stat card card-compact">
-                    <div class="stat-label">之後每一輪</div>
+                    <div class="stat-label">之後每一輪（第 3 章）</div>
                     <div class="stat-value-sm num" id="su-round-time">--</div>
                     <div class="stat-note">再加上每件約 24 秒，件數越多越久</div>
                 </div>
@@ -94,20 +229,37 @@
                 ⚠️ 這兩個時間是照操作步驟推估的，沒有實測。等作者自己完整跑一輪計時之後會回來修正。
             </p>
 
+            <h3 class="t-sect flow-xl"><span class="sec-no">1.4</span>先確認資格</h3>
             <div class="card card-compact flow-md" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
-                <span class="t-aux c-ink2">還沒確認資格？先做 30 秒快檢，免得買完才發現上架不了。答過的答案會自動帶進下面前三項。</span>
+                <span class="t-aux c-ink2">還沒確認資格？先做 30 秒快檢，免得買完才發現上架不了。答「通過」的題目會自動幫你勾好第 2 章對應的項目。</span>
                 <a href="eligibility.html" class="btn btn-secondary btn-sm">30 秒資格快檢</a>
             </div>
-        </header>
+        </section>
 
-        <!-- ═══════════ A 段：只做一次 ═══════════
+        <!-- ═══════════ 第 2 章：只做一次 ═══════════
+             ⚠️ 2026-08-24：原本的「初始設定」是獨立一頁，而這一頁的七步裡有三步
+                跟它逐字重複（驗證器、US$5、CSFloat 交易連結），底下還有第三份資格
+                勾選清單。同一件事寫在三個地方，改一次就得改三次，而且它們的勾選狀態
+                各自存在不同的 localStorage key、彼此不同步。
+
+                現在合成一頁：**第 2 章只做一次，第 3 章每一輪都要做。**
+                這個分段本來就是使用者真正需要的區別——他要知道的是「哪些事我明年
+                還要再做一次」。
+
+             ⚠️ 分段的正確性比分段本身重要。原本「在 CSFloat 完成第一次入金」
+                被放在只做一次那一段，但 CSFloat 是**錢包制**、餘額每輪都會花光，
+                所以入金是每輪都要做的事。擺在「只做一次」等於告訴使用者
+                這件事做過就不用再做，而他第二輪回來會發現錢包是空的。
+                2026-08-24 移到第 3 章第 2 步。
+
              ⚠️ 整段（標題／進度條／四張卡／結果／跨裝置）一定要包在**同一個
                 section** 裡。進度條是 sticky 的，而 sticky 的作用範圍是它的
                 containing block——直接掛在 <main> 底下的話，它會一路釘到頁尾，
-                使用者在看下半頁「每一輪都要做」的時候，畫面上方還黏著一條
+                使用者在看第 3 章「每一輪都要做」的時候，畫面上方還黏著一條
                 跟那一段完全無關的「還沒開始，共 4 項」。 -->
-        <section class="sec">
-            <h2 class="t-page">只做一次</h2>
+        <section class="sec" id="ch-setup">
+            <span class="ch-no">第 2 章</span>
+            <h2 class="t-page">初次設定（只做一次）</h2>
             <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
                 這四件事是 Steam 與 CSFloat 的帳號條件，不是這個網站要求的。
                 <strong class="c-ink">四項都勾完，試算頁就會改用「第二次以後」的成本判斷值不值得。</strong>
@@ -127,20 +279,25 @@
 
         <div class="flow-md" style="display:flex;flex-direction:column;gap:16px">
 
-            <!-- ① -->
+            <!-- 2.1 -->
             <div class="card su-card" id="su-card-authenticator" data-done="0">
                 <label class="su-head">
                     <input type="checkbox" class="su-box" data-step="authenticator">
                     <span style="flex:1">
-                        <span class="t-note num c-ink3">第 1 項・要等 7 天，先做這個</span>
+                        <span class="t-note num c-ink3"><span class="sec-no">2.1</span>要等 7 天，先做這個</span>
                         <span class="t-sub" style="display:block;margin-top:4px">啟用 Steam 手機驗證器，並等滿 7 天</span>
                     </span>
                 </label>
                 <div style="padding-left:38px">
                     <p class="t-body c-ink2 flow-sm">
-                        用 Steam 手機 App 開啟驗證器。沒啟用就完全不能在市場上架，而且啟用之後還要再等 7 天。
+                        沒啟用就完全不能在市場上架，而且啟用之後還要再等 7 天。
                         <strong class="c-ink">整條流程只有這一項是純等待</strong>，所以它要排第一個。
                     </p>
+                    <ol class="howto t-body c-ink2">
+                        <li>在手機上打開 Steam App。</li>
+                        <li>到「選單 → Steam 守護」，把驗證器的設定流程走完。</li>
+                        <li>等滿 7 天。這段時間可以先做 2.2 與 2.4（2.3 的檢查要等這 7 天過了才看得到結果）。</li>
+                    </ol>
                     <p class="t-aux c-warn flow-xs">
                         會卡在哪：以為裝了 App 就好。要在 App 裡實際完成驗證器的設定流程。
                     </p>
@@ -173,12 +330,12 @@
                 </div>
             </div>
 
-            <!-- ② -->
+            <!-- 2.2 -->
             <div class="card su-card" id="su-card-spend5" data-done="0">
                 <label class="su-head">
                     <input type="checkbox" class="su-box" data-step="spend5">
                     <span style="flex:1">
-                        <span class="t-note num c-ink3">第 2 項</span>
+                        <span class="t-note num c-ink3"><span class="sec-no">2.2</span></span>
                         <span class="t-sub" style="display:block;margin-top:4px">帳號累積消費滿 US$5，解除 Limited</span>
                     </span>
                 </label>
@@ -214,12 +371,12 @@
                 </div>
             </div>
 
-            <!-- ③ -->
+            <!-- 2.3 -->
             <div class="card su-card" id="su-card-notrestricted" data-done="0">
                 <label class="su-head">
                     <input type="checkbox" class="su-box" data-step="notrestricted">
                     <span style="flex:1">
-                        <span class="t-note num c-ink3">第 3 項・順便驗收前兩項</span>
+                        <span class="t-note num c-ink3"><span class="sec-no">2.3</span>順便驗收前兩項</span>
                         <span class="t-sub" style="display:block;margin-top:4px">確認帳號沒有交易限制或 VAC 停權</span>
                     </span>
                 </label>
@@ -258,20 +415,25 @@
                 </div>
             </div>
 
-            <!-- ④ -->
+            <!-- 2.4 -->
             <div class="card su-card" id="su-card-csfloat" data-done="0">
                 <label class="su-head">
                     <input type="checkbox" class="su-box" data-step="csfloat">
                     <span style="flex:1">
-                        <span class="t-note num c-ink3">第 4 項・做完就可以開始了</span>
+                        <span class="t-note num c-ink3"><span class="sec-no">2.4</span>做完就可以開始了</span>
                         <span class="t-sub" style="display:block;margin-top:4px">註冊 CSFloat，並填好 Steam 交易連結</span>
                     </span>
                 </label>
                 <div style="padding-left:38px">
                     <p class="t-body c-ink2 flow-sm">
-                        CSFloat 用 Steam 帳號登入，不用另外設密碼。登入後到設定頁把你的
-                        Steam 交易連結（Trade URL）填進去，物品才送得到你手上。
+                        CSFloat 用 Steam 帳號登入，不用另外設密碼。
+                        交易連結（Trade URL）要填進去，物品才送得到你手上。
                     </p>
+                    <ol class="howto t-body c-ink2">
+                        <li>打開 CSFloat，用 Steam 帳號登入。</li>
+                        <li>到 Steam 複製你的交易連結。</li>
+                        <li>回 CSFloat 的設定頁，把交易連結填進去。</li>
+                    </ol>
                     <p class="t-aux c-warn flow-xs">
                         會卡在哪：交易連結填錯或過期。Steam 那邊按過「產生新的連結」，舊的就會失效，要重新複製一次。
                     </p>
@@ -295,6 +457,12 @@
                         <a class="chk-link" href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" rel="noopener noreferrer">
                             我的 Steam 交易連結（Trade URL）<span class="ext">↗</span></a>
                     </div>
+                    <!-- 2026-09-17：資格快檢加了第 5 題之後，這一項也帶得進來了
+                         （只有答「都好了」才帶，見 site.js SETUP_STEPS 的註解）。 -->
+                    <p class="su-from-elig flow-sm" data-elig-for="csfloat" hidden>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        已由資格快檢帶入
+                    </p>
                 </div>
             </div>
 
@@ -305,7 +473,7 @@
 
         <!-- 跨裝置補丁 + 重設 -->
         <div class="flow-md">
-            <div class="card card-compact">
+            <div class="card card-compact" id="setup-other-device">
                 <p class="t-aux c-ink2 flow-0">
                     <strong class="c-ink">換了裝置？</strong>
                     這些勾選存在瀏覽器裡，不跨裝置也不跨瀏覽器。
@@ -319,24 +487,40 @@
         </div>
         </section>
 
-        <!-- ═══════════ B 段：每一輪都要做 ═══════════ -->
-        <section class="sec">
-            <h2 class="t-page">每一輪都要做</h2>
+        <!-- ═══════════ 第 3 章：每一輪都要做 ═══════════ -->
+        <section class="sec" id="ch-round">
+            <span class="ch-no">第 3 章</span>
+            <h2 class="t-page">每一輪的操作</h2>
             <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
-                五個步驟，中間卡著不能縮短的 7 天。
+                每一輪都要從頭做一次。五個步驟，中間卡著不能縮短的 7 天。
             </p>
+
+            <!-- 流程總覽：只講「做什麼、在哪裡做」。
+                 ⚠️ 不放每一步的分鐘數——時間模型三個常數還沒實測（NEXT_SESSION 待辦第 1 項），
+                    寫上去就多一個地方要跟著改，而且會讓估計值看起來像量過。 -->
+            <ol class="flow-map flow-lg" aria-label="流程總覽">
+                <li><a href="#step-calc"><span class="fm-no">3.1</span><span class="fm-what">試算要買什麼</span><span class="fm-where">本站・試算頁</span></a></li>
+                <li><a href="#step-deposit"><span class="fm-no">3.2</span><span class="fm-what">入金</span><span class="fm-where">CSFloat</span></a></li>
+                <li><a href="#step-buy"><span class="fm-no">3.3</span><span class="fm-what">下單買箱子</span><span class="fm-where">CSFloat，邊買邊回本站購物清單勾</span></a></li>
+                <li><a href="#step-wait"><span class="fm-no">3.4</span><span class="fm-what">等 7 天</span><span class="fm-where">什麼都不用做，賣出頁會倒數</span></a></li>
+                <li><a href="#step-sell"><span class="fm-no">3.5</span><span class="fm-what">上架賣出</span><span class="fm-where">Steam，成交後回本站賣出頁填成交價</span></a></li>
+            </ol>
 
             <div class="card flow-lg" style="display:flex;flex-direction:column;gap:32px">
 
-                <div class="step">
-                    <div class="step-no num">1</div>
+                <div class="step" id="step-calc">
+                    <div class="step-no num">3.1</div>
                     <div style="flex:1">
                         <h3 class="t-sub">用試算頁算出你要買什麼</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            到 <a href="calculator.html">試算頁</a> 填金額，會產出一份購買組合，包含品項和數量。
-                            兩個欄位任填一個就好：「目標 Steam 餘額」是你想拿到的，「投入現金」是你手上要花的。
+                            試算頁會產出一份購買組合，包含品項和數量。
                             省下的錢不夠付你這一輪要花的時間時，它會直接告訴你不要做。
                         </p>
+                        <ol class="howto t-body c-ink2">
+                            <li>打開 <a href="calculator.html">試算頁</a>。</li>
+                            <li>兩個欄位任填一個就好：「目標 Steam 餘額」是你想拿到的，「投入現金」是你手上要花的。</li>
+                            <li>看結果區的徽章，和下方的購買組合表。</li>
+                        </ol>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：兩個欄位填錯邊。想拿到 3,000 元餘額就填上面，手上只有 2,000 元現金就填下面。
                         </p>
@@ -360,15 +544,19 @@
                      「這件事做過就不用再做」，而他第二輪回來會發現錢包是空的。
 
                      位置在試算之後：入多少要看試算算出來的組合金額，先試算才知道。 -->
-                <div class="step">
-                    <div class="step-no num">2</div>
+                <div class="step" id="step-deposit">
+                    <div class="step-no num">3.2</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 CSFloat 入金</h3>
                         <p class="t-body c-ink2 flow-xs">
                             CSFloat 是錢包制：先入金，再用錢包餘額買。
-                            金額照試算頁的「預估要花的現金」抓，<strong class="c-ink">一次入足這一輪要用的量</strong>——
-                            入金費是<strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次。
+                            入金費是<strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次，
+                            所以<strong class="c-ink">一次入足這一輪要用的量</strong>。
                         </p>
+                        <ol class="howto t-body c-ink2">
+                            <li>在試算頁記下「預估要花的現金」。</li>
+                            <li>到 CSFloat 登入、入金，金額照上一步抓。</li>
+                        </ol>
                         <p class="t-aux c-warn flow-xs">
                             會卡在哪：分五次小額儲值。固定費會被收五次，成本直接被墊高。
                             第一次還要多花時間綁付款方式，之後就只剩輸入金額。
@@ -395,8 +583,8 @@
 
                 <div class="hr"></div>
 
-                <div class="step">
-                    <div class="step-no num">3</div>
+                <div class="step" id="step-buy">
+                    <div class="step-no num">3.3</div>
                     <div style="flex:1">
                         <h3 class="t-sub">照清單下單買箱子</h3>
                         <!-- 2026-09-06 翻轉順序。原本先教「搜尋 → 依價格排序 → 逐件點買」，
@@ -407,13 +595,21 @@
                                · 買進側的時間已經從 per-件 變成 per-單（buyPerOrder 0.688 分/張）
                              ⚠️ 那一輪的數量很小（1/4/1/1），「全部掃滿」**不能寫成保證**——
                                 4.24 量到 45 個品項有 42 個在最低價那一檔只有 ≤2 件。
-                                所以下面的文案只講「怎麼下單」，不承諾一定買得到。 -->
-                        <p class="t-body c-ink2 flow-xs" id="buy-order">
-                            按試算頁的「產生購物清單」，到 <a href="checklist.html">購物清單</a> 邊買邊勾。
-                            <strong class="c-ink">同一顆箱子不用點很多次：用「求購訂單」</strong>——
-                            在 CSFloat 品項頁按「求購訂單」旁邊的<strong class="c-ink">創建</strong>，填三個欄位：
-                            品項名、數量、每件最高價。<strong class="c-ink">購物清單每一列都附了這三個值。</strong>
-                        </p>
+                                所以下面的文案只講「怎麼下單」，不承諾一定買得到。
+                             2026-09-17 改成編號步驟時同一條照舊：步驟只講動作，不講結果。 -->
+                        <div id="buy-order">
+                            <p class="t-body c-ink2 flow-xs">
+                                <strong class="c-ink">同一顆箱子不用點很多次：用「求購訂單」</strong>，
+                                一張訂單設好數量就好。<strong class="c-ink">購物清單每一列都附了要填的三個值。</strong>
+                            </p>
+                            <ol class="howto t-body c-ink2">
+                                <li>在試算頁按「產生購物清單」，打開 <a href="checklist.html">購物清單</a>。</li>
+                                <li>到 CSFloat 的品項頁，按「求購訂單」旁邊的<strong class="c-ink">創建</strong>。</li>
+                                <li>填三個欄位：品項名、數量、每件最高價——照購物清單上的數字填。</li>
+                                <li>成交後回購物清單勾選，填實際買到幾個與實付總額。</li>
+                                <li>箱子進到 Steam 庫存之後，回購物清單按「物品到了」。</li>
+                            </ol>
+                        </div>
                         <p class="t-aux c-warn flow-xs">
                             ⚠️⚠️ 會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少</strong>。
                             它就貼在價格欄旁邊，看起來像市價——但照那個數字填，你的訂單只會排隊，
@@ -446,8 +642,9 @@
                              ⚠️⚠️ 順序不能反，理由是 4.21：「沒成交要回試算頁重算，不是把價格往上加」。
                                 而**逐件買就是用現在的市價買**，市場漲過計畫之後去逐件買，效果上等於往上加。
                                 所以價格的判斷必須留在試算頁，逐件買只能解決「等不等得到」。
-                                ②那一句是純勸退（安全方向），③才是新增的行為建議。 -->
-                        <div class="risk-bar flow-md">
+                                ②那一句是純勸退（安全方向），③才是新增的行為建議。
+                             id="no-fill"（2026-09-17）：疑難排解第 5 章連過來。 -->
+                        <div class="risk-bar flow-md" id="no-fill">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                             <span><strong class="c-ink">掛著沒成交怎麼辦</strong>——照順序，不要跳步。
                             ① <strong class="c-ink">回試算頁重算一份，不要自己把價格往上加</strong>：沒成交就代表市場已經漲過你的計畫。
@@ -487,8 +684,8 @@
 
                 <div class="hr"></div>
 
-                <div class="step">
-                    <div class="step-no num">4</div>
+                <div class="step" id="step-wait">
+                    <div class="step-no num">3.4</div>
                     <div style="flex:1">
                         <h3 class="t-sub">等 7 天（從箱子到手那天算起）</h3>
                         <p class="t-body c-ink2 flow-xs">
@@ -500,7 +697,7 @@
                             ⚠️ 沒按過「物品到了」的批次，賣出頁算的是<strong class="c-ink">最快</strong>能賣的時刻
                             （下單那一刻 + 7 天），並且標明那是估計值。實際只會更晚不會更早。
                         </p>
-                        <p class="t-aux c-ink2 flow-xs">
+                        <p class="t-aux c-ink2 flow-xs" id="unlock-time">
                             ⚠️ <strong class="c-ink">解鎖是一個精確的時刻，不是「那一天」。</strong>
                             賣出頁與到期提醒都會寫出幾點幾分——早上看到「今天解鎖」就跑去 Steam，
                             可能還要等到晚上。
@@ -533,25 +730,35 @@
 
                 <div class="hr"></div>
 
-                <div class="step">
-                    <div class="step-no num">5</div>
+                <div class="step" id="step-sell">
+                    <div class="step-no num">3.5</div>
                     <div style="flex:1">
                         <h3 class="t-sub">在 Steam 社群市場上架</h3>
                         <!-- ⚠️ id="sell-price"：賣出頁的「在 Steam 上架的時候」只留三句要照做的，
-                             掛價的來源與「為什麼填標價就好」在這裡。改 id 要一起改 sell.html。 -->
-                        <p class="t-body c-ink2 flow-xs" id="sell-price">
-                            到庫存點箱子、按出售，價格填成跟目前最低掛牌價一樣或低 1 元。
-                            Steam 會自動顯示扣完手續費後你實拿多少，那個數字才是你會拿到的錢。
-                            <a href="sell.html">賣出頁</a>會告訴你該掛多少、實拿多少。
-                        </p>
-                        <p class="t-aux c-ink2 flow-xs">
-                            賣出頁上的建議掛價是<strong class="c-ink">中位成交價</strong>，不是此刻的最低掛牌價，
-                            兩者會差幾個百分點——<strong class="c-ink">以 Steam 畫面上顯示的為準</strong>。
-                            成交後回賣出頁填成交價時<strong class="c-ink">填 Steam 標價（買家付的數字）就好</strong>，
-                            手續費本站會自己扣；自己先扣過一次再填，賺賠會被算少約 13%。
-                        </p>
+                             掛價的來源與「為什麼填標價就好」在這裡。改 id 要一起改 sell.html。
+                             2026-09-17 改成編號步驟，id 從 <p> 移到包住步驟與下一段說明的 <div>，
+                             兩件事都還在錨點底下。
+                             ⚠️ 第 4 步「手機確認上架」是新寫進來的：有啟用驗證器的帳號，
+                                上架要在 Steam 手機 App 確認才會開賣——作者 9/05 碼錶量到的
+                                「手機批次確認 0.216 分」就是這一步（DECISIONS 4.25）。
+                                原本的指南漏了它，而新手最常卡在「按了出售，市場上卻沒有」。 -->
+                        <div id="sell-price">
+                            <ol class="howto t-body c-ink2">
+                                <li>打開 <a href="sell.html">賣出頁</a>，看每一批該掛多少、實拿多少。</li>
+                                <li>到 Steam 庫存點箱子、按<strong class="c-ink">出售</strong>，價格填成跟目前最低掛牌價一樣或低 1 元。</li>
+                                <li>填價格時看下面那行「您將收到」：Steam 會自動算好扣完手續費後你實拿多少，那個數字才是你會拿到的錢。</li>
+                                <li>打開 Steam 手機 App 確認上架，好幾筆可以一次確認。沒確認的掛單不會開賣。</li>
+                                <li>成交後回賣出頁填成交價。</li>
+                            </ol>
+                            <p class="t-aux c-ink2 flow-xs">
+                                賣出頁上的建議掛價是<strong class="c-ink">中位成交價</strong>，不是此刻的最低掛牌價，
+                                兩者會差幾個百分點——<strong class="c-ink">以 Steam 畫面上顯示的為準</strong>。
+                                成交後回賣出頁填成交價時<strong class="c-ink">填 Steam 標價（買家付的數字）就好</strong>，
+                                手續費本站會自己扣；自己先扣過一次再填，賺賠會被算少約 13%。
+                            </p>
+                        </div>
                         <p class="t-aux c-warn flow-xs">
-                            會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。填價格的時候看下面那行「您將收到」。另外掛單不一定馬上成交，冷門品項可能要放幾天。
+                            會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。另外掛單不一定馬上成交，冷門品項可能要放幾天。
                         </p>
                         <!-- ⚠️ id="pending-balance"：DECISIONS 4.27，2026-09-06 實測（結帳被擋、
                              Steam 要求刷卡補差額）。賣出頁只留「賣掉不等於馬上能花」一句，理由在這裡。
@@ -597,7 +804,7 @@
             </div>
         </section>
 
-        <!-- ═══════════ C 段：介面本身怎麼運作 ═══════════
+        <!-- ═══════════ 第 4 章：介面本身怎麼運作 ═══════════
              2026-09-12 新增。購物清單／賣出／帳本三頁原本各自帶著一大段解釋，
              夾在按鈕與表格中間，把「現在要做什麼」推到很下面。那些解釋講的是
              **這個工具怎麼運作**，不是這一次操作的結果，所以整段搬到這裡。
@@ -613,7 +820,8 @@
              搬進來的都是「為什麼」。
 
              ⚠️ 每張卡的 id 是那四頁連過來的錨點，改 id 要一起改那四頁。 -->
-        <section class="sec">
+        <section class="sec" id="ch-interface">
+            <span class="ch-no">第 4 章</span>
             <h2 class="t-page">介面本身怎麼運作</h2>
             <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
                 操作頁上只留當下要做的事，背後的理由都收在這裡。
@@ -622,7 +830,7 @@
             <div class="card flow-lg" style="display:flex;flex-direction:column;gap:28px">
 
                 <div id="track-url">
-                    <h3 class="t-sub">換裝置看：追蹤網址與行事曆提醒</h3>
+                    <h3 class="t-sub"><span class="sec-no">4.1</span>換裝置看：追蹤網址與行事曆提醒</h3>
                     <p class="t-body c-ink2 flow-xs">
                         本站<strong class="c-ink">不用註冊、不收 email</strong>，所以你的清單預設只存在
                         <strong class="c-ink">按下按鈕的那一台裝置</strong>裡，手機打開是看不到的。
@@ -646,7 +854,7 @@
                 <div class="hr"></div>
 
                 <div id="records">
-                    <h3 class="t-sub">你填的東西存在哪裡</h3>
+                    <h3 class="t-sub"><span class="sec-no">4.2</span>你填的東西存在哪裡</h3>
                     <p class="t-body c-ink2 flow-xs">
                         打勾、實際買到幾個、實付多少、成交價——<strong class="c-ink">全部只存在你自己瀏覽器裡</strong>，
                         沒有上傳到任何伺服器，本站也看不到。好處是不用帳號；代價是它<strong class="c-ink">沒有備份</strong>。
@@ -667,7 +875,7 @@
                 <div class="hr"></div>
 
                 <div id="export">
-                    <h3 class="t-sub">匯入與刪除各自會動到什麼</h3>
+                    <h3 class="t-sub"><span class="sec-no">4.3</span>匯入與刪除各自會動到什麼</h3>
                     <ul class="t-aux c-ink2 flow-xs" style="padding-left:1.3em;display:flex;flex-direction:column;gap:6px">
                         <li><strong class="c-ink">匯入 JSON 是整份取代，不是合併</strong>——同一單兩邊不一樣時該聽誰的沒有正確答案，
                             猜錯就是默默改掉你自己的紀錄。按下去之前會先告訴你會蓋掉幾單。</li>
@@ -685,11 +893,170 @@
             </div>
         </section>
 
-        <!-- 風險提示條 -->
-        <section class="flow-lg">
-            <div class="risk-bar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                <span>Steam 錢包餘額不可提領，僅能於 Steam 平台內消費。<a href="risks.html">看完整風險說明</a></span>
+        <!-- ═══════════ 第 5 章：疑難排解（2026-09-17）═══════════
+             照「使用者看到的症狀」排，不照功能排——卡住的人知道的是症狀，不知道是哪一步出錯。
+             ⚠️⚠️ 每一條只講「多半是哪一類原因」＋指到那一節，**不重講規則本身的數字與細節**
+                （幾小時、幾 %、幾天之後⋯⋯）。那些只住在第 2～4 章。
+                理由是 NEXT_SESSION 9/12 那則：同一個事實寫在幾個地方，就有幾個地方會漏改，
+                而 4.27 那一行就是這樣在兩頁之間講反了六天。
+             ⚠️ 不要把常見問題（faq.html）整題搬過來。那一頁回答「為什麼／會不會」，
+                這裡只回答「卡住了去看哪裡」。 -->
+        <section class="sec" id="ch-trouble">
+            <span class="ch-no">第 5 章</span>
+            <h2 class="t-page">疑難排解</h2>
+            <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                照你看到的症狀找，每一條都指到說明那一節。這裡沒有的，看<a href="faq.html">常見問題</a>。
+            </p>
+
+            <div class="card flow-lg">
+
+                <div class="ts-group">
+                    <h3 class="t-sub c-ink2">設定與資格</h3>
+                    <div class="ts-item flow-xs">
+                        <p class="ts-q">Steam 市場不讓我上架，或看不到「出售」按鈕</p>
+                        <p class="ts-a">第 2 章前三項還有一項沒過：驗證器、消費門檻、交易限制。社群市場被擋時那一頁會直接寫原因，照原因對回去看。
+                            → <a href="#su-card-authenticator">2.1</a>、<a href="#su-card-spend5">2.2</a>、<a href="#su-card-notrestricted">2.3</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">我設定完了，試算頁還是把一次性設定的時間算進去</p>
+                        <p class="ts-a">這台裝置上沒有「設定完成」的紀錄——換了裝置或瀏覽器都會這樣。回第 2 章勾完，或按「我在別的裝置設定過了」。
+                            → <a href="#setup-other-device">第 2 章最後</a></p>
+                    </div>
+                </div>
+
+                <div class="ts-group">
+                    <h3 class="t-sub c-ink2">買進</h3>
+                    <div class="ts-item flow-xs">
+                        <p class="ts-q">求購訂單掛著一直沒成交</p>
+                        <p class="ts-a">最常見的是價格填成了對話框右邊那一欄；不然就是市場已經漲過你的計畫。不要自己往上加價，照順序處理。
+                            → <a href="#no-fill">3.3 掛著沒成交怎麼辦</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">訂單下不了，或掛著的訂單不見了</p>
+                        <p class="ts-a">先看 CSFloat 的錢包餘額，訂單金額受餘額限制。
+                            → <a href="#step-deposit">3.2 入金</a>、<a href="#buy-order">3.3</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">付完錢了，箱子一直沒進 Steam 庫存</p>
+                        <p class="ts-a">CSFloat 是付款之後賣家才去送交易報價，會有時間差。拖很久的話，檢查交易連結有沒有過期。
+                            → <a href="#arrived">3.3 付完錢不等於到手</a>、<a href="#su-card-csfloat">2.4</a></p>
+                    </div>
+                </div>
+
+                <div class="ts-group">
+                    <h3 class="t-sub c-ink2">等待</h3>
+                    <div class="ts-item flow-xs">
+                        <p class="ts-q">7 天到了，箱子還是鎖著</p>
+                        <p class="ts-a">三個常見原因：7 天是從箱子進庫存才開始算；沒按「物品到了」的倒數只是估計；解鎖是精確的時刻，不是那一整天。
+                            → <a href="#arrived">3.3</a>、<a href="#cooldown-estimate">3.4 估計值</a>、<a href="#unlock-time">3.4 解鎖時刻</a></p>
+                    </div>
+                </div>
+
+                <div class="ts-group">
+                    <h3 class="t-sub c-ink2">賣出</h3>
+                    <div class="ts-item flow-xs">
+                        <p class="ts-q">按了出售，市場上卻沒有我的掛單</p>
+                        <p class="ts-a">還沒在 Steam 手機 App 確認上架。
+                            → <a href="#sell-price">3.5 第 4 步</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">掛上去很久都沒人買</p>
+                        <p class="ts-a">冷門品項本來就可能要放幾天。
+                            → <a href="#step-sell">3.5</a>、<a href="faq.html">常見問題〈風險與限制〉</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">賣掉了，結帳時卻說餘額不夠、要我刷卡補差額</p>
+                        <p class="ts-a">賣出的錢會先變成待處理餘額，還不能拿來結帳。
+                            → <a href="#pending-balance">3.5 賣掉不等於馬上能花</a></p>
+                    </div>
+                </div>
+
+                <div class="ts-group">
+                    <h3 class="t-sub c-ink2">紀錄與換裝置</h3>
+                    <div class="ts-item flow-xs">
+                        <p class="ts-q">帳本算出來的賺賠比實際少</p>
+                        <p class="ts-a">多半是填錯欄位：成交價填了自己扣過手續費的數字，或實付填成了單價。
+                            → <a href="#sell-price">3.5 填 Steam 標價</a>、<a href="#paid-total">3.3 實付填總額</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">換了手機或電腦，清單是空的</p>
+                        <p class="ts-a">紀錄只存在原本那台的瀏覽器裡。用追蹤網址帶過去，或在帳本頁匯出、再到新裝置匯入。
+                            → <a href="#track-url">4.1</a>、<a href="#records">4.2</a></p>
+                    </div>
+                    <div class="ts-item">
+                        <p class="ts-q">隔了一陣子回來，整份紀錄都不見了</p>
+                        <p class="ts-a">清過瀏覽資料，或被 Safari 自動刪掉了。匯出過 JSON 就能匯入回來；
+                            貼出去過的追蹤網址也能把當時那份還沒結案的單存回來。
+                            → <a href="#records">4.2</a></p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ═══════════ 第 6 章：名詞解釋（2026-09-17）═══════════
+             本站的目標使用者是「有 Steam 帳號、不玩 CS2 的人」（NEXT_SESSION 待辦第 2 項），
+             交易連結、求購訂單、冷卻期這些字他多半第一次看到。
+             ⚠️ 只講「這個詞是什麼」，規則與數字留在後面連過去的那一節，理由同第 5 章。
+                「7 天」是唯一的例外：它是這個做法本身的定義，全站每一頁都寫著。 -->
+        <section class="sec" id="ch-glossary">
+            <span class="ch-no">第 6 章</span>
+            <h2 class="t-page">名詞解釋</h2>
+            <p class="t-aux c-ink2 flow-xs" style="max-width:36em">
+                依出現的順序排。每個詞後面的編號是詳細說明所在的那一節。
+            </p>
+
+            <div class="card flow-lg">
+                <dl class="gloss">
+                    <div>
+                        <dt>受限帳戶（Limited）</dt>
+                        <dd>自己付費的消費還沒達到 Steam 門檻的帳號，用不了社群市場。<a href="#su-card-spend5">→ 2.2</a></dd>
+                    </div>
+                    <div>
+                        <dt>手機驗證器</dt>
+                        <dd>Steam 手機 App 裡的「Steam 守護行動版驗證器」。沒有它就不能在市場上架，上架時也要用它確認。<a href="#su-card-authenticator">→ 2.1</a></dd>
+                    </div>
+                    <div>
+                        <dt>交易限制</dt>
+                        <dd>帳號暫時不能交易或上架的狀態，原因不只 VAC 停權。<a href="#su-card-notrestricted">→ 2.3</a></dd>
+                    </div>
+                    <div>
+                        <dt>交易連結（Trade URL）</dt>
+                        <dd>Steam 給每個帳號的專屬網址，別人拿它才能送交易報價給你。CSFloat 的賣家就是靠它把箱子送過來。<a href="#su-card-csfloat">→ 2.4</a></dd>
+                    </div>
+                    <div>
+                        <dt>入金</dt>
+                        <dd>先把錢存進 CSFloat 錢包，之後下單都從錢包餘額扣。<a href="#step-deposit">→ 3.2</a></dd>
+                    </div>
+                    <div>
+                        <dt>求購訂單</dt>
+                        <dd>在 CSFloat 先講好「這個品項要幾件、每件最多付多少」，市場上有不超過這個價的掛單就會成交。<a href="#buy-order">→ 3.3</a></dd>
+                    </div>
+                    <div>
+                        <dt>冷卻期</dt>
+                        <dd>箱子進到你的 Steam 庫存之後，有 7 天不能交易、也不能上架。這份說明書裡的「等 7 天」就是它。<a href="#step-wait">→ 3.4</a></dd>
+                    </div>
+                    <div>
+                        <dt>標價／實拿</dt>
+                        <dd>標價是 Steam 市場上買家付的數字，含手續費；實拿是扣完手續費你收到的錢。回填成交價填的是標價。<a href="#sell-price">→ 3.5</a></dd>
+                    </div>
+                    <div>
+                        <dt>待處理餘額</dt>
+                        <dd>市場賣出的錢在變成可用的錢包餘額之前的狀態，這段期間不能拿來結帳。<a href="#pending-balance">→ 3.5</a></dd>
+                    </div>
+                    <div>
+                        <dt>保本掛價</dt>
+                        <dd>賣出頁每一批算給你的一個標價：掛到這個價以上，這一批就不會是負收益。<a href="#break-even">→ 3.5</a></dd>
+                    </div>
+                    <div>
+                        <dt>單、結案</dt>
+                        <dd>一次「試算 → 買 → 等 → 賣」叫一單，可以同時跑好幾單。結案是把那一單移進帳本，不刪任何東西。<a href="#export">→ 4.3</a></dd>
+                    </div>
+                    <div>
+                        <dt>追蹤網址</dt>
+                        <dd>把你的清單整份編進一條網址，換裝置打開就是同一份。它是複製當下的快照。<a href="#track-url">→ 4.1</a></dd>
+                    </div>
+                </dl>
             </div>
         </section>
 
@@ -697,7 +1064,7 @@
             <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px">
                 <div>
                     <h2 class="t-sect">準備好了就開始算</h2>
-                    <p class="t-aux c-ink2 flow-xs">還有疑問可以看 <a href="faq.html">常見問題</a>。</p>
+                    <p class="t-aux c-ink2 flow-xs">還有疑問可以看 <a href="faq.html">常見問題</a>，或回到<a href="#toc">目錄</a>。</p>
                 </div>
                 <a href="calculator.html" class="btn btn-primary">試算我的方案</a>
             </div>
@@ -708,9 +1075,9 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-15"></script>
+    <script src="assets/site.js?v=2026-09-17"></script>
     <script>
-        /* A 段的勾選：維護 sah-setup-v1。（2026-08-24 從 setup.html 併進來）
+        /* 第 2 章的勾選：維護 sah-setup-v1。（2026-08-24 從 setup.html 併進來）
            門檻常數、時間模型、狀態讀寫全部在 site.js 第⑩節，
            **不要在這裡另立一套**——試算頁讀的是同一份。
 
@@ -719,8 +1086,8 @@
               與 `sah-setup-v1` 都不同步。同一個人可能在三個地方各勾一次，而且三邊
               講的話還不一樣。2026-08-24 刪掉——**資格判斷全站只留一個來源**，
               跟「值不值得的結論只留在試算頁」是同一條原則。
-              那份清單裡兩條別處沒有的事實已經搬走：市場物品固定 7 日鎖定 → B 段第 3 步；
-              過去一年要有消費紀錄 → A 段第 2 項。 */
+              那份清單裡兩條別處沒有的事實已經搬走：市場物品固定 7 日鎖定 → 第 3 章 3.4；
+              過去一年要有消費紀錄 → 第 2 章 2.2。 */
         const STEP_IDS = SETUP_STEPS.map(s => s.id);
 
         /* 從資格快檢帶入：使用者已經在那一頁回答過同樣的問題，
@@ -781,7 +1148,7 @@
             box.innerHTML = `
                 <div class="card">
                     <span class="badge badge-go">設定完成</span>
-                    <h2 class="t-sect flow-md" style="color:var(--pos)">之後每一輪只剩下面那五步</h2>
+                    <h2 class="t-sect flow-md" style="color:var(--pos)">之後每一輪只剩第 3 章那五步</h2>
                     <p class="t-body c-ink2 flow-sm">
                         試算頁的門檻已經改用第二次以後的成本，不會再把這四件事算進去。
                         完成時間：${when.toLocaleDateString('zh-TW')} ${via}
@@ -849,6 +1216,8 @@
 
            ⚠️ 放在 bootstrapFromElig 之後：那一段可能剛把資格快檢的答案帶進來，
               補完之後才是這一輪真正的勾選狀態。
+              （2026-09-17 起資格快檢五題全過會一次帶入四項，所以這裡也是
+               「答完快檢、打開指南就直接設定完成」的那條路。）
            ⚠️ 只補「該有而沒有」這個方向。反過來（有 doneAt 但沒勾滿）不在這裡處理——
               那是 setStep() 的責任，而且 source === 'manual' 本來就允許沒勾滿。 */
         (function reconcileDone() {
@@ -860,7 +1229,7 @@
             writeSetupState(s);
         })();
 
-        /* 頁首那兩個時間：直接從 site.js 的模型算，不要在這裡寫死數字。
+        /* 第 1 章那兩個時間：直接從 site.js 的模型算，不要在這裡寫死數字。
            每輪時間用 0 件顯示「固定開銷」，件數的部分交給試算頁講。 */
         (function paintTimeModel() {
             const m = opMinutes(0);

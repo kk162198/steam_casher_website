@@ -60,7 +60,7 @@
        （對不上 SITE_JS_VERSION、或哪個 HTML 沒帶 `?v=`，兩種都會紅）。
    ⚠️ nav.html / footer.html 是 site.js 用 fetch() 拉的，不走這條，
       它們沒有「新頁面依賴新片段」的耦合，所以刻意不加。 */
-var SITE_JS_VERSION = '2026-09-15';
+var SITE_JS_VERSION = '2026-09-17';
 
 /* ── ① 資料時間戳章 ─────────────────────────────────────────
    用法：<span class="ts-chip" data-source="steam" data-updated="ISO 字串"></span>
@@ -1806,12 +1806,16 @@ var SETUP_STORAGE_KEY = 'sah-setup-v1';
       這份清單是唯一的判定依據，多出來的 key 不會被讀到，**不需要遷移**。
       但反過來會有一個過渡狀態：本來勾了四項、只差 `funded` 的人，
       現在四項就是全部了，卻還沒有 `doneAt`（那是在 setStep 裡蓋的）。
-      指南頁的 reconcileDone() 負責補上，見該頁註解。 */
+      指南頁的 reconcileDone() 負責補上，見該頁註解。
+
+   ⚠️ 2026-09-17：資格快檢加了第 5 題（CSFloat 帳號＋交易連結），`csfloat` 才有得帶入。
+      那一題問的是「帳號**而且**交易連結都好了」——只問帳號的話就不能帶入這一項，
+      因為這一項的內容包含交易連結，帶入等於替使用者宣稱他沒說過的事。 */
 var SETUP_STEPS = [
   { id: 'authenticator', fromElig: { q: 'q2', pass: 'yes' } },
   { id: 'spend5',        fromElig: { q: 'q1', pass: 'yes' } },
   { id: 'notrestricted', fromElig: { q: 'q3', pass: 'no'  } },
-  { id: 'csfloat',       fromElig: null }
+  { id: 'csfloat',       fromElig: { q: 'q5', pass: 'yes' } }
 ];
 
 function readSetupState() {
@@ -2215,7 +2219,8 @@ function readEligibility() {
   return s;
 }
 
-/* 這一題的答案會不會擋住使用。與 eligibility.html 的 isBlocking() 同一份判斷。 */
+/* 這一題的答案會不會擋住使用。與 eligibility.html 的 isBlocking() 同一份判斷。
+   ⚠️ q5（CSFloat 帳號）**刻意不在這裡**，永遠回 false，見下面 eligibilityState() 的註解。 */
 function eligIsBlocking(key, val) {
   if (key === 'q1') return val === 'no';
   if (key === 'q2') return val === 'no' || val === 'recent';
@@ -2225,9 +2230,16 @@ function eligIsBlocking(key, val) {
 }
 
 /* 回傳 { answered, passed }。
-   answered = 四題都答了（「不確定」也算答了）
-   passed   = 四題都答了、沒有任何一題擋住，**而且沒有任何一題是「不確定」**
-              ——不確定在資格頁本來就會列進待釐清清單，不能當成通過。 */
+   answered = 前四題都答了（「不確定」也算答了）
+   passed   = 前四題都答了、沒有任何一題擋住，**而且沒有任何一題是「不確定」**
+              ——不確定在資格頁本來就會列進待釐清清單，不能當成通過。
+
+   ⚠️ 2026-09-17 加的 q5（CSFloat 帳號＋交易連結）**不算進這兩個旗標**。
+      前四題是 Steam 的限制——要等、或沒有繞道的方法；q5 是一個還沒做的設定，
+      用 Steam 帳號登入 CSFloat 就建立了。把它算成「沒通過」的話，
+      本站的目標使用者（不玩 CS2 的人）幾乎每一個都會被判「暫時還不行」，
+      而他們其實只差一個註冊。所以資格頁把它列成「開始之前還差一步」，不列進擋住的清單。
+      附帶的好處：9/17 以前答完四題的人不會因為少一題被當成沒答完。 */
 function eligibilityState() {
   var s = readEligibility();
   var answered = true, passed = true;

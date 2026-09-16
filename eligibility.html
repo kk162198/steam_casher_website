@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
+    <meta name="description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題：消費門檻、手機驗證器、交易限制、能不能等 7 天，最後確認 CSFloat 帳號建好了沒。">
     <title>資格快檢｜Steam 加值幫手</title>
 
     <!-- SEO：canonical／社群分享卡片／favicon -->
@@ -13,11 +13,11 @@
     <meta property="og:locale" content="zh_TW">
     <meta property="og:url" content="https://kk162198.github.io/steam_casher_website/eligibility.html">
     <meta property="og:title" content="資格快檢｜Steam 加值幫手">
-    <meta property="og:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
+    <meta property="og:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題：消費門檻、手機驗證器、交易限制、能不能等 7 天，最後確認 CSFloat 帳號建好了沒。">
     <meta property="og:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="資格快檢｜Steam 加值幫手">
-    <meta name="twitter:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。四個問題，只判資格：消費門檻、手機驗證器、交易限制、能不能等 7 天。">
+    <meta name="twitter:description" content="30 秒確認你的 Steam 帳號現在能不能用這個方式加值，不用註冊。五個問題：消費門檻、手機驗證器、交易限制、能不能等 7 天，最後確認 CSFloat 帳號建好了沒。">
     <meta name="twitter:image" content="https://kk162198.github.io/steam_casher_website/assets/og-image.png">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="assets/favicon.svg">
@@ -61,24 +61,25 @@
                  每一題都得你自己去 Steam 看——不講清楚的話，使用者會以為
                  這一頁在替他檢查，然後照著一個他猜出來的答案去買箱子。 -->
             <p class="t-note c-ink3 flow-sm" style="max-width:34em">
-                本站查不到你的帳號狀態。每一題底下都有 Steam 官網的連結，不確定就點進去自己看。
+                本站查不到你的帳號狀態。查得到的題目底下都附了 Steam／CSFloat 的連結，不確定就點進去自己看。
             </p>
         </header>
 
         <!-- 進度 -->
         <div id="elig-progress-sticky" class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
-            <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="elig-progressbar">
+            <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" id="elig-progressbar">
                 <div class="prog-seg" data-seg="1"></div>
                 <div class="prog-seg" data-seg="2"></div>
                 <div class="prog-seg" data-seg="3"></div>
                 <div class="prog-seg" data-seg="4"></div>
+                <div class="prog-seg" data-seg="5"></div>
             </div>
-            <p id="elig-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 4 題</p>
+            <p id="elig-progress-text" class="t-note c-ink3 flow-xs">還沒開始，共 5 題</p>
         </div>
 
         <!-- ① -->
         <section id="elig-q1" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 1 / 4</div>
+            <div class="t-note num c-ink3">問題 1 / 5</div>
             <h2 class="t-sect flow-xs">你的 Steam 帳號累積消費有超過 US$ 5 嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 買遊戲或儲值都算。沒滿的話帳號是 Limited，不能用社群市場。
@@ -100,7 +101,7 @@
 
         <!-- ② -->
         <section id="elig-q2" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 2 / 4</div>
+            <div class="t-note num c-ink3">問題 2 / 5</div>
             <h2 class="t-sect flow-xs">Steam 手機驗證器啟用超過 7 天了嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 沒啟用就不能在市場上架。今天才啟用要再等 7 天。
@@ -126,7 +127,7 @@
 
         <!-- ③ -->
         <section id="elig-q3" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 3 / 4</div>
+            <div class="t-note num c-ink3">問題 3 / 5</div>
             <h2 class="t-sect flow-xs">帳號有交易限制或 VAC 停權嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 有的話不能掛售，沒有繞道的方法。
@@ -153,7 +154,7 @@
 
         <!-- ④ -->
         <section id="elig-q4" class="card q-card flow-sm" data-answered="">
-            <div class="t-note num c-ink3">問題 4 / 4</div>
+            <div class="t-note num c-ink3">問題 4 / 5</div>
             <h2 class="t-sect flow-xs">你能接受買完之後等 7 天嗎？</h2>
             <p class="t-aux c-ink2 flow-xs">
                 這 7 天不能縮短也不能取消，要送禮或趕特價會來不及。
@@ -164,10 +165,40 @@
             </div>
         </section>
 
+        <!-- ⑤ 2026-09-17 新增。
+             ⚠️ 這一題**不是資格**，是「開始之前的準備」：答「還沒」不會被判暫時還不行，
+                結果區另外列一段「開始之前還差一步」。理由寫在 site.js 第⑫節 eligibilityState()。
+             ⚠️ 問的是「帳號**而且**交易連結」，不是只問帳號。答「都好了」會帶入指南
+                只做一次的第 4 項，而那一項包含交易連結——只問帳號就帶入，
+                等於替使用者宣稱一件他沒說過的事。
+             ⚠️ CSFloat 只連首頁（SPA，設定頁路徑沒查證過），不帶任何參數。 -->
+        <section id="elig-q5" class="card q-card flow-sm" data-answered="">
+            <div class="t-note num c-ink3">問題 5 / 5</div>
+            <h2 class="t-sect flow-xs">你已經有 CSFloat 帳號，也填好 Steam 交易連結了嗎？</h2>
+            <p class="t-aux c-ink2 flow-xs">
+                箱子是在 CSFloat 買的。CSFloat 用 Steam 帳號登入，不用另外設密碼；
+                交易連結沒填，賣家就送不了箱子給你。
+            </p>
+            <div class="chk-links">
+                <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
+                    CSFloat：用 Steam 帳號登入<span class="ext">↗</span></a>
+                <a class="chk-link" href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" rel="noopener noreferrer">
+                    我的 Steam 交易連結（Trade URL）<span class="ext">↗</span></a>
+            </div>
+            <p class="t-note c-ink3" style="margin:0">
+                有沒有填好：登入 CSFloat 看設定頁的交易連結欄位，顯示已驗證、沒有紅字警告就是好了。
+            </p>
+            <div class="flow-md" style="display:flex;flex-wrap:wrap;gap:12px">
+                <button type="button" class="opt" data-q="q5" data-val="yes" aria-pressed="false">都好了</button>
+                <button type="button" class="opt" data-q="q5" data-val="no" aria-pressed="false">還沒</button>
+                <button type="button" class="opt" data-q="q5" data-val="unknown" aria-pressed="false">不確定</button>
+            </div>
+        </section>
+
         <!-- 結果 -->
         <section class="flow-lg" id="elig-result" aria-live="polite">
             <div class="card card-roomy" style="text-align:center">
-                <p class="t-body c-ink3 flow-0">四題答完後，這裡會告訴你結果。</p>
+                <p class="t-body c-ink3 flow-0">五題答完後，這裡會告訴你結果。</p>
             </div>
         </section>
 
@@ -180,7 +211,7 @@
     <footer id="footer" class="bg-slate-950 border-t border-slate-800 text-slate-400 py-8 px-6 mt-12"></footer>
 
     <!-- 共用：時間戳章 / 導覽列狀態 / nav+footer 載入 -->
-    <script src="assets/site.js?v=2026-09-15"></script>
+    <script src="assets/site.js?v=2026-09-17"></script>
     <script>
         /* ⚠️ ELIG_STORAGE_KEY 已移到 site.js 第⑫節（2026-08-24）。首頁要靠它決定
            主按鈕指向哪裡，所以三個頁面在讀同一個 key，字串不能各寫一份。
@@ -213,9 +244,15 @@
 
               現在這一頁只回答一個問題：**你的帳號現在能不能用。**
               `answers` 也不再有 `amount`；舊的 `sah-eligibility-v2` 裡若殘留
-              這個欄位，讀進來時會被忽略，不用遷移。 */
+              這個欄位，讀進來時會被忽略，不用遷移。
 
-        const answers = { q1: null, q2: null, q3: null, q4: null };
+           ⚠️ 2026-09-17 加了第 5 題（CSFloat 帳號＋交易連結）。它**不是資格**，
+              不進 isBlocking()、不進 blockers，結果區另外列成「開始之前還差一步」。
+              理由在 site.js 第⑫節 eligibilityState()。key 直接加 `q5`，
+              舊資料沒有這個欄位就是沒答過，不用換 key 版本。 */
+
+        const QS = ['q1', 'q2', 'q3', 'q4', 'q5'];
+        const answers = { q1: null, q2: null, q3: null, q4: null, q5: null };
 
         function loadState() {
             try {
@@ -223,7 +260,7 @@
                 if (!raw) return;
                 const saved = JSON.parse(raw);
                 // 舊資料可能還有 amount，直接忽略（見上方 2026-08-24 的註解）
-                ['q1', 'q2', 'q3', 'q4'].forEach(k => { if (saved[k]) answers[k] = saved[k]; });
+                QS.forEach(k => { if (saved[k]) answers[k] = saved[k]; });
             } catch (e) { /* 無痕模式等情況忽略 */ }
         }
         function saveState() {
@@ -235,11 +272,14 @@
                 const on = answers[btn.dataset.q] === btn.dataset.val;
                 btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
-            ['q1', 'q2', 'q3', 'q4'].forEach((k, i) => {
-                const card = document.getElementById('elig-q' + (i + 1));
+            QS.forEach(k => {
+                const card = document.getElementById('elig-' + k);
                 const v = answers[k];
                 card.dataset.answered = v === null ? ''
                     : v === 'unknown' ? 'unknown'          // 結果區會列為待釐清，配色也要跟著
+                    /* q5 答「還沒」不擋人，但也不是通過——配綠色會讓人以為這一項好了。
+                       跟「不確定」同一個顏色：結果區會把它列成還要做的事。 */
+                    : (k === 'q5' && v !== 'yes') ? 'unknown'
                     : (isBlocking(k, v) ? 'no' : 'yes');
             });
         }
@@ -250,17 +290,17 @@
             if (key === 'q2') return val === 'no' || val === 'recent';
             if (key === 'q3') return val === 'yes';   // q3 問「有沒有限制」，有限制才是擋住
             if (key === 'q4') return val === 'no';
-            return false;
+            return false;   // q5（CSFloat 帳號）刻意不擋，見上方 2026-09-17 的註解
         }
 
         function updateProgress() {
-            const done = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] !== null).length;
+            const done = QS.filter(k => answers[k] !== null).length;
             document.querySelectorAll('.prog-seg').forEach((seg, i) => {
                 seg.classList.toggle('is-done', i < done);
             });
             document.getElementById('elig-progressbar').setAttribute('aria-valuenow', done);
             const text = document.getElementById('elig-progress-text');
-            text.textContent = done >= 4 ? '答完了，結果在下面' : `已回答 ${done} / 4 題`;
+            text.textContent = done >= QS.length ? '答完了，結果在下面' : `已回答 ${done} / ${QS.length} 題`;
         }
 
         function resultCard(tone, title, body, actions) {
@@ -276,9 +316,27 @@
                 </div>`;
         }
 
+        /* 第 5 題沒答「都好了」時的那一段。**不算進 blockers**，兩種結果卡都附。
+           ⚠️ 不寫「幾分鐘就好」「不用等」之類的時間——CSFloat 那邊有沒有任何
+              等待或驗證，我們沒查證過。只講要做什麼、去哪裡做。 */
+        function csfloatTodo() {
+            if (answers.q5 === 'yes' || answers.q5 === null) return '';
+            const unsure = answers.q5 === 'unknown';
+            const title = unsure ? '開始之前先確認：CSFloat 的交易連結' : '開始之前還差一步：建立 CSFloat 帳號';
+            const body = unsure
+                ? extLink('https://csfloat.com/', '登入 CSFloat') + '，看設定頁的交易連結欄位有沒有顯示已驗證、有沒有紅字警告。'
+                : extLink('https://csfloat.com/', '用 Steam 帳號登入 CSFloat') + ' 就會建立帳號，不用另外設密碼；'
+                  + '登入後到設定頁填上' + extLink('https://steamcommunity.com/my/tradeoffers/privacy', '你的 Steam 交易連結') + '，箱子才送得到你手上。';
+            return `<div class="step-check flow-md" id="elig-csfloat-todo">
+                <div class="step-check-title">${title}</div>
+                <p class="t-aux c-ink2 flow-0">${body}
+                    步驟與會卡住的地方在<a href="help.html#su-card-csfloat">操作指南 2.4</a>。</p>
+            </div>`;
+        }
+
         function renderResult() {
             const box = document.getElementById('elig-result');
-            const unanswered = ['q1', 'q2', 'q3', 'q4'].filter(k => answers[k] === null);
+            const unanswered = QS.filter(k => answers[k] === null);
             if (unanswered.length) {
                 box.innerHTML = `<div class="card card-roomy" style="text-align:center">
                     <p class="t-body c-ink3 flow-0">還有 ${unanswered.length} 題沒答。</p>
@@ -314,7 +372,8 @@
                     <p class="t-aux c-ink3 flow-md">
                         以上都是 Steam 的規則，不是本站設的。細節以
                         <a href="https://help.steampowered.com/faqs/view/71D3-35C2-AD96-AA3A" target="_blank" rel="noopener">Steam 官方說明</a> 為準。
-                    </p>`,
+                    </p>
+                    ${csfloatTodo()}`,
                     `<a href="help.html" class="btn btn-secondary">看操作指南怎麼做</a>`);
                 return;
             }
@@ -323,9 +382,11 @@
             const setupDone = isSetupDone();
             const setupCost = fmtTwd(minutesToTwd(OP_TIME.setupMinutes));   // site.js 第⑬節
 
+            const csfReady = answers.q5 === 'yes';
             box.innerHTML = resultCard('go',
-                '你的帳號現在就可以用這個方式加值',
-                `<p class="flow-0">四題都過了。能省多少要看當下的市場價格與你買幾件，試算頁會算給你看。</p>
+                csfReady ? '你的帳號現在就可以用這個方式加值' : '你的 Steam 帳號可以用這個方式加值',
+                `<p class="flow-0">${csfReady ? '五題都過了。' : 'Steam 那四題都過了。'}能省多少要看當下的市場價格與你買幾件，試算頁會算給你看。</p>
+                 ${csfloatTodo()}
                  <div class="step-check flow-md">
                     <div class="step-check-title">要花你多少時間</div>
                     <p class="t-aux c-ink2 flow-0">
@@ -369,7 +430,7 @@
            1,128 px 處——使用者按完最後一題，看得到的只有進度條動了一下。
            下一個「要看的東西」＝還沒答的那一題；都答完了就是結果。 */
         function revealNext() {
-            const pending = ['q1', 'q2', 'q3', 'q4'].find(k => answers[k] === null);
+            const pending = QS.find(k => answers[k] === null);
             const el = document.getElementById(pending ? 'elig-' + pending : 'elig-result');
             if (!el) return;
             const box = el.getBoundingClientRect();
@@ -395,7 +456,7 @@
             });
         });
         document.getElementById('elig-reset').addEventListener('click', () => {
-            answers.q1 = answers.q2 = answers.q3 = answers.q4 = null;
+            QS.forEach(k => { answers[k] = null; });
             try { localStorage.removeItem(ELIG_STORAGE_KEY); } catch (e) { /* 忽略 */ }
             refresh();
         });
