@@ -100,14 +100,17 @@ pre{
       </div>
       <div class="card card-compact">
         <div style="display:flex;gap:12px;align-items:center">
-          <div style="width:44px;height:44px;border-radius:8px;background:#64748b;flex:none"></div>
+          <div style="width:44px;height:44px;border-radius:8px;background:#75849b;flex:none"></div>
           <div>
             <div class="t-sub c-ink3">輔助文字</div>
-            <div class="spec num">#64748b ・ 3.8:1</div>
+            <div class="spec num">#75849b ・ 4.7:1</div>
           </div>
         </div>
-        <p class="spec flow-sm c-warn">
-          未達 AA 4.5:1。只用於 12px 註記與非必要資訊，不承載任何使用者必須讀到的內容。
+        <p class="spec flow-sm">
+          2026-09-16 從 #64748b 改過來。舊值在卡片上 3.8:1、頁面上 4.2:1，兩個都未達 AA 的 4.5:1，
+          而當時寫在這裡的限制（「只用於 12px 註記與非必要資訊」）實際上已經漂掉了——
+          指南頁拿它排 14px 與 16px，導覽列用它寫「餘額不可提領」，頁尾用它寫免責聲明。
+          與其守一條守不住的限制，不如讓這一級本身就過門檻。
         </p>
       </div>
     </div>
@@ -534,7 +537,7 @@ pre{
     <h2 class="t-page">無障礙檢核</h2>
     <div class="card flow-lg">
       <ul class="t-body c-ink2 flow-0" style="padding-left:1.25em;display:flex;flex-direction:column;gap:8px">
-        <li>文字對比度符合 WCAG AA。<span class="num">#64748b</span> 為 3.8:1，只用於 12px 註記與非必要資訊。</li>
+        <li>文字對比度符合 WCAG AA。最低的一級是輔助文字 <span class="num">#75849b</span>，在卡片上 4.7:1、在頁面底色上 5.3:1，都過 4.5:1 的門檻。</li>
         <li>所有可互動元素有 cyan-400 focus-visible 外框，外框不被 overflow 裁切。</li>
         <li>觸控目標最小 44×44px，包含表格內的小按鈕。</li>
         <li>表格用 <span class="num">&lt;th scope="col"&gt;</span>；手機卡片式仍以 <span class="num">data-label</span> 顯示欄位名稱。</li>

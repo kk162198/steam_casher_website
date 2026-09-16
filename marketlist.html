@@ -466,7 +466,9 @@
         function addLog(message) {
             const time = new Date().toLocaleTimeString();
             const logItem = document.createElement('div');
-            logItem.innerHTML = `<span class="text-slate-500">[${time}]</span> ${message}`;
+            // c-ink3 而不是 text-slate-500：後者是 Tailwind 語意的固定色（#64748b，4.24:1 不到 AA），
+            // 而這個紀錄是給人讀的——上面那行字就寫著「給想確認資料怎麼來的人」。
+            logItem.innerHTML = `<span class="c-ink3">[${time}]</span> ${message}`;
             logConsole.appendChild(logItem);
             logConsole.scrollTop = logConsole.scrollHeight;
         }
