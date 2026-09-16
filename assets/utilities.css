@@ -88,7 +88,6 @@ summary{display:list-item}
 
 /* ── 尺寸 ── */
 .w-full{width:100%}
-.max-w-\[1120px\]{max-width:1120px}
 .min-h-screen{min-height:100vh}
 
 /* ── 定位 ── */
