@@ -40,13 +40,7 @@
         .cd-chip[data-state="unknown"]{color:var(--ink3);border-style:dashed}
         /* 建議掛價：這一頁的主角，要一眼看得到 */
         .ask{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-        /* 回填成交價的輸入框 */
-        .fill-in{
-            width:7em;padding:6px 8px;border-radius:6px;
-            border:1px solid var(--line);background:var(--base);color:var(--ink);
-            font:inherit;font-size:13px;font-variant-numeric:tabular-nums;
-        }
-        .fill-in:focus{outline:2px solid var(--brand);outline-offset:1px}
+        /* 回填成交價的輸入框：外觀在 style.css 第 9b-2 節（與購物清單共用），預設寬度 7em 就夠。 */
     </style>
 </head>
 <body data-page="sell">
@@ -510,11 +504,13 @@
                   時候說有賺）。2026-09-12 決定**標記而不是擋掉**，那就要標得看得見。 */
             const beTwd = breakEvenAskTwd(item.paidTwd, item.qty);
             const beHtml = beTwd != null
-                ? '<span class="t-note c-ink3" style="display:block">每個掛 NT$ '
-                  + fmtTwd(beTwd) + ' 以上才不賠'
+                /* ⚠️ 保本價是要照著打進 Steam 的數字，用 .num-key（白色粗體）；
+                      原本整行 12px 灰字，跟「實拿」那種說明性的金額分不出來（2026-09-17）。 */
+                ? '<span class="t-aux c-ink2" style="display:block;margin-top:4px">每個掛 <strong class="num-key">NT$ '
+                  + fmtTwd(beTwd) + '</strong> 以上才不賠'
                   + (item.qtyIsEstimate
                       ? '<span class="c-warn">（件數是估的，這個數字跟著估）</span>' : '')
-                  + '<br>Steam 標價、不是實拿・<a href="help.html#break-even">為什麼</a></span>'
+                  + '</span><span class="t-note c-ink3" style="display:block">Steam 標價、不是實拿・<a href="help.html#break-even">為什麼</a></span>'
                 : '<span class="t-note c-ink3" style="display:block">保本價要先填實付總額</span>';
 
             /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
