@@ -66,7 +66,7 @@
         </header>
 
         <!-- 進度 -->
-        <div class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
+        <div id="elig-progress-sticky" class="flow-lg" style="position:sticky;top:64px;z-index:20;background:#020617;padding:16px 0 12px">
             <div style="display:flex;gap:6px" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="elig-progressbar">
                 <div class="prog-seg" data-seg="1"></div>
                 <div class="prog-seg" data-seg="2"></div>
@@ -349,10 +349,49 @@
 
         function refresh() { paintAnswers(); updateProgress(); renderResult(); saveState(); }
 
+        /* 導覽列與進度列都是 sticky，捲過去的目標不能貼齊畫面頂端，會被蓋住。
+           ⚠️ 用 CSS 的 top ＋ 高度算「卡住之後」的位置，不要用 getBoundingClientRect().bottom
+           ——還沒捲到卡住之前後者回的是自然位置，會大一截。 */
+        function stickyBottom() {
+            let h = 0;
+            ['nav', 'elig-progress-sticky'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;                                   // nav 是 fetch 進來的，可能還沒到
+                const cs = getComputedStyle(el);
+                if (cs.position !== 'sticky' && cs.position !== 'fixed') return;
+                h = Math.max(h, (parseFloat(cs.top) || 0) + el.getBoundingClientRect().height);
+            });
+            return h;
+        }
+
+        /* 答完一題就把下一個要看的東西帶進畫面。
+           ⚠️ 非做不可的理由是量到的：手機 375×812 答完第 4 題時，結果卡片在畫面下方
+           1,128 px 處——使用者按完最後一題，看得到的只有進度條動了一下。
+           下一個「要看的東西」＝還沒答的那一題；都答完了就是結果。 */
+        function revealNext() {
+            const pending = ['q1', 'q2', 'q3', 'q4'].find(k => answers[k] === null);
+            const el = document.getElementById(pending ? 'elig-' + pending : 'elig-result');
+            if (!el) return;
+            const box = el.getBoundingClientRect();
+            /* 量不到高度就沒有「要捲到哪裡」可言：元素被藏起來，或者根本沒有排版引擎。
+               ⚠️ 後者就是 jsdom——`test-entry-dom.js` 會派送四次 click，而 jsdom 的
+               `window.scrollTo` 是未實作的樁，呼叫下去會在測試輸出印出 Not implemented，
+               看起來像壞掉但其實沒有。 */
+            if (!box.height) return;
+            const gap = stickyBottom() + 12;
+            // 已經好好待在可視區裡就不要動，否則桌機上每點一下畫面都抖一次
+            if (box.top >= gap && box.bottom <= window.innerHeight) return;
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: Math.max(0, window.scrollY + box.top - gap), behavior: reduce ? 'auto' : 'smooth' });
+        }
+
         document.querySelectorAll('.opt[data-q]').forEach(btn => {
             btn.addEventListener('click', () => {
                 answers[btn.dataset.q] = btn.dataset.val;
                 refresh();
+                /* ⚠️ 只掛在點選這條路徑上。載入既有答案那次 refresh() 不可以捲——
+                   從首頁點回來的人會被無故拉到頁尾，而他可能只是要改第一題。 */
+                revealNext();
             });
         });
         document.getElementById('elig-reset').addEventListener('click', () => {
