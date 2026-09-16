@@ -313,7 +313,7 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     eq('一次性設定剩四項（入金搬走了）', boxes.map(b => b.dataset.step),
       ['authenticator', 'spend5', 'notrestricted', 'csfloat']);
     eq('每一輪變成五步（多了入金）',
-      [...document.querySelectorAll('.step .t-sub')].length, 5);
+      [...document.querySelectorAll('.step h3')].length, 5);
     /* ⚠️ CSFloat 是錢包制、餘額每輪花光，入金**不是**一次性的事。
        擺回上半段等於告訴使用者做過就不用再做，而他第二輪回來錢包是空的。 */
     /* CSFloat 那三步（註冊／入金／下單）都要有一條過去的路，
@@ -327,7 +327,7 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
         .filter(a => /csfloat\.com\/./.test(a.getAttribute('href'))).length, 0);
 
     eq('入金在「每一輪都要做」那一段，不在上半段',
-      [...document.querySelectorAll('.step .t-sub')].some(h => h.textContent.includes('入金')), true);
+      [...document.querySelectorAll('.step h3')].some(h => h.textContent.includes('入金')), true);
     eq('上半段沒有任何入金勾選框',
       boxes.some(b => b.dataset.step === 'funded'), false);
     eq('換裝置的補丁還在（否則桌機設定完、手機就沒路回來）',
@@ -353,6 +353,23 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const tocTargets = [...document.querySelectorAll('#toc a')].map(a => a.getAttribute('href'));
     eq('目錄六章', tocTargets, ['#ch-start', '#ch-setup', '#ch-round', '#ch-interface', '#ch-trouble', '#ch-glossary']);
     eq('目錄指到的章節都在頁面上', tocTargets.filter(h => !document.getElementById(h.slice(1))), []);
+
+    /* 文件式三欄版面（2026-09-17 第二輪）：左欄章節、右欄「在這一章」。
+       jsdom 沒有排版，docLocation() 量不到位置就不動——HTML 的預設值就是沒有 JS 時使用者看到的樣子，
+       所以要守的是「預設停在第 1 章、右欄不會整欄空掉」。 */
+    eq('左欄的章節跟目錄同一份',
+      [...document.querySelectorAll('#doc-nav a[data-ch]')].map(a => a.getAttribute('href')), tocTargets);
+    eq('右欄每一章都有一組',
+      [...document.querySelectorAll('#doc-toc [data-ch]')].map(g => '#' + g.dataset.ch), tocTargets);
+    eq('沒有排版時：左欄標在第 1 章',
+      [...document.querySelectorAll('#doc-nav a.is-active')].map(a => a.dataset.ch), ['ch-start']);
+    eq('沒有排版時：右欄只露出第 1 章那一組（不會整欄空掉）',
+      [...document.querySelectorAll('#doc-toc [data-ch]')].filter(g => !g.hidden).map(g => g.dataset.ch), ['ch-start']);
+    eq('右欄每一組都有小節可以點',
+      [...document.querySelectorAll('#doc-toc [data-ch]')].filter(g => !g.querySelector('a.dt-link')).length, 0);
+    eq('其他頁連進來的錨點，右欄也都列得到',
+      ['buy-order', 'paid-total', 'arrived', 'cooldown-estimate', 'sell-price', 'pending-balance', 'break-even', 'track-url', 'records', 'export']
+        .filter(id => !document.querySelector('#doc-toc a[href="#' + id + '"]')), []);
     eq('章節順序跟目錄一樣',
       [...document.querySelectorAll('section[id^="ch-"]')].map(x => '#' + x.id), tocTargets);
     eq('流程總覽五格都連到對應的步驟',
