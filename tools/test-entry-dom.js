@@ -312,8 +312,10 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
     const boxes = [...document.querySelectorAll('.su-box')];
     eq('一次性設定剩四項（入金搬走了）', boxes.map(b => b.dataset.step),
       ['authenticator', 'spend5', 'notrestricted', 'csfloat']);
-    eq('每一輪變成五步（多了入金）',
-      [...document.querySelectorAll('.step h3')].length, 5);
+    /* 2026-08-24 多了入金變五步；2026-09-18 下單拆成「掛求購訂單」與「回購物清單記下來」變六步。
+       細節小標題一律 h4，所以這個數字只會跟著步驟本身動。 */
+    eq('每一輪六步（入金一步、下單與記錄分開）',
+      [...document.querySelectorAll('.step h3')].length, 6);
     /* ⚠️ CSFloat 是錢包制、餘額每輪花光，入金**不是**一次性的事。
        擺回上半段等於告訴使用者做過就不用再做，而他第二輪回來錢包是空的。 */
     /* CSFloat 那三步（註冊／入金／下單）都要有一條過去的路，
@@ -372,7 +374,7 @@ const PASS_ALL = { q1: 'yes', q2: 'yes', q3: 'no', q4: 'yes', amount: 3000 };
         .filter(id => !document.querySelector('#doc-toc a[href="#' + id + '"]')), []);
     eq('章節順序跟目錄一樣',
       [...document.querySelectorAll('section[id^="ch-"]')].map(x => '#' + x.id), tocTargets);
-    eq('流程總覽五格都連到對應的步驟',
+    eq('流程總覽每一格都連到對應的步驟',
       [...document.querySelectorAll('.flow-map a')].map(a => a.getAttribute('href')),
       [...document.querySelectorAll('.step')].map(x => '#' + x.id));
     // 進度條是 sticky，必須跟四張卡在同一個 section，否則會一路黏到頁尾（見 HTML 註解）
