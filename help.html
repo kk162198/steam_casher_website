@@ -161,6 +161,14 @@
         .doc-steps > .step + .step { margin-top: 40px; padding-top: 40px; border-top: 1px solid var(--line); }
         .howto { margin: 8px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }
         .howto li::marker { color: var(--brand); font-weight: 700; }
+        /* 每一步後半的細節小標題（2026-09-18）：跟疑難排解的 .ts-q 同一級，比步驟標題小。
+           內文一律 t-aux，照著做的動作（t-body）與細節一眼分得出輕重。
+           ⚠️ 用 h4 不用 h3——test-entry-dom.js 數 `.step h3` 要剛好 5 個。 */
+        .step-sub { margin-top: 28px; }
+        .step-sub h4 { margin: 0; font-size: 16px; line-height: 1.6; font-weight: 600; color: var(--ink); }
+        .risk-bar .howto { margin-top: 4px; }
+        /* 邊條裡放了編號清單（#no-fill）之後，右邊那塊會把圖示擠扁成一個點。 */
+        .risk-bar > svg { flex: none; }
 
         .ts-item { padding: 14px 0; border-top: 1px solid var(--line); }
         .ts-q { margin: 0; font-size: 16px; line-height: 1.6; font-weight: 600; color: var(--ink); }
@@ -563,6 +571,7 @@
             <h2 class="t-page">每一輪的操作</h2>
             <p class="t-body c-ink2 flow-sm" style="max-width:36em">
                 每一輪都要從頭做一次。五個步驟，中間卡著不能縮短的 7 天。
+                每一步先照編號做；後面的小標題是細節，卡住再看。
             </p>
 
             <!-- 流程總覽：只講「做什麼、在哪裡做」。
@@ -580,6 +589,13 @@
                 </tbody>
             </table>
 
+            <!-- 五步同一個骨架（2026-09-18，作者要每一輪的文字精簡、排版好讀）：
+                 動作（編號）→ 會卡在哪 → 怎麼確認做對了 → 外站連結 → 小標題的細節。
+                 前四段跟第 2 章四張卡同一個順序：照著做的人讀到連結就可以動手，
+                 「為什麼」與例外收在後面的小標題，要查的人從右欄或疑難排解直接跳過去。
+                 原本 3.3、3.5 的「怎麼確認做對了」壓在五六段說明底下，照做的人得先讀完理由才看得到。
+                 ⚠️ 小標題一律 h4：test-entry-dom.js 數 `.step h3` 要剛好 5 個。
+                 ⚠️ 每個小標題都有 id、右欄「在這一章」都列得到；新增小標題兩邊一起加。 -->
             <div class="doc-steps flow-xl">
 
                 <div class="step" id="step-calc">
@@ -587,16 +603,15 @@
                     <div style="flex:1;min-width:0">
                         <h3 class="t-sect">用試算頁算出你要買什麼</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            試算頁會產出一份購買組合，包含品項和數量。
-                            省下的錢不夠付你這一輪要花的時間時，它會直接告訴你不要做。
+                            試算頁會列出要買的品項與數量。省下的錢抵不過這一輪要花的時間時，它會直接叫你不要做。
                         </p>
                         <ol class="howto t-body c-ink2">
                             <li>打開 <a href="calculator.html">試算頁</a>。</li>
-                            <li>兩個欄位任填一個就好：「目標 Steam 餘額」是你想拿到的，「投入現金」是你手上要花的。</li>
+                            <li>「目標 Steam 餘額」或「投入現金」任填一個。</li>
                             <li>看結果區的徽章，和下方的購買組合表。</li>
                         </ol>
                         <p class="t-aux c-warn flow-xs">
-                            會卡在哪：兩個欄位填錯邊。想拿到 3,000 元餘額就填上面，手上只有 2,000 元現金就填下面。
+                            會卡在哪：兩個欄位填錯邊。想拿到 3,000 元餘額填「目標 Steam 餘額」，手上只有 2,000 元現金填「投入現金」。
                         </p>
                         <div class="step-check">
                             <div class="step-check-title">
@@ -604,7 +619,7 @@
                                 怎麼確認做對了
                             </div>
                             <p class="t-aux c-ink2 flow-0">
-                                結果區出現「值得做」或「可考慮」徽章，而且下方的購買組合表有列出品項。
+                                結果區出現「值得做」或「可考慮」，購買組合表列出了品項。
                             </p>
                         </div>
                     </div>
@@ -621,17 +636,14 @@
                     <div style="flex:1;min-width:0">
                         <h3 class="t-sect">在 CSFloat 入金</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            CSFloat 是錢包制：先入金，再用錢包餘額買。
-                            入金費是<strong class="c-ink">對整筆儲值收一次</strong>，不是每件收一次，
-                            所以<strong class="c-ink">一次入足這一輪要用的量</strong>。
+                            CSFloat 是錢包制：先入金，再用餘額下單。入金費<strong class="c-ink">對整筆儲值收一次</strong>，所以一次入足這一輪要用的量。
                         </p>
                         <ol class="howto t-body c-ink2">
                             <li>在試算頁記下「預估要花的現金」。</li>
-                            <li>到 CSFloat 登入、入金，金額照上一步抓。</li>
+                            <li>到 CSFloat 登入，入金這個金額（第一次要先綁付款方式）。</li>
                         </ol>
                         <p class="t-aux c-warn flow-xs">
-                            會卡在哪：分五次小額儲值。固定費會被收五次，成本直接被墊高。
-                            第一次還要多花時間綁付款方式，之後就只剩輸入金額。
+                            會卡在哪：分好幾次小額儲值。固定費每次都收，成本直接被墊高。
                         </p>
                         <div class="step-check">
                             <div class="step-check-title">
@@ -646,9 +658,14 @@
                             <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
                                 CSFloat：登入後在這裡入金<span class="ext">↗</span></a>
                         </div>
+                        <!-- 2026-09-18 從 3.3 搬過來：這是「要入多少」的限制，不是「怎麼填訂單」。
+                             疑難排解〈訂單下不了，或掛著的訂單不見了〉第一個就指到 3.2。 -->
+                        <p class="t-aux c-ink3 flow-xs">
+                            求購訂單受餘額限制：單張不能超過餘額、未成交的合計不能超過餘額的 10 倍，餘額不夠時訂單會被直接移除。
+                        </p>
                         <div class="risk-bar flow-md">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                            <span>本站的成本一律用 7.5% 保守估計入金費，實際費率通常更低——這是刻意高估，讓你實際拿到的比網站顯示的更好。最低儲值金額我們還沒查證，以 CSFloat 站上顯示為準。<a href="transparency.html">看計算方式</a></span>
+                            <span>本站用 7.5% 保守估計入金費，實際通常更低，所以你實拿的會比網站顯示的好。最低儲值金額還沒查證，以 CSFloat 站上為準。<a href="transparency.html">看計算方式</a></span>
                         </div>
                     </div>
                 </div>
@@ -666,73 +683,25 @@
                              ⚠️ 那一輪的數量很小（1/4/1/1），「全部掃滿」**不能寫成保證**——
                                 4.24 量到 45 個品項有 42 個在最低價那一檔只有 ≤2 件。
                                 所以下面的文案只講「怎麼下單」，不承諾一定買得到。
-                             2026-09-17 改成編號步驟時同一條照舊：步驟只講動作，不講結果。 -->
+                             2026-09-17 改成編號步驟時同一條照舊：步驟只講動作，不講結果。
+                             ⚠️ id="buy-order"：購物清單頁「怎麼下單、沒成交怎麼辦」連過來。
+                                右欄那個陷阱留在錨點底下（落地第一眼就要看到）；天花板與沒成交在下面的小標題。 -->
                         <div id="buy-order">
                             <p class="t-body c-ink2 flow-xs">
-                                <strong class="c-ink">同一顆箱子不用點很多次：用「求購訂單」</strong>，
-                                一張訂單設好數量就好。<strong class="c-ink">購物清單每一列都附了要填的三個值。</strong>
+                                用 CSFloat 的<strong class="c-ink">求購訂單</strong>：同一顆箱子一張訂單設好數量，不用一件一件點。
                             </p>
                             <ol class="howto t-body c-ink2">
                                 <li>在試算頁按「產生購物清單」，打開 <a href="checklist.html">購物清單</a>。</li>
                                 <li>到 CSFloat 的品項頁，按「求購訂單」旁邊的<strong class="c-ink">創建</strong>。</li>
-                                <li>填三個欄位：品項名、數量、每件最高價——照購物清單上的數字填。</li>
+                                <li>照購物清單填三個欄位：品項名、數量、每件最高價。</li>
                                 <li>成交後回購物清單勾選，填實際買到幾個與實付總額。</li>
                                 <li>箱子進到 Steam 庫存之後，回購物清單按「物品到了」。</li>
                             </ol>
+                            <p class="t-aux c-warn flow-xs">
+                                會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少。</strong>
+                                它貼在價格欄旁邊、看起來像市價，照它填的話訂單只會排隊，今天多半買不到。
+                            </p>
                         </div>
-                        <p class="t-aux c-warn flow-xs">
-                            ⚠️⚠️ 會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少</strong>。
-                            它就貼在價格欄旁邊，看起來像市價——但照那個數字填，你的訂單只會排隊，
-                            <strong class="c-ink">等別人掛出便宜貨才成交，今天多半買不到</strong>。
-                        </p>
-                        <p class="t-body c-ink2 flow-sm">
-                            <strong class="c-ink">每件最高價就填購物清單上給你的那個數字，不用自己去查現在賣多少。</strong>
-                            成交價是取<strong class="c-ink">市場當下的較低者</strong>，不是你填的數字——
-                            實測出價 NT$88、實際成交 NT$81。所以它是<strong class="c-ink">天花板不是目標價</strong>
-                            （清單上寫「別超過」就是這個意思），設在那裡只會幫你省錢，不會讓你多付。
-                        </p>
-                        <p class="t-aux c-ink3 flow-xs">
-                            價格欄有<strong class="c-ink2">級距</strong>，不能想填什麼就填什麼（US$5 以下每階 US$0.01，約 NT$0.3），
-                            填進去會被自動吸到最近的一階，差幾角不用在意。
-                            錢包要先有錢：單張訂單不能超過餘額，所有未成交訂單加起來不能超過餘額的 10 倍，
-                            而餘額不夠時系統會直接把訂單移除。
-                        </p>
-                        <!-- ⚠️ id="paid-total"：購物清單頁只留「填總額不要填單價」那一句警語，
-                             「為什麼單價不存在」的解釋在這裡。改 id 要一起改 checklist.html。 -->
-                        <p class="t-body c-ink2 flow-sm" id="paid-total">
-                            買到之後<strong class="c-ink">回填實際買到幾個與實付總額</strong>——買不到全部很常見，
-                            填了七天後才算得出賺多少。
-                            <strong class="c-ink">實付填結帳畫面的總金額，不是單價</strong>：
-                            一次買 13 個常常是好幾筆不同價格湊起來的，那個「單價」並不存在，
-                            自己除出來的數字會讓賺賠算錯。
-                        </p>
-                        <!-- 沒成交的出路（2026-09-06 新增）。
-                             ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是求購訂單、還是可能不成交**
-                                ——那條建議沒有終止條件，會繞圈。缺的不是退路，是**終止條件**。
-                             ⚠️⚠️ 順序不能反，理由是 4.21：「沒成交要回試算頁重算，不是把價格往上加」。
-                                而**逐件買就是用現在的市價買**，市場漲過計畫之後去逐件買，效果上等於往上加。
-                                所以價格的判斷必須留在試算頁，逐件買只能解決「等不等得到」。
-                                ②那一句是純勸退（安全方向），③才是新增的行為建議。
-                             id="no-fill"（2026-09-17）：疑難排解第 5 章與右欄連過來。 -->
-                        <div class="risk-bar flow-md" id="no-fill">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
-                            <span><strong class="c-ink">掛著沒成交怎麼辦</strong>——照順序，不要跳步。
-                            ① <strong class="c-ink">回試算頁重算一份，不要自己把價格往上加</strong>：沒成交就代表市場已經漲過你的計畫。
-                            ② <strong class="c-ink">重算後如果判「不建議」，這一檔就不做</strong>——那不是失敗，那正是算給你看的答案。
-                            ③ 重算後仍然值得做、而且離<a href="sell.html">買進期限</a>已經很近（掛單等不起了），才改成在 CSFloat
-                            <strong class="c-ink">逐件點買</strong>：搜品項名、依價格由低到高排序、買清單上的數量。
-                            <strong class="c-ink">逐件買解決的是「等不等得到」，不是「價格夠不夠好」</strong>——划不划算永遠由試算頁判斷。</span>
-                        </div>
-                        <!-- 2026-08-29 新增。使用者實際踩到的：付完錢以為就開始倒數了，
-                             七天後回來卻還鎖著。CSFloat 是掛單制，付款只是通知賣家去送報價。 -->
-                        <!-- ⚠️ id="arrived"：購物清單頁的「全部買完之後」只留一句
-                             「箱子到了回來按物品到了」，理由在這裡。改 id 要一起改 checklist.html。 -->
-                        <p class="t-aux c-warn flow-xs" id="arrived">
-                            會卡在哪：<strong class="c-ink">付完錢不等於箱子已經到手</strong>。CSFloat 是掛單制，
-                            你付款之後賣家才會去送交易報價，可能幾分鐘、也可能拖到隔天。
-                            <strong class="c-ink">7 天是從箱子真的進到你的庫存才開始算</strong>，不是從你付錢那一刻。
-                            箱子到了就回<a href="checklist.html">購物清單</a>按「物品到了」，賣出頁的倒數才會準。
-                        </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -740,7 +709,6 @@
                             </div>
                             <p class="t-aux c-ink2 flow-0">
                                 Steam 庫存裡看得到箱子，滑鼠移上去顯示「可交易日期」為 7 天後。
-                                看得到這一行，才代表交易真的完成了。
                             </p>
                         </div>
                         <div class="chk-links">
@@ -748,6 +716,65 @@
                                 CSFloat：在這裡下單<span class="ext">↗</span></a>
                             <a class="chk-link" href="https://steamcommunity.com/my/inventory/" target="_blank" rel="noopener noreferrer">
                                 我的 Steam 庫存<span class="ext">↗</span></a>
+                        </div>
+
+                        <!-- 四個小標題照發生的順序排：填價格 → 沒成交 → 成交後回填 → 到貨。 -->
+                        <div class="step-sub" id="ceiling">
+                            <h4>每件最高價是天花板，不是目標價</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                成交價取市場當下的較低者，不是你填的數字（實測出價 NT$88、成交 NT$81），所以清單寫的是「別超過」。
+                                照清單的數字填就好，<strong class="c-ink">不用自己去查現在賣多少</strong>。
+                            </p>
+                            <p class="t-aux c-ink3 flow-xs">
+                                價格欄有級距（US$5 以下每階 US$0.01，約 NT$0.3），填進去會被吸到最近的一階，差幾角不用在意。
+                            </p>
+                        </div>
+
+                        <!-- 沒成交的出路（2026-09-06 新增）。
+                             ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是求購訂單、還是可能不成交**
+                                ——那條建議沒有終止條件，會繞圈。缺的不是退路，是**終止條件**。
+                             ⚠️⚠️ 順序不能反，理由是 4.21：「沒成交要回試算頁重算，不是把價格往上加」。
+                                而**逐件買就是用現在的市價買**，市場漲過計畫之後去逐件買，效果上等於往上加。
+                                所以價格的判斷必須留在試算頁，逐件買只能解決「等不等得到」。
+                                ②那一句是純勸退（安全方向），③才是新增的行為建議。
+                             id="no-fill"（2026-09-17）：疑難排解第 5 章與右欄連過來。
+                             2026-09-18 從一整段 ①②③ 拆成編號清單，內容沒動。 -->
+                        <div class="step-sub" id="no-fill">
+                            <h4>掛著沒成交怎麼辦</h4>
+                            <div class="risk-bar flow-xs">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
+                                <div>
+                                    <p class="flow-0">照順序，不要跳步：</p>
+                                    <ol class="howto">
+                                        <li><strong class="c-ink">回試算頁重算一份，不要自己把價格往上加。</strong>沒成交代表市場已經漲過你的計畫。</li>
+                                        <li>重算後判「不建議」，這一檔就不做——那正是算給你看的答案。</li>
+                                        <li>仍然值得做、但離<a href="sell.html">買進期限</a>很近等不起了，才改成在 CSFloat 逐件點買：搜品項名、價格由低到高排序、買清單上的數量。</li>
+                                    </ol>
+                                    <p class="flow-xs">逐件買只解決「等不等得到」；划不划算永遠由試算頁判斷。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ⚠️ id="paid-total"：購物清單頁只留「填總額不要填單價」那一句警語，
+                             「為什麼單價不存在」的解釋在這裡。改 id 要一起改 checklist.html。 -->
+                        <div class="step-sub" id="paid-total">
+                            <h4>實付填總額，不是單價</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                填結帳畫面的總金額。一次買 13 個常常是好幾筆不同價格湊起來的，「單價」並不存在，自己除出來的數字會讓賺賠算錯。
+                                買不到全部也很常見，買到幾個就填幾個。
+                            </p>
+                        </div>
+
+                        <!-- 2026-08-29 新增。使用者實際踩到的：付完錢以為就開始倒數了，
+                             七天後回來卻還鎖著。CSFloat 是掛單制，付款只是通知賣家去送報價。 -->
+                        <!-- ⚠️ id="arrived"：購物清單頁的「全部買完之後」只留一句
+                             「箱子到了回來按物品到了」，理由在這裡。改 id 要一起改 checklist.html。 -->
+                        <div class="step-sub" id="arrived">
+                            <h4>付完錢不等於到手</h4>
+                            <p class="t-aux c-warn flow-xs">
+                                付款之後賣家才去送交易報價，可能幾分鐘、也可能拖到隔天。
+                                <strong class="c-ink">7 天從箱子進到你的庫存才開始算</strong>，所以箱子到了要回<a href="checklist.html">購物清單</a>按「物品到了」，賣出頁的倒數才會準。
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -757,28 +784,11 @@
                     <div style="flex:1;min-width:0">
                         <h3 class="t-sect">等 7 天（從箱子到手那天算起）</h3>
                         <p class="t-body c-ink2 flow-xs">
-                            這 7 天什麼都不用做，也什麼都做不了。不能提前賣、不能取消、不能轉移。
+                            這 7 天什麼都不用做，也什麼都做不了：不能提前賣、不能取消、不能轉移。
                             <a href="sell.html">賣出頁</a>會倒數，也可以下載到期提醒。
                         </p>
-                        <!-- ⚠️ id="cooldown-estimate"：購物清單頁不再解釋「沒按也不會壞」，指過來。 -->
-                        <p class="t-aux c-ink2 flow-xs" id="cooldown-estimate">
-                            ⚠️ 沒按過「物品到了」的批次，賣出頁算的是<strong class="c-ink">最快</strong>能賣的時刻
-                            （下單那一刻 + 7 天），並且標明那是估計值。實際只會更晚不會更早。
-                        </p>
-                        <p class="t-aux c-ink2 flow-xs" id="unlock-time">
-                            ⚠️ <strong class="c-ink">解鎖是一個精確的時刻，不是「那一天」。</strong>
-                            賣出頁與到期提醒都會寫出幾點幾分——早上看到「今天解鎖」就跑去 Steam，
-                            可能還要等到晚上。
-                        </p>
-                        <!-- 這一句原本埋在頁尾那份重複的資格清單裡（2026-08-24 刪掉）。
-                             它是唯一一條會被誤解的規則，搬到這裡才有人看得到。 -->
-                        <p class="t-aux c-ink2 flow-xs">
-                            ⚠️ <strong class="c-ink">這 7 天跟驗證器開通幾天無關。</strong>
-                            驗證器開通滿 15 天之後，一般交易的鎖定可以降到 0～48 小時，
-                            但<strong class="c-ink">透過市場買賣的物品仍然固定 7 天</strong>，沒有辦法縮短。
-                        </p>
                         <p class="t-aux c-warn flow-xs">
-                            會卡在哪：這段時間價格會動。到期時價格可能比你買的時候低，這是這個做法本來就有的風險。
+                            會卡在哪：這段時間價格會動，到期時可能比買的時候低——這是這個做法本來就有的風險。
                         </p>
                         <div class="step-check">
                             <div class="step-check-title">
@@ -792,6 +802,29 @@
                         <div class="chk-links">
                             <a class="chk-link" href="https://steamcommunity.com/my/inventory/" target="_blank" rel="noopener noreferrer">
                                 我的 Steam 庫存<span class="ext">↗</span></a>
+                        </div>
+
+                        <!-- ⚠️ id="cooldown-estimate"：購物清單頁不再解釋「沒按也不會壞」，指過來。 -->
+                        <div class="step-sub" id="cooldown-estimate">
+                            <h4>沒按「物品到了」：倒數是估計值</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                賣出頁會用下單那一刻 + 7 天算出<strong class="c-ink">最快</strong>能賣的時刻，並標明是估計值。實際只會更晚，不會更早。
+                            </p>
+                        </div>
+                        <div class="step-sub" id="unlock-time">
+                            <h4>解鎖是精確的時刻，不是「那一天」</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                賣出頁與到期提醒都寫到幾點幾分。早上看到「今天解鎖」就跑去 Steam，可能要等到晚上。
+                            </p>
+                        </div>
+                        <!-- 這一句原本埋在頁尾那份重複的資格清單裡（2026-08-24 刪掉）。
+                             它是唯一一條會被誤解的規則，搬到這裡才有人看得到。 -->
+                        <div class="step-sub" id="guard-days">
+                            <h4>跟驗證器開通幾天無關</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                驗證器開通滿 15 天之後，一般交易的鎖定可以降到 0～48 小時，
+                                但<strong class="c-ink">透過市場買賣的物品固定 7 天</strong>，沒有辦法縮短。
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -807,44 +840,24 @@
                              ⚠️ 第 4 步「手機確認上架」是新寫進來的：有啟用驗證器的帳號，
                                 上架要在 Steam 手機 App 確認才會開賣——作者 9/05 碼錶量到的
                                 「手機批次確認 0.216 分」就是這一步（DECISIONS 4.25）。
-                                原本的指南漏了它，而新手最常卡在「按了出售，市場上卻沒有」。 -->
+                                原本的指南漏了它，而新手最常卡在「按了出售，市場上卻沒有」。
+                             ⚠️ 疑難排解寫的是「3.5 第 4 步」，步驟順序要動就一起改那一條。 -->
                         <div id="sell-price">
                             <ol class="howto t-body c-ink2">
                                 <li>打開 <a href="sell.html">賣出頁</a>，看每一批該掛多少、實拿多少。</li>
                                 <li>到 Steam 庫存點箱子、按「出售」，價格填成跟目前最低掛牌價一樣或低 1 元。</li>
-                                <li>填價格時看下面那行「您將收到」：Steam 會自動算好扣完手續費後你實拿多少，那個數字才是你會拿到的錢。</li>
+                                <li>價格欄下面的「您將收到」，才是扣完手續費你實拿的錢。</li>
                                 <li>打開 Steam 手機 App 確認上架，好幾筆可以一次確認。沒確認的掛單不會開賣。</li>
-                                <li>成交後回賣出頁填成交價。</li>
+                                <li>成交後回賣出頁填成交價：<strong class="c-ink">填 Steam 標價（買家付的數字）</strong>，手續費本站會自己扣。</li>
                             </ol>
-                            <p class="t-aux c-ink2 flow-sm">
-                                賣出頁上的建議掛價是<strong class="c-ink">中位成交價</strong>，不是此刻的最低掛牌價，
-                                兩者會差幾個百分點——<strong class="c-ink">以 Steam 畫面上顯示的為準</strong>。
-                                成交後回賣出頁填成交價時<strong class="c-ink">填 Steam 標價（買家付的數字）就好</strong>，
-                                手續費本站會自己扣；自己先扣過一次再填，賺賠會被算少約 13%。
+                            <p class="t-aux c-ink2 flow-xs">
+                                賣出頁的建議掛價是中位成交價，跟此刻的最低掛牌價會差幾個百分點，以 Steam 畫面為準。
+                            </p>
+                            <p class="t-aux c-warn flow-xs">
+                                會卡在哪：把「買家付的錢」跟「你收到的錢」搞混——回填前自己先扣過手續費，賺賠會被算少約 13%。
+                                另外掛單不一定馬上成交，冷門品項可能要放幾天。
                             </p>
                         </div>
-                        <p class="t-aux c-warn flow-xs">
-                            會卡在哪：把「買家付的錢」跟「你收到的錢」搞混。另外掛單不一定馬上成交，冷門品項可能要放幾天。
-                        </p>
-                        <!-- ⚠️ id="pending-balance"：DECISIONS 4.27，2026-09-06 實測（結帳被擋、
-                             Steam 要求刷卡補差額）。賣出頁只留「賣掉不等於馬上能花」一句，理由在這裡。
-                             ⚠️ 這不是「加緩衝」的理由（4.18 禁止），是一個關於「錢什麼時候能用」的事實。 -->
-                        <p class="t-aux c-warn flow-xs" id="pending-balance">
-                            ⚠️ <strong class="c-ink">賣掉不等於馬上能花。</strong>Steam 會把市場賣出的錢先掛成
-                            <strong class="c-ink">待處理餘額</strong>，<strong class="c-ink">最多 24 小時</strong>才進到可以用的錢包餘額，
-                            而待處理的那筆錢<strong class="c-ink">不算進結帳額度</strong>——實測拿一個介於兩者之間的金額去結帳，
-                            Steam 會直接要求刷卡補差額。想在特賣第一天就花掉，就要早幾天賣。
-                        </p>
-                        <!-- ⚠️ id="break-even"：賣出頁每一批的「每個掛 NT$X 以上才不賠」連過來。
-                             賣出頁只留那個數字與「是標價不是實拿」，為什麼在這裡。改 id 要一起改 sell.html。 -->
-                        <p class="t-aux c-ink2 flow-sm" id="break-even">
-                            <strong class="c-ink">保本掛價</strong>是拿你填的<strong class="c-ink">實付總額</strong>除以件數，
-                            再加回 Steam 的手續費算出來的：掛到這個價以上，這一批就不會是負收益。
-                            它是<strong class="c-ink">你要填進 Steam 的標價</strong>，不是你實拿。
-                            用途是評估要不要直接賣給最高求購價（那個數字只有 Steam 畫面上有，本站看不到）。
-                            兩件事要知道：件數沒填的話分母是計畫數量、算出來的保本價會偏低；
-                            <strong class="c-ink">不賠不等於划算</strong>——這一單值不值得做是試算頁在回答的問題。
-                        </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -854,8 +867,7 @@
                                  任何確認」。那正是 DECISIONS 4.27 在 2026-09-06 實測推翻的說法——
                                  sell.html 當天改掉了，這一行漏改，兩頁因此講相反的話。 -->
                             <p class="t-aux c-ink2 flow-0">
-                                市場頁的「我的待售物品」看得到它。成交後那筆錢會先掛成「待處理餘額」，
-                                不是馬上就能花的錢包餘額。
+                                市場頁的「我的待售物品」看得到它；成交後，錢先出現在「待處理餘額」。
                             </p>
                         </div>
                         <div class="chk-links">
@@ -863,6 +875,31 @@
                                 我的 Steam 庫存：從這裡按出售<span class="ext">↗</span></a>
                             <a class="chk-link" href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer">
                                 社群市場：看我的待售物品<span class="ext">↗</span></a>
+                        </div>
+
+                        <!-- ⚠️ id="pending-balance"：DECISIONS 4.27，2026-09-06 實測（結帳被擋、
+                             Steam 要求刷卡補差額）。賣出頁只留「賣掉不等於馬上能花」一句，理由在這裡。
+                             ⚠️ 這不是「加緩衝」的理由（4.18 禁止），是一個關於「錢什麼時候能用」的事實。 -->
+                        <div class="step-sub" id="pending-balance">
+                            <h4>賣掉不等於馬上能花</h4>
+                            <p class="t-aux c-warn flow-xs">
+                                市場賣出的錢先掛成待處理餘額，<strong class="c-ink">最多 24 小時</strong>才變成能用的錢包餘額，
+                                這段期間<strong class="c-ink">不算進結帳額度</strong>——實測結帳時 Steam 直接要求刷卡補差額。
+                                想在特賣第一天花掉，就要早幾天賣。
+                            </p>
+                        </div>
+
+                        <!-- ⚠️ id="break-even"：賣出頁每一批的「每個掛 NT$X 以上才不賠」連過來。
+                             賣出頁只留那個數字與「是標價不是實拿」，為什麼在這裡。改 id 要一起改 sell.html。 -->
+                        <div class="step-sub" id="break-even">
+                            <h4>保本掛價</h4>
+                            <p class="t-aux c-ink2 flow-xs">
+                                賣出頁每一批的「每個掛 NT$X 以上才不賠」：實付總額除以件數，再加回 Steam 手續費。掛到這個價以上，這一批就不會是負收益。
+                                它是<strong class="c-ink">要填進 Steam 的標價</strong>，不是實拿，用來評估要不要直接賣給最高求購價（那個價只有 Steam 畫面上有）。
+                            </p>
+                            <p class="t-aux c-ink2 flow-xs">
+                                件數沒填時分母是計畫數量，保本價會偏低。另外<strong class="c-ink">不賠不等於划算</strong>——值不值得做由試算頁回答。
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -993,7 +1030,7 @@
                 <div class="ts-item">
                     <h4 class="ts-q">訂單下不了，或掛著的訂單不見了</h4>
                     <p class="ts-a">先看 CSFloat 的錢包餘額，訂單金額受餘額限制。
-                        → <a href="#step-deposit">3.2 入金</a>、<a href="#buy-order">3.3</a></p>
+                        → <a href="#step-deposit">3.2 入金</a></p>
                 </div>
                 <div class="ts-item">
                     <h4 class="ts-q">付完錢了，箱子一直沒進 Steam 庫存</h4>
@@ -1141,12 +1178,14 @@
                 <li><a class="dt-link" href="#step-deposit">3.2 入金</a></li>
                 <li><a class="dt-link" href="#step-buy">3.3 下單買箱子</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#buy-order">求購訂單怎麼填</a></li>
-                <li class="dt-l3"><a class="dt-link" href="#paid-total">實付填總額</a></li>
+                <li class="dt-l3"><a class="dt-link" href="#ceiling">最高價是天花板</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#no-fill">掛著沒成交</a></li>
+                <li class="dt-l3"><a class="dt-link" href="#paid-total">實付填總額</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#arrived">付完錢不等於到手</a></li>
                 <li><a class="dt-link" href="#step-wait">3.4 等 7 天</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#cooldown-estimate">估計值</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#unlock-time">解鎖時刻</a></li>
+                <li class="dt-l3"><a class="dt-link" href="#guard-days">跟驗證器無關</a></li>
                 <li><a class="dt-link" href="#step-sell">3.5 上架賣出</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#sell-price">掛價與實拿</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#pending-balance">待處理餘額</a></li>
