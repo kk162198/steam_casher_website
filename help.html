@@ -583,7 +583,7 @@
                 <tbody>
                     <tr><td><a class="fm-link" href="#step-calc"><span class="fm-no">3.1</span>試算要買什麼</a></td><td>本站・試算頁</td></tr>
                     <tr><td><a class="fm-link" href="#step-deposit"><span class="fm-no">3.2</span>入金</a></td><td>CSFloat</td></tr>
-                    <tr><td><a class="fm-link" href="#step-buy"><span class="fm-no">3.3</span>掛求購訂單</a></td><td>CSFloat</td></tr>
+                    <tr><td><a class="fm-link" href="#step-buy"><span class="fm-no">3.3</span>照清單買箱子</a></td><td>CSFloat（一件一件點，或掛求購訂單）</td></tr>
                     <tr><td><a class="fm-link" href="#step-record"><span class="fm-no">3.4</span>記下買到什麼</a></td><td>本站・購物清單（成交後、到貨後各回來一次）</td></tr>
                     <tr><td><a class="fm-link" href="#step-wait"><span class="fm-no">3.5</span>等 7 天</a></td><td>什麼都不用做，賣出頁會倒數</td></tr>
                     <tr><td><a class="fm-link" href="#step-sell"><span class="fm-no">3.6</span>上架賣出</a></td><td>Steam，成交後回本站賣出頁填成交價</td></tr>
@@ -671,96 +671,103 @@
                     </div>
                 </div>
 
-                <!-- 2026-09-18 第二輪：原本的「照清單下單買箱子」拆成兩步（作者要「照清單那部分跟求購訂單分開」）。
-                     3.3 只講 CSFloat 那邊怎麼掛求購訂單，3.4 只講回本站購物清單記什麼。
-                     拆的理由是它們在不同地方、不同時間做，各自有自己的陷阱與驗收：
-                     掛單的陷阱是右邊那一欄、驗收是「已購買 … 件物品」；記錄的陷阱是付完錢≠到手、驗收是庫存的可交易日期。
-                     擠在同一步時兩個陷阱只能留一個當「會卡在哪」，另一個掉進細節。 -->
+                <!-- 2026-09-18 第三輪：買法的主從**再翻一次**（作者決定）。
+                     「最基本的買法就是一個一個點，求購訂單是另外一種買法」——所以 3.3 的編號步驟教逐件點買，
+                     求購訂單降成下面的小標題「另一種買法」，寫明什麼時候用它比較省事。
+                     ⚠️ 這推翻了 2026-09-06 的翻轉（當時把求購訂單升成主線、逐件買降成例外，根據 DECISIONS 4.25）。
+                        那一輪的實測結論沒有變：同一顆要買很多件時，求購訂單的時間不隨件數成長。變的是教法的起點。
+                     ⚠️⚠️ 逐件買**沒有自動的天花板**，所以「每件都別超過清單上的價格、超過就停」必須寫在步驟裡：
+                        4.24 量到 45 個品項有 42 個在最低價那一檔只有 ≤2 件，便宜的點完、往上繼續點，
+                        就是 4.21 禁止的「自己把價格往上加」——用一個沒算過的成本把單買完。
+                        求購訂單不用寫這條，是因為它的價格欄本身就是天花板。
+                     ⚠️ 比的是「別超過」（CSFloat 標價），不是「要準備」（含入金費與刷卡費，高約 9%）——4.23 那種混淆。
+                     「買不到全部怎麼辦」兩種買法共用一套：剩下的回試算頁重算，不往上加。 -->
                 <div class="step" id="step-buy">
                     <div class="step-no num">3.3</div>
                     <div style="flex:1;min-width:0">
-                        <h3 class="t-sect">在 CSFloat 掛求購訂單</h3>
-                        <!-- 2026-09-06 翻轉順序。原本先教「搜尋 → 依價格排序 → 逐件點買」，
-                             再把求購訂單當成「不用點很多次」的補充——那跟實際主動線是反的。
-                             翻轉的根據（DECISIONS 4.25，2026-09-06 實測一輪）：
-                               · 四張求購訂單全部立刻掃滿、一件沒落空
-                               · 實付只比清單的上限價總額高 0.155%，而且幾乎全來自價格級距吸附
-                               · 買進側的時間已經從 per-件 變成 per-單（buyPerOrder 0.688 分/張）
-                             ⚠️ 那一輪的數量很小（1/4/1/1），「全部掃滿」**不能寫成保證**——
-                                4.24 量到 45 個品項有 42 個在最低價那一檔只有 ≤2 件。
-                                所以下面的文案只講「怎麼下單」，不承諾一定買得到。
-                             2026-09-17 改成編號步驟時同一條照舊：步驟只講動作，不講結果。
-                             ⚠️ id="buy-order"：購物清單頁「怎麼下單、沒成交怎麼辦」連過來。
-                                右欄那個陷阱留在錨點底下（落地第一眼就要看到）；天花板與沒成交在下面的小標題。 -->
-                        <div id="buy-order">
-                            <p class="t-body c-ink2 flow-xs">
-                                購物清單上每一列掛一張<strong class="c-ink">求購訂單</strong>：同一顆箱子設好數量就好，不用一件一件點。要填的三個值清單上都有。
-                            </p>
-                            <ol class="howto t-body c-ink2">
-                                <li>在試算頁按「產生購物清單」，打開 <a href="checklist.html">購物清單</a>。</li>
-                                <li>到 CSFloat 的品項頁，按「求購訂單」旁邊的<strong class="c-ink">創建</strong>。</li>
-                                <li>照購物清單填三個欄位：品項名、數量、每件最高價，送出。</li>
-                                <li>清單上每一列都照做一次。</li>
-                            </ol>
-                            <p class="t-aux c-warn flow-xs">
-                                會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少。</strong>
-                                它貼在價格欄旁邊、看起來像市價，照它填的話訂單只會排隊，今天多半買不到。
-                            </p>
-                        </div>
-                        <!-- 驗收用的是 CSFloat 實際回的那句話（DECISIONS 4.21，2026-09-05：
-                             「您的訂單已成功提交！已購買 1 件物品」）。沒成交時只有「已提交」、沒有「已購買」。 -->
+                        <h3 class="t-sect">在 CSFloat 照清單買箱子</h3>
+                        <p class="t-body c-ink2 flow-xs">
+                            最基本的買法是一件一件點；同一顆要買好幾件時，可以改用下面的<a href="#buy-order">求購訂單</a>。
+                        </p>
+                        <ol class="howto t-body c-ink2">
+                            <li>在試算頁按「產生購物清單」，打開 <a href="checklist.html">購物清單</a>。</li>
+                            <li>到 CSFloat 搜品項名，價格由低到高排序。</li>
+                            <li>從最便宜的開始一件一件買，買到清單上的數量。</li>
+                            <li>每一件的價格都跟清單上的<strong class="c-ink">「別超過」</strong>比（不是「要準備」那個數字）。超過了就停手。</li>
+                        </ol>
+                        <p class="t-aux c-warn flow-xs">
+                            會卡在哪：便宜的買完了還<strong class="c-ink">繼續往上點</strong>——那等於自己把價格加上去。剩下的看〈買不到全部怎麼辦〉。
+                        </p>
                         <div class="step-check">
                             <div class="step-check-title">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 怎麼確認做對了
                             </div>
                             <p class="t-aux c-ink2 flow-0">
-                                送出後的訊息寫「已購買 … 件物品」，件數跟你填的一樣。件數比較少或沒有這句，剩下的就還在排隊。
+                                每個品項買到的件數跟清單一樣，而且沒有一件超過「別超過」。
                             </p>
                         </div>
                         <div class="chk-links">
                             <a class="chk-link" href="https://csfloat.com/" target="_blank" rel="noopener noreferrer">
-                                CSFloat：在這裡下單<span class="ext">↗</span></a>
+                                CSFloat：在這裡買<span class="ext">↗</span></a>
                         </div>
 
-                        <div class="step-sub" id="ceiling">
-                            <h4>每件最高價是天花板，不是目標價</h4>
+                        <!-- ⚠️ id="buy-order"：購物清單頁「怎麼下單、沒成交怎麼辦」連過來。
+                             右欄那個陷阱一定要留在錨點底下（落地第一眼就要看到）——
+                             DECISIONS 4.21：「這是這整段裡對使用者最有價值的一句話」。
+                             ⚠️ 4.25 那一輪數量很小（1/4/1/1），「全部立刻掃滿」**不能寫成保證**，所以只講怎麼下單。
+                             驗收用 CSFloat 實際回的那句話（4.21，2026-09-05：「您的訂單已成功提交！已購買 1 件物品」）。 -->
+                        <div class="step-sub" id="buy-order">
+                            <h4>另一種買法：求購訂單</h4>
                             <p class="t-aux c-ink2 flow-xs">
-                                成交價取市場當下的較低者，不是你填的數字（實測出價 NT$88、成交 NT$81），所以清單寫的是「別超過」。
-                                照清單的數字填就好，<strong class="c-ink">不用自己去查現在賣多少</strong>。
+                                一張訂單設好數量，不用一件一件點；要填的三個值購物清單上都有。
+                            </p>
+                            <ol class="howto t-aux c-ink2">
+                                <li>到 CSFloat 的品項頁，按「求購訂單」旁邊的<strong class="c-ink">創建</strong>。</li>
+                                <li>照購物清單填三個欄位：品項名、數量、每件最高價，送出。</li>
+                                <li>送出後的訊息寫「已購買 … 件物品」，件數跟你填的一樣就是全買到了；比較少或沒有這句，剩下的還在排隊。</li>
+                            </ol>
+                            <p class="t-aux c-warn flow-xs">
+                                會卡在哪：<strong class="c-ink">對話框右邊那一欄是「別的買家出多少」，不是現在賣多少。</strong>
+                                它貼在價格欄旁邊、看起來像市價，照它填的話訂單只會排隊，今天多半買不到。
+                            </p>
+                            <p class="t-aux c-ink2 flow-xs" id="ceiling">
+                                每件最高價是<strong class="c-ink">天花板，不是目標價</strong>：成交價取市場當下的較低者（實測出價 NT$88、成交 NT$81），
+                                所以照清單的數字填就好，不用自己去查現在賣多少。
                             </p>
                             <p class="t-aux c-ink3 flow-xs">
                                 價格欄有級距（US$5 以下每階 US$0.01，約 NT$0.3），填進去會被吸到最近的一階，差幾角不用在意。
                             </p>
                         </div>
 
-                        <!-- 沒成交的出路（2026-09-06 新增）。
-                             ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是求購訂單、還是可能不成交**
+                        <!-- 買不到全部的出路（2026-09-06 新增，2026-09-18 改成兩種買法共用）。
+                             ⚠️ 原本只有一句「回試算頁重算一份」，但**重算之後還是可能買不到**
                                 ——那條建議沒有終止條件，會繞圈。缺的不是退路，是**終止條件**。
                              ⚠️⚠️ 順序不能反，理由是 4.21：「沒成交要回試算頁重算，不是把價格往上加」。
-                                而**逐件買就是用現在的市價買**，市場漲過計畫之後去逐件買，效果上等於往上加。
-                                所以價格的判斷必須留在試算頁，逐件買只能解決「等不等得到」。
-                                ②那一句是純勸退（安全方向），③才是新增的行為建議。
-                             id="no-fill"（2026-09-17）：疑難排解第 5 章與右欄連過來。
-                             2026-09-18 從一整段 ①②③ 拆成編號清單，內容沒動。 -->
+                                逐件買是用現在的市價買，所以不論原本用哪種買法，**價格的判斷都留在試算頁**，
+                                ③ 換成逐件買只解決「等不等得到」。②那一句是純勸退（安全方向）。
+                             id="no-fill"（2026-09-17）：疑難排解第 5 章與右欄連過來。 -->
                         <div class="step-sub" id="no-fill">
-                            <h4>掛著沒成交怎麼辦</h4>
+                            <h4>買不到全部怎麼辦</h4>
                             <div class="risk-bar flow-xs">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 9v4M12 16v.01" stroke-linecap="round"/></svg>
                                 <div>
-                                    <p class="flow-0">照順序，不要跳步：</p>
+                                    <p class="flow-0">剩下的都比「別超過」貴，或求購訂單掛著一直沒成交——照順序，不要跳步：</p>
                                     <ol class="howto">
-                                        <li><strong class="c-ink">回試算頁重算一份，不要自己把價格往上加。</strong>沒成交代表市場已經漲過你的計畫。</li>
+                                        <li><strong class="c-ink">回試算頁重算剩下的，不要自己把價格往上加。</strong>買不到代表市場已經漲過你的計畫。</li>
                                         <li>重算後判「不建議」，這一檔就不做——那正是算給你看的答案。</li>
-                                        <li>仍然值得做、但離<a href="sell.html">買進期限</a>很近等不起了，才改成在 CSFloat 逐件點買：搜品項名、價格由低到高排序、買清單上的數量。</li>
+                                        <li>仍然值得做，就照新的清單再買。掛求購訂單的人如果離<a href="sell.html">買進期限</a>很近、等不起了，改成一件一件點。</li>
                                     </ol>
-                                    <p class="flow-xs">逐件買只解決「等不等得到」；划不划算永遠由試算頁判斷。</p>
+                                    <p class="flow-xs">換成一件一件點只解決「等不等得到」；划不划算永遠由試算頁判斷。</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- 2026-09-18 第二輪：「回購物清單記下來」從下單那一步拆出來。
+                     兩種買法（逐件點、求購訂單）最後都走到這一步；它在本站做、時間也不同（成交後、到貨後各一次），
+                     拆開之後有自己的「會卡在哪」（付完錢≠到手）與驗收（庫存的可交易日期）。 -->
                 <div class="step" id="step-record">
                     <div class="step-no num">3.4</div>
                     <div style="flex:1;min-width:0">
@@ -1052,9 +1059,9 @@
             <h3 class="t-sect flow-xl" id="ts-buy">買進</h3>
             <div class="flow-sm">
                 <div class="ts-item">
-                    <h4 class="ts-q">求購訂單掛著一直沒成交</h4>
-                    <p class="ts-a">最常見的是價格填成了對話框右邊那一欄；不然就是市場已經漲過你的計畫。不要自己往上加價，照順序處理。
-                        → <a href="#no-fill">3.3 掛著沒成交怎麼辦</a></p>
+                    <h4 class="ts-q">買不到清單上的數量，或求購訂單掛著一直沒成交</h4>
+                    <p class="ts-a">一件一件點的話，是便宜的已經買完了；求購訂單最常見的是價格填成了對話框右邊那一欄。兩種都可能是市場已經漲過你的計畫——不要自己往上加價，照順序處理。
+                        → <a href="#no-fill">3.3 買不到全部怎麼辦</a></p>
                 </div>
                 <div class="ts-item">
                     <h4 class="ts-q">訂單下不了，或掛著的訂單不見了</h4>
@@ -1205,10 +1212,10 @@
                 <li><a class="dt-link" href="#round-overview">流程總覽</a></li>
                 <li><a class="dt-link" href="#step-calc">3.1 試算</a></li>
                 <li><a class="dt-link" href="#step-deposit">3.2 入金</a></li>
-                <li><a class="dt-link" href="#step-buy">3.3 掛求購訂單</a></li>
-                <li class="dt-l3"><a class="dt-link" href="#buy-order">求購訂單怎麼填</a></li>
+                <li><a class="dt-link" href="#step-buy">3.3 照清單買箱子</a></li>
+                <li class="dt-l3"><a class="dt-link" href="#buy-order">另一種買法：求購訂單</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#ceiling">最高價是天花板</a></li>
-                <li class="dt-l3"><a class="dt-link" href="#no-fill">掛著沒成交</a></li>
+                <li class="dt-l3"><a class="dt-link" href="#no-fill">買不到全部</a></li>
                 <li><a class="dt-link" href="#step-record">3.4 記下買到什麼</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#arrived">付完錢不等於到手</a></li>
                 <li class="dt-l3"><a class="dt-link" href="#paid-total">實付填總額</a></li>
