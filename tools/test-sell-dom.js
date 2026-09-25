@@ -151,6 +151,23 @@ async function boot(sold, opts) {
   eq('沒填實付 → 總覽註腳也標「估」',
     dom2.window.document.querySelector('#sl-total').nextElementSibling.textContent.includes('（估）'), true);
 
+  /* 保本掛價：沒填實付也要給（2026-09-25），退回試算單價 21 → 每件實拿 21 的最小標價。
+     ⚠️ 要標「實付沒填」在估，而且不可以再說「保本價要先填實付總額」。 */
+  const beEst = dom2.window.breakEvenAskTwd(21, 1);
+  eq('沒填實付 → 保本價用試算單價算', beEst, 21 + dom2.window.steamFeeTwd(21));
+  eq('沒填實付 → 照樣顯示保本價',
+    row2.textContent.includes('每個掛 NT$ ' + dom2.window.fmtTwd(beEst) + ' 以上才不賠'), true);
+  eq('沒填實付 → 保本價標「實付沒填」', row2.textContent.includes('實付沒填'), true);
+  eq('沒填實付但有試算單價 → 不說算不出來', row2.textContent.includes('保本價要先填實付總額'), false);
+
+  /* 連試算單價都沒有（新網址有實付時不帶計畫單價，事後把實付清掉）→ 才說算不出來，不印 0。 */
+  COMBO.items[0].unitCostTwd = 0;
+  const dom2b = await boot(null);
+  const row2b = dom2b.window.document.querySelector('#sl-body tr');
+  eq('沒實付也沒單價 → 保本價說要先填實付', row2b.textContent.includes('保本價要先填實付總額'), true);
+  eq('沒實付也沒單價 → 不印保本價', row2b.textContent.includes('以上才不賠'), false);
+  COMBO.items[0].unitCostTwd = 21;
+
   /* 沒填數量時，數量要標成「用計畫數量」，不要看起來像實際值 */
   CHECKED['Kilowatt Case'].lots[0].qty = null;
   const dom3 = await boot(null);

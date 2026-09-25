@@ -502,14 +502,24 @@
                   兩個數字擺在一起，少了這句就會拿保本價去跟實拿比。
                ⚠️ 件數是估計值時分母就是估的（件數高估 → 保本價低估 → 在會賠的
                   時候說有賺）。2026-09-12 決定**標記而不是擋掉**，那就要標得看得見。 */
-            const beTwd = breakEvenAskTwd(item.paidTwd, item.qty);
+            /* 沒填實付總額時退回試算頁的估計單價（2026-09-25 作者要求：沒填也要給）。
+               ⚠️ 用 breakEvenAskTwd(單價, 1)，不要寫成 (單價 × 件數, 件數)——
+                  浮點乘除可能多出 1e-15，ceil 就整整多 1 元。
+               ⚠️ 單價已經是「每件」，件數估不估跟它無關，所以這條路不掛件數的標。
+               ⚠️ 估計單價是試算當下的價，實際買貴了保本價就是低估（會賠的時候說不賠），
+                  所以「估」一定要標，而且要講是**實付沒填**在估、去哪裡補。 */
+            const beFromPlan = item.paidTwd == null;
+            const beTwd = !beFromPlan ? breakEvenAskTwd(item.paidTwd, item.qty)
+                        : (item.unitCostTwd > 0 ? breakEvenAskTwd(item.unitCostTwd, 1) : null);
             const beHtml = beTwd != null
                 /* ⚠️ 保本價是要照著打進 Steam 的數字，用 .num-key（白色粗體）；
                       原本整行 12px 灰字，跟「實拿」那種說明性的金額分不出來（2026-09-17）。 */
                 ? '<span class="t-aux c-ink2" style="display:block;margin-top:4px">每個掛 <strong class="num-key">NT$ '
                   + fmtTwd(beTwd) + '</strong> 以上才不賠'
-                  + (item.qtyIsEstimate
-                      ? '<span class="c-warn">（件數是估的，這個數字跟著估）</span>' : '')
+                  + (beFromPlan
+                      ? '<span class="c-warn">（估：實付沒填，用試算單價算；<a href="checklist.html">填實付總額</a>會變準）</span>'
+                      : (item.qtyIsEstimate
+                          ? '<span class="c-warn">（件數是估的，這個數字跟著估）</span>' : ''))
                   + '</span><span class="t-note c-ink3" style="display:block">Steam 標價、不是實拿・<a href="help.html#break-even">為什麼</a></span>'
                 : '<span class="t-note c-ink3" style="display:block">保本價要先填實付總額</span>';
 
