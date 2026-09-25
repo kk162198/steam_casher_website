@@ -147,7 +147,11 @@ async function boot(sold, opts) {
   const row2 = dom2.window.document.querySelector('#sl-body tr');
   eq('沒填實付 → 不給賺賠數字', row2.textContent.includes('賺 NT$') || row2.textContent.includes('賠 NT$'), false);
   eq('沒填實付 → 說要回去填', row2.textContent.includes('填實付總額'), true);
-  eq('沒填實付 → 成本標「估」', row2.textContent.includes('估 NT$'), true);
+  /* 2026-09-25 起列上只留「估」標記（.est，title 講原因），完整原因與去處集中在 #sl-est-note。
+     ⚠️ 守的仍是同一條規矩：估計值要看得見，而且講得出是哪一件事在估、去哪裡補。 */
+  const estNote2 = dom2.window.document.getElementById('sl-est-note');
+  const nameEst2 = row2.querySelector('td[data-label="品項"] .est');
+  eq('沒填實付 → 成本掛「估」標記', !!nameEst2 && /實付沒填/.test(nameEst2.title), true);
   eq('沒填實付 → 總覽註腳也標「估」',
     dom2.window.document.querySelector('#sl-total').nextElementSibling.textContent.includes('（估）'), true);
 
@@ -157,7 +161,10 @@ async function boot(sold, opts) {
   eq('沒填實付 → 保本價用試算單價算', beEst, 21 + dom2.window.steamFeeTwd(21));
   eq('沒填實付 → 照樣顯示保本價',
     row2.textContent.includes('每個掛 NT$ ' + dom2.window.fmtTwd(beEst) + ' 以上才不賠'), true);
-  eq('沒填實付 → 保本價標「實付沒填」', row2.textContent.includes('實付沒填'), true);
+  const beEst2 = row2.querySelector('td[data-label="建議掛價／你實拿"] .est');
+  eq('沒填實付 → 保本價掛「估」標記、原因是實付沒填', !!beEst2 && /實付沒填/.test(beEst2.title), true);
+  eq('沒填實付 → 上方說明講出來、而且看得見', !estNote2.hidden && /實付沒填/.test(estNote2.textContent), true);
+  eq('沒填實付 → 上方說明給得出去處', !!estNote2.querySelector('a[href="checklist.html"]'), true);
   eq('沒填實付但有試算單價 → 不說算不出來', row2.textContent.includes('保本價要先填實付總額'), false);
 
   /* 連試算單價都沒有（新網址有實付時不帶計畫單價，事後把實付清掉）→ 才說算不出來，不印 0。 */
@@ -173,9 +180,10 @@ async function boot(sold, opts) {
   const dom3 = await boot(null);
   const row3 = dom3.window.document.querySelector('#sl-body tr');
   eq('沒填數量 → 退回計畫的 20 個', row3.textContent.includes('20 個'), true);
-  eq('沒填數量 → 標示未填', row3.textContent.includes('未填，用計畫數量'), true);
-  eq('沒填數量 → 來源說明講出來',
-    dom3.window.document.getElementById('sl-source').textContent.includes('沒填實際買到幾個'), true);
+  const qtyEst3 = row3.querySelector('td[data-label="品項"] .est[title*="計畫數量"]');
+  eq('沒填數量 → 數量掛「估」標記', !!qtyEst3, true);
+  eq('沒填數量 → 上方說明講出來',
+    dom3.window.document.getElementById('sl-est-note').textContent.includes('沒填實際買到幾個'), true);
 
   /* 行事曆事件：件數要用實際買到的，連結參數要帶得回實付金額。
      ⚠️ 事件內文本身仍然不放任何市場價格——ics 下載後就固定了，
@@ -303,8 +311,11 @@ async function boot(sold, opts) {
   const estText = est.window.document.getElementById('sl-body').textContent;
   eq('沒按到貨：還在冷卻', /解鎖/.test(estText), true);
   eq('沒按到貨：文案講「最快」', /最快/.test(estText), true);
-  eq('沒按到貨：畫面標成估計值', /估計值/.test(estText), true);
-  eq('沒按到貨：給得出校正的去處', /物品到了/.test(estText), true);
+  const estCd = est.window.document.querySelector('#sl-body td[data-label="冷卻期"] .est');
+  const estNoteCd = est.window.document.getElementById('sl-est-note');
+  eq('沒按到貨：冷卻期掛「估」標記', !!estCd, true);
+  eq('沒按到貨：上方說明給得出校正的去處',
+    !estNoteCd.hidden && /物品到了/.test(estNoteCd.textContent), true);
 
   /* 同一筆，但按過「物品到了」而且到貨就在下單當下：起點回到下單時間，
      不加緩衝——按過按鈕的人不該再被多罰一天。 */
@@ -313,7 +324,9 @@ async function boot(sold, opts) {
   } });
   const exactText = exact.window.document.getElementById('sl-body').textContent;
   eq('按過到貨：不再說「最快」', /最快/.test(exactText), false);
-  eq('按過到貨：不標估計值', /估計值/.test(exactText), false);
+  eq('按過到貨：不標估計值',
+    !!exact.window.document.querySelector('#sl-body td[data-label="冷卻期"] .est'), false);
+  eq('全部實填 → 上方說明不出現', exact.window.document.getElementById('sl-est-note').hidden, true);
 
   /* 賣家拖三天的那種：起點跟著晚三天，不是「反正加一天」。
      ⚠️ 這條擋的是「乾脆把 COOLDOWN_DAYS 改成 8」那種修法——
@@ -325,7 +338,7 @@ async function boot(sold, opts) {
   eq('賣家拖三天：還鎖著，而且不是估計值',
     /解鎖/.test(late.window.document.getElementById('sl-body').textContent), true);
   eq('賣家拖三天：不標估計值',
-    /估計值/.test(late.window.document.getElementById('sl-body').textContent), false);
+    !!late.window.document.querySelector('#sl-body td[data-label="冷卻期"] .est'), false);
 
   /* ── 行事曆：提醒必須帶時刻（2026-08-29）──────────────────
      ⚠️⚠️ 這一段是那個誤會的回歸測試。原本的 .ics 是**全天事件**，只有日期

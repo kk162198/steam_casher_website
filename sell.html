@@ -42,6 +42,19 @@
         .ask{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
         /* 回填成交價的輸入框：外觀在 style.css 第 9b-2 節（與購物清單共用），預設寬度 7em 就夠。 */
 
+        /* 「估」標記（2026-09-25）。原本每一列都把「為什麼是估的、去哪裡補」整句寫出來，
+           十幾列就是十幾次同樣的三句話，作者反映太亂。改成：列上只留這個標記（看得見，
+           「估計值要一路帶著估計的標記」那條規矩不變），原因與去處集中在表格上方 #sl-est-note。
+           ⚠️ title 只是補充，不能是唯一的說明——手機沒有 hover，所以上方那段一定要在。 */
+        .est{
+            display:inline-block;margin-left:4px;padding:0 5px;border-radius:4px;
+            border:1px solid rgba(251,191,36,.45);color:var(--warn);
+            font-size:11px;font-weight:600;line-height:1.5;vertical-align:1px;cursor:help;
+        }
+        /* 行內說明連結：不搶顏色，虛線底線表示點得下去 */
+        .hint-link{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
+        .hint-link:hover{color:var(--ink)}
+
         /* ── 持有清單不要橫向捲動（2026-09-25）──────────────
            .rt 的格子預設 nowrap，而這張表的格子裡是整句說明（保本價的「估：實付沒填…」
            一行就 520px），實測 1280 寬時表格 1378px、容器只有 1199px，最右邊的
@@ -185,6 +198,8 @@
                         <div id="sl-source" class="spec c-ink3">讀取中...</div>
                         <!-- ⚠️ 成交價寫不進去要當場講：靜默失敗的話，使用者以為自己填過了 -->
                         <p id="sl-store-warn" class="t-note c-warn" hidden></p>
+                        <!-- 標「估」的原因與去處，集中講一次（renderEstNote） -->
+                        <div id="sl-est-note" class="t-note c-ink2 flow-xs" hidden></div>
                     </div>
                     <span id="sl-chip" class="ts-chip" data-source="steam"></span>
                 </div>
@@ -196,7 +211,7 @@
                                 <th scope="col">冷卻期</th>
                                 <th scope="col">建議掛價／你實拿</th>
                                 <th scope="col">流動性</th>
-                                <th scope="col">實際成交價</th>
+                                <th scope="col">實際成交價（每個）</th>
                                 <th scope="col">前往 Steam</th>
                             </tr>
                         </thead>
@@ -277,6 +292,30 @@
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        /* 列上的「估」標記。why 放 title 當補充；完整原因與去處在 #sl-est-note。 */
+        function estMark(why) {
+            return '<span class="est" title="' + escapeHtml(why) + '">估</span>';
+        }
+
+        /* 表格上方那段：哪幾類是估的、各幾批、去哪裡補。
+           ⚠️ 這是列上「估」標記的唯一完整說明，手機看不到 title，所以有估就一定要出現。 */
+        function renderEstNote() {
+            const el = document.getElementById('sl-est-note');
+            const cd = holdings.filter(i => i.cooldownFromIsEstimate).length;
+            const paid = holdings.filter(i => i.paidTwd == null && i.unitCostTwd > 0).length;
+            const qty = holdings.filter(i => i.qtyIsEstimate).length;
+            const lines = [];
+            if (cd) lines.push(cd + ' 批沒按「物品到了」：冷卻期用下單時間算，是<strong>最快</strong>能賣的時刻');
+            if (paid) lines.push(paid + ' 批實付沒填：成本與保本價用試算單價算，實際買貴了保本價會偏低');
+            if (qty) lines.push(qty + ' 批沒填實際買到幾個：暫用計畫數量');
+            el.hidden = !lines.length;
+            el.innerHTML = lines.length
+                ? '<span class="est" style="margin-left:0">估</span> 是暫用值，到<a href="checklist.html">購物清單</a>補上就會變準：'
+                  + '<ul style="margin:2px 0 0;padding-left:1.4em;list-style:disc">'
+                  + lines.map(s => '<li>' + s + '</li>').join('') + '</ul>'
+                : '';
+        }
+
         /* ── 實際成交價：只存本機 ─────────────────────────────
            key 用 holding 的 `key` 而不是品項名，因為分批買的同一個品項
            會有兩列，兩批可能賣在不同價錢。單批時 key 就等於品項名，
@@ -340,17 +379,13 @@
             const h = readHoldings();
             holdings = h.items;
             const estTime = holdings.some(i => i.boughtAtIsEstimate);
-            const estQty = holdings.some(i => i.qtyIsEstimate);
             const batches = holdings.length;
             const names = new Set(holdings.map(i => i.name)).size;
+            /* 沒填實際數量的說明搬到 #sl-est-note（2026-09-25），跟其他「估」的原因放在一起。 */
             document.getElementById('sl-source').textContent = holdings.length
                 ? (`來自你的購物清單，${names} 個品項`
                    + (batches > names ? `／${batches} 批` : '')
-                   + (estTime ? '・部分沒有勾選時間，冷卻期用試算時間估' : '')
-                   /* 沒填實際數量就講出來。這裡的數字會直接乘進「全部賣掉
-                      預計實拿」，用計畫值頂替卻不說，等於給了一個看起來
-                      很確定的錯數字。 */
-                   + (estQty ? '・部分沒填實際買到幾個，暫用計畫數量' : ''))
+                   + (estTime ? '・部分沒有勾選時間，冷卻期用試算時間估' : ''))
                 : '購物清單裡還沒有標記為「已買到」的品項';
         }
 
@@ -507,16 +542,17 @@
                  舊資料沒有勾選時間 → 連下單時間都是拿試算時間近似的
                兩者都會讓時刻偏，但使用者能做的事不同——前者回購物清單按一下
                就變準，後者只能重新確認。混成一句「日期為估算」等於兩邊都不能修。 */
+            /* 2026-09-25：列上只留「估」標記，「按『物品到了』可校正」集中在 #sl-est-note。 */
             const estNote = item.cooldownFromIsEstimate
-                ? '<span class="t-note c-warn" style="display:block">估計值・<a href="checklist.html">按「物品到了」可校正</a></span>'
+                ? estMark('沒按「物品到了」，用下單時間估的，是最快能賣的時刻')
                 : '';
             /* ⚠️ **要連時刻一起講。** 只寫日期的話，一批當地時間 23:00 解鎖的
                箱子看起來就像「那天可以賣」，使用者早上跑去 Steam 會發現還鎖著。
                2026-08-29 使用者回報的「7 天好像不夠」就是這個症狀的行事曆版本
                （見 buildCooldownIcs），這一頁也一起補上，兩邊要說同一件事。 */
-            const cdNote = (cd.state === 'locked' && u
+            const cdNote = cd.state === 'locked' && u
                 ? '<span class="t-note c-ink3" style="display:block">' + unlockText(u) + ' 解鎖</span>'
-                : '') + estNote;
+                : '';
 
             /* 保本掛價（2026-09-12）：掛到多少以上，這一批不會是負收益。
                算式在 site.js ⑮-c，逐件反解（NT$1／分量的下限每件咬一次）。
@@ -543,13 +579,16 @@
             const beHtml = beTwd != null
                 /* ⚠️ 保本價是要照著打進 Steam 的數字，用 .num-key（白色粗體）；
                       原本整行 12px 灰字，跟「實拿」那種說明性的金額分不出來（2026-09-17）。 */
+                /* ⚠️ 2026-09-25 精簡：「Steam 標價、不是實拿」那一行拿掉了，改成「每個**掛**」——
+                      「掛」就是標價，而且它正下方就是同樣是標價的建議掛價，比對的對象是那個。
+                      原因說明仍在 help.html#break-even，連結掛在「才不賠」上。 */
                 ? '<span class="t-aux c-ink2" style="display:block;margin-top:4px">每個掛 <strong class="num-key">NT$ '
-                  + fmtTwd(beTwd) + '</strong> 以上才不賠'
+                  + fmtTwd(beTwd) + '</strong> 以上<a class="hint-link" href="help.html#break-even"'
+                  + ' title="這是 Steam 標價，不是實拿。點看怎麼算">才不賠</a>'
                   + (beFromPlan
-                      ? '<span class="c-warn">（估・實付沒填，<a href="checklist.html">去填</a>）</span>'
-                      : (item.qtyIsEstimate
-                          ? '<span class="c-warn">（件數是估的，這個數字跟著估）</span>' : ''))
-                  + '</span><span class="t-note c-ink3" style="display:block">Steam 標價、不是實拿・<a href="help.html#break-even">為什麼</a></span>'
+                      ? estMark('實付沒填，用試算單價算')
+                      : (item.qtyIsEstimate ? estMark('件數是估的，這個數字跟著估') : ''))
+                  + '</span>'
                 : '<span class="t-note c-ink3" style="display:block">保本價要先填實付總額</span>';
 
             /* 價格查不到時要講出來，不要顯示 0 或留白——使用者會拿這個數字去掛單。 */
@@ -593,7 +632,7 @@
                     + (pct != null ? '（' + (gap >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%）' : '')
                     + '</span>';
             } else if (soldVal !== '' && item.paidTwd == null) {
-                gapHtml = '<span class="t-note c-ink3" style="display:block">回購物清單填實付總額才算得出賺賠</span>';
+                gapHtml = '<span class="t-note c-ink3" style="display:block"><a href="checklist.html">填實付總額</a>才算得出賺賠</span>';
             }
 
             /* 回填欄只在解鎖後才給填——還在冷卻期就填成交價，代表填錯了 */
@@ -606,7 +645,8 @@
                   + escapeHtml(item.key) + '" value="' + escapeHtml(soldVal)
                   + '" aria-label="' + escapeHtml(item.name) + ' 的實際成交價，每個，填 Steam 上的標價" placeholder="每個">'
                   + '</label>'
-                  + '<span class="t-note c-ink3">填 Steam 標價（買家付的），手續費本站扣</span>'
+                  /* ⚠️ 這句縮短但不能拿掉：填錯的人就是正在填這一格的人（見下方「在 Steam 上架的時候」第 3 項）。 */
+                  + '<span class="t-note c-ink3">填標價（買家付的）</span>'
                   + gapHtml
                   + '</span>';
 
@@ -615,17 +655,19 @@
             /* ⚠️ 沒實付、連估計單價也沒有時要說「沒有成本資料」，不要印「估 NT$ 0.00」。
                新網址在有實付總額時刻意不帶計畫單價（那時用不到），所以只要使用者
                事後把實付清掉，估計值就真的是 0——印出來會被當成「這批不用錢」。 */
+            /* 2026-09-25：數量與成本併成一行，估計的部分各自掛「估」標記。 */
             const costHtml = item.paidTwd != null
-                ? '<span class="t-note c-ink3" style="display:block;font-weight:400">實付 NT$ ' + fmtTwd(item.paidTwd) + '</span>'
+                ? '・實付 NT$ ' + fmtTwd(item.paidTwd)
                 : (item.unitCostTwd > 0
-                    ? '<span class="t-note c-ink3" style="display:block;font-weight:400">估 NT$ '
-                      + fmtTwd(item.unitCostTwd * item.qty) + '</span>'
-                    : '<span class="t-note c-warn" style="display:block;font-weight:400">沒有成本資料</span>');
+                    ? '・成本 NT$ ' + fmtTwd(item.unitCostTwd * item.qty)
+                      + estMark('實付沒填，用試算單價算')
+                    : '・<span class="c-warn">沒有成本資料</span>');
 
             const qtyHtml = '<span class="t-note c-ink3" style="display:block;font-weight:400">'
                 + item.qty + ' 個'
-                + (item.qtyIsEstimate ? '（未填，用計畫數量）' : '')
+                + (item.qtyIsEstimate ? estMark('沒填買到幾個，用計畫數量') : '')
                 + (item.lotCount > 1 ? '・第 ' + (item.lotIndex + 1) + ' 批' : '')
+                + costHtml
                 + '</span>';
 
             /* 品項名稱可能還原不出來：新網址只帶 defIndex，而那顆箱子已經不在
@@ -647,13 +689,12 @@
                             ${nameCell}
                             ${orderTag}
                             ${qtyHtml}
-                            ${costHtml}
                         </span>
                     </span>
                 </td>
                 <td data-label="冷卻期">
                     <span class="cell-stack">
-                        <span class="cd-chip" data-state="${cd.state}">${escapeHtml(cd.text)}</span>
+                        <span><span class="cd-chip" data-state="${cd.state}">${escapeHtml(cd.text)}</span>${estNote}</span>
                         ${cdNote}
                     </span>
                 </td>
@@ -1022,6 +1063,7 @@
                 tr.innerHTML = renderSellRow(item, sold);
                 body.appendChild(tr);
             });
+            renderEstNote();
             bindSoldInputs();
         }
         main();
