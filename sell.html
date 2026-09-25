@@ -41,6 +41,34 @@
         /* 建議掛價：這一頁的主角，要一眼看得到 */
         .ask{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
         /* 回填成交價的輸入框：外觀在 style.css 第 9b-2 節（與購物清單共用），預設寬度 7em 就夠。 */
+
+        /* ── 持有清單不要橫向捲動（2026-09-25）──────────────
+           .rt 的格子預設 nowrap，而這張表的格子裡是整句說明（保本價的「估：實付沒填…」
+           一行就 520px），實測 1280 寬時表格 1378px、容器只有 1199px，最右邊的
+           「前往 Steam」要橫捲才看得到——那正是這頁最後一步要按的東西。
+           ⚠️ 只放開說明文字；金額與標籤維持不斷行，「NT$ 24.00」折成兩行會被看錯。
+           ⚠️ 1024 以下改卡片：放開換行後 768 寬仍溢出約 40px，價格欄剩 116px、
+              一列 340px 高，比卡片難讀。卡片的變數與 style.css 第 5 節手機版同一組。 */
+        @media (min-width:1024px){
+            #sell-table tbody td{white-space:normal;vertical-align:top;padding:14px 10px}
+            #sell-table th{padding:12px 10px}
+        }
+        #sell-table .ask,#sell-table .num-key,#sell-table .liq-chip{white-space:nowrap}
+        @media (min-width:768px) and (max-width:1023px){
+            #sell-table{
+                --rt-thead:none; --rt-tbody:block; --rt-tr:block; --rt-td:flex; --rt-label:block;
+                --rt-tr-pad:16px; --rt-tr-bg:var(--card);
+                --rt-tr-border:1px solid var(--line); --rt-tr-radius:10px; --rt-tr-mb:12px;
+                --rt-td-pad:6px 0; --rt-td-bb:0; --rt-key-size:17px;
+            }
+            #sell-table td.rt-key{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px;display:block}
+            #sell-table td.rt-key::before{display:none}
+            #sell-table tbody td{white-space:normal}
+            #sell-table tbody tr:hover{background:var(--card)}
+            #sell-table .cell-stack{align-items:flex-end}
+            /* 平板是手指在點，交易連結回到 44px（style.css 第 9 節桌機縮小那條不適用） */
+            #sell-table .trade-link{min-height:44px;padding:8px 12px;font-size:var(--fs-ui);border-radius:8px}
+        }
     </style>
 </head>
 <body data-page="sell">
